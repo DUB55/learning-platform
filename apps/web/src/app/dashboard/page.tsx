@@ -115,37 +115,9 @@
                 </div>
             </div>
         </div>
-    </div>
-            </main >
-        </div >
-    );
-}
-
-function SidebarItem({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void }) {
-    return (
-        <button
-            onClick={onClick}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${active
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
-                }`}
-        >
-            <div className={`transition-transform duration-200 ${active ? 'scale-110' : 'group-hover:scale-110'}`}>
-                {icon}
-            </div>
-            <span className="font-medium">{label}</span>
-        </button>
-    );
-}
-
-function StatCard({ title, value, icon, progress, color }: { title: string, value: string, icon: React.ReactNode, progress: number, color: string }) {
-    const colors = {
-        emerald: 'bg-emerald-500',
-        blue: 'bg-blue-500',
-        purple: 'bg-purple-500',
     };
 
-    return (
+        return (
         <div className="glass-card p-6 relative overflow-hidden group">
             <div className="flex justify-between items-start mb-4">
                 <div>
@@ -164,25 +136,25 @@ function StatCard({ title, value, icon, progress, color }: { title: string, valu
             </div>
             <div className="mt-2 text-right text-xs text-slate-500">{progress}%</div>
         </div>
-    );
+        );
 }
 
-function SubjectCard({ title, chapters, progress, time, streak, color }: any) {
+        function SubjectCard({title, chapters, progress, time, streak, color}: any) {
     const colors = {
-        cyan: 'border-cyan-500/50',
+            cyan: 'border-cyan-500/50',
         orange: 'border-orange-500/50',
         emerald: 'border-emerald-500/50',
         purple: 'border-purple-500/50',
     };
 
-    const barColors = {
-        cyan: 'bg-cyan-500',
+        const barColors = {
+            cyan: 'bg-cyan-500',
         orange: 'bg-orange-500',
         emerald: 'bg-emerald-500',
         purple: 'bg-purple-500',
     };
 
-    return (
+        return (
         <div className={`glass-card p-6 border-l-4 ${colors[color]} hover:bg-white/5 transition-all duration-300 group`}>
             <div className="flex justify-between items-start mb-6">
                 <div>
@@ -218,17 +190,17 @@ function SubjectCard({ title, chapters, progress, time, streak, color }: any) {
                 </div>
             </div>
         </div>
-    );
+        );
 }
 
-function UpcomingCard({ title, subject, date, time, type }: any) {
+        function UpcomingCard({title, subject, date, time, type}: any) {
     const types = {
-        test: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+            test: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
         review: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
         deadline: 'bg-red-500/10 text-red-400 border-red-500/20',
     };
 
-    return (
+        return (
         <div className="glass-card p-4 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer">
             <div className="flex-1">
                 <h4 className="text-white font-medium mb-1">{title}</h4>
@@ -244,5 +216,5 @@ function UpcomingCard({ title, subject, date, time, type }: any) {
                 </div>
             </div>
         </div>
-    );
+        );
 }
