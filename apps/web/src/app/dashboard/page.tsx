@@ -60,7 +60,8 @@ export default function Dashboard() {
             // Fetch study sessions for stats
             const { data: sessionsData } = await supabase
                 .from('study_sessions')
-                .select('duration_seconds, created_at');
+                .select('duration_seconds, created_at')
+                .returns<{ duration_seconds: number, created_at: string }[]>();
 
             // Calculate stats
             if (sessionsData) {
