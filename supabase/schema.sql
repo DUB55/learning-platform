@@ -1,3 +1,10 @@
+-- Reset tables (WARNING: This will delete data in these tables)
+drop table if exists public.tasks cascade;
+drop table if exists public.study_sessions cascade;
+drop table if exists public.chapters cascade;
+drop table if exists public.subjects cascade;
+drop table if exists public.profiles cascade;
+
 -- Create profiles table
 create table public.profiles (
   id uuid references auth.users not null primary key,
