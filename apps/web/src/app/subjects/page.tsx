@@ -38,10 +38,28 @@ export default function SubjectsPage() {
 
     const handleAddSubject = async (e: React.FormEvent) => {
         e.preventDefault();
-    } catch (error) {
-        console.error('Error adding subject:', error);
-    }
-};
+        if (!user || !newSubjectTitle.trim()) return;
+
+        try {
+            const { error } = await supabase
+                .from('subjects')
+                .insert([
+                    { 
+                        user_id: user.id, 
+                        title: newSubjectTitle,
+                        color: 'blue'
+                    }
+                ] as any);
+
+            if (error) throw error;
+
+            setNewSubjectTitle('');
+            setShowAddModal(false);
+            fetchSubjects();
+        } catch (error) {
+            console.error('Error adding subject:', error);
+        }
+    };
 
 if (loading) {
     return (
