@@ -15,5 +15,8 @@
     "devDependencies": {
         "turbo": "^1.10.0",
         "typescript": "^5.2.0"
+    },
+    "dependencies": {
+        "@supabase/auth-helpers-nextjs": "^0.10.0"
     }
 }
