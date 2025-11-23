@@ -26,6 +26,7 @@ export default function RootLayout({
                         <div className="absolute -bottom-32 left-1/3 w-96 h-96 bg-pink-500/20 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
                     </div>
                     {children}
+                    <AITutorWidget />
                 </AuthProvider>
             </body>
         </html>
