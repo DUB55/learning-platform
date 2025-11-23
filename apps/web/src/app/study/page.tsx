@@ -1,258 +1,83 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Layout } from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
+import Sidebar from '@/components/Sidebar';
+import { Zap, Brain, Clock, ChevronRight, Play } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { RotateCcw, Check, X, Eye, EyeOff, Brain, TrendingUp } from 'lucide-react';
-
-interface Card {
-    id: string;
-    term: string;
-    definition: string;
-    ease_factor: number;
-    interval_days: number;
-    repetitions: number;
-}
 
 export default function StudyPage() {
     const { user } = useAuth();
-    const [cards, setCards] = useState<Card[]>([]);
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const [showAnswer, setShowAnswer] = useState(false);
+    const [subjects, setSubjects] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [reviewing, setReviewing] = useState(false);
-    const [sessionStats, setSessionStats] = useState({ correct: 0, total: 0 });
 
     useEffect(() => {
         if (user) {
-            fetchDueCards();
+            fetchSubjects();
         }
     }, [user]);
 
-    const fetchDueCards = async () => {
+    const fetchSubjects = async () => {
         try {
-            const { data, error } = await supabase
-                .from('srscards')
-                .select(`
-          id,
-          ease_factor,
-          interval_days,
-          repetitions,
-          leersetitem:leersetitems (
-            id,
-            term,
-            definition
-          )
-        `)
-                .eq('user_id', user!.id)
-                .lte('next_review_date', new Date().toISOString())
-                .limit(20);
+            const { data } = await supabase
+                .from('subjects')
+                .select('*, chapters(count)')
+                .order('created_at', { ascending: false });
 
-            if (error) throw error;
-
-            const formattedCards = (data || []).map((card: any) => ({
-                id: card.id,
-                term: card.leersetitem.term,
-                definition: card.leersetitem.definition,
-                ease_factor: card.ease_factor,
-                interval_days: card.interval_days,
-                repetitions: card.repetitions,
-            }));
-
-            setCards(formattedCards);
+            if (data) setSubjects(data);
         } catch (error) {
-            console.error('Error fetching cards:', error);
+            console.error('Error fetching subjects:', error);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleReview = async (quality: number) => {
-        if (reviewing) return;
-        setReviewing(true);
-
-        try {
-            const response = await fetch('/api/srs/review', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    cardId: cards[currentIndex].id,
-                    userId: user!.id,
-                    quality,
-                    timeSpent: 0,
-                }),
-            });
-
-            if (!response.ok) throw new Error('Review failed');
-
-            // Update stats
-            setSessionStats(prev => ({
-                correct: prev.correct + (quality >= 3 ? 1 : 0),
-                total: prev.total + 1,
-            }));
-
-            // Move to next card
-            if (currentIndex < cards.length - 1) {
-                setCurrentIndex(currentIndex + 1);
-                setShowAnswer(false);
-            } else {
-                // Session complete
-                alert(`Sessie voltooid! ${sessionStats.correct + (quality >= 3 ? 1 : 0)}/${sessionStats.total + 1} correct`);
-                setCards([]);
-                setCurrentIndex(0);
-            }
-        } catch (error) {
-            console.error('Review error:', error);
-            alert('Er ging iets mis bij het opslaan. Probeer opnieuw.');
-        } finally {
-            setReviewing(false);
-        }
-    };
-
-    if (loading) {
-        return (
-            <Layout>
-                <div className="flex items-center justify-center h-64">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-                </div>
-            </Layout>
-        );
-    }
-
-    if (cards.length === 0) {
-        return (
-            <Layout>
-                <div className="max-w-2xl mx-auto text-center py-16">
-                    <div className="w-24 h-24 mx-auto mb-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-                        <Check className="w-12 h-12 text-green-600 dark:text-green-400" />
-                    </div>
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-                        Alles klaar voor vandaag!
-                    </h2>
-                    <p className="text-slate-600 dark:text-slate-400 mb-8">
-                        Je hebt geen kaarten meer om te reviewen. Kom morgen terug!
-                    </p>
-                    <button
-                        onClick={fetchDueCards}
-                        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-                    >
-                        <RotateCcw className="w-5 h-5 inline mr-2" />
-                        Ververs
-                    </button>
-                </div>
-            </Layout>
-        );
-    }
-
-    const currentCard = cards[currentIndex];
-    const progress = ((currentIndex + 1) / cards.length) * 100;
-
     return (
-        <Layout>
-            <div className="max-w-4xl mx-auto">
-                {/* Progress Bar */}
-                <div className="mb-8">
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                            Kaart {currentIndex + 1} van {cards.length}
-                        </span>
-                        <span className="text-sm text-slate-600 dark:text-slate-400">
-                            {sessionStats.total > 0 && (
-                                <>
-                                    {sessionStats.correct}/{sessionStats.total} correct (
-                                    {Math.round((sessionStats.correct / sessionStats.total) * 100)}%)
-                                </>
-                            )}
-                        </span>
-                    </div>
-                    <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                        <div
-                            className="h-full bg-blue-600 transition-all duration-300"
-                            style={{ width: `${progress}%` }}
-                        />
-                    </div>
-                </div>
+        <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
+            <Sidebar />
 
-                {/* Flashcard */}
-                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8 md:p-12 border border-slate-200 dark:border-slate-700 min-h-[400px] flex flex-col justify-between">
-                    {/* Card Content */}
-                    <div className="flex-1 flex flex-col items-center justify-center">
-                        <div className="text-center mb-8">
-                            <p className="text-sm uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-4">
-                                {showAnswer ? 'Definitie' : 'Begrip'}
-                            </p>
-                            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-6">
-                                {showAnswer ? currentCard.definition : currentCard.term}
-                            </h2>
-                        </div>
+            <main className="flex-1 overflow-y-auto relative p-8">
+                <div className="max-w-7xl mx-auto">
+                    <header className="mb-10">
+                        <h1 className="text-3xl font-serif font-bold text-white mb-2">Study Mode</h1>
+                        <p className="text-slate-400">Choose a subject to start your learning session</p>
+                    </header>
 
-                        {!showAnswer ? (
-                            <button
-                                onClick={() => setShowAnswer(true)}
-                                className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center gap-2 text-lg"
-                            >
-                                <Eye className="w-5 h-5" />
-                                Toon Antwoord
-                            </button>
-                        ) : (
-                            <div className="w-full">
-                                <p className="text-center text-sm text-slate-600 dark:text-slate-400 mb-4">
-                                    Hoe goed kende je dit?
-                                </p>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                    <button
-                                        onClick={() => handleReview(0)}
-                                        disabled={reviewing}
-                                        className="px-4 py-3 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 font-medium rounded-lg transition-colors disabled:opacity-50"
-                                    >
-                                        <X className="w-5 h-5 mx-auto mb-1" />
-                                        <span className="text-xs">Fout</span>
-                                    </button>
-                                    <button
-                                        onClick={() => handleReview(2)}
-                                        disabled={reviewing}
-                                        className="px-4 py-3 bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/30 dark:hover:bg-orange-900/50 text-orange-700 dark:text-orange-300 font-medium rounded-lg transition-colors disabled:opacity-50"
-                                    >
-                                        <Brain className="w-5 h-5 mx-auto mb-1" />
-                                        <span className="text-xs">Moeilijk</span>
-                                    </button>
-                                    <button
-                                        onClick={() => handleReview(3)}
-                                        disabled={reviewing}
-                                        className="px-4 py-3 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-medium rounded-lg transition-colors disabled:opacity-50"
-                                    >
-                                        <Check className="w-5 h-5 mx-auto mb-1" />
-                                        <span className="text-xs">Goed</span>
-                                    </button>
-                                    <button
-                                        onClick={() => handleReview(5)}
-                                        disabled={reviewing}
-                                        className="px-4 py-3 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-700 dark:text-green-300 font-medium rounded-lg transition-colors disabled:opacity-50"
-                                    >
-                                        <TrendingUp className="w-5 h-5 mx-auto mb-1" />
-                                        <span className="text-xs">Makkelijk</span>
-                                    </button>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {subjects.map((subject) => (
+                            <div key={subject.id} className="glass-card p-6 group hover:bg-white/5 transition-all duration-300">
+                                <div className="flex justify-between items-start mb-6">
+                                    <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform duration-300">
+                                        <Brain className="w-6 h-6" />
+                                    </div>
+                                    <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-slate-400">
+                                        {subject.chapters[0]?.count || 0} chapters
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                    </div>
 
-                    {/* Card Info */}
-                    <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
-                        <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
-                            <span>Interval: {currentCard.interval_days} dagen</span>
-                            <span>Herhalingen: {currentCard.repetitions}</span>
-                            <span>Ease: {currentCard.ease_factor.toFixed(2)}</span>
+                                <h3 className="text-xl font-bold text-white mb-2">{subject.title}</h3>
+                                <p className="text-slate-400 text-sm mb-6 line-clamp-2">
+                                    Master this subject with flashcards and spaced repetition.
+                                </p>
+
+                                <button className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium flex items-center justify-center gap-2 transition-colors group-hover:shadow-lg group-hover:shadow-blue-500/25">
+                                    <Play className="w-4 h-4 fill-current" />
+                                    <span>Start Session</span>
+                                </button>
+                            </div>
+                        ))}
+
+                        {/* Quick Start Card */}
+                        <div className="glass-card p-6 border-2 border-dashed border-white/10 flex flex-col items-center justify-center text-center hover:border-blue-500/50 hover:bg-blue-500/5 transition-all cursor-pointer group">
+                            <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                <Zap className="w-8 h-8 text-yellow-400" />
+                            </div>
+                            <h3 className="text-lg font-bold text-white mb-1">Quick Review</h3>
+                            <p className="text-slate-400 text-sm">Mix all subjects for a quick test</p>
                         </div>
                     </div>
                 </div>
-
-                {/* Help Text */}
-                <div className="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">
-                    <p>Tip: Wees eerlijk over je antwoord voor optimale leerresultaten</p>
-                </div>
-            </div>
-        </Layout>
+            </main>
+        </div>
     );
 }
