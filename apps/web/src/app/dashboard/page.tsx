@@ -21,15 +21,23 @@ import {
 } from 'lucide-react';
 
 export default function Dashboard() {
-    const { user, signOut } = useAuth();
+    const { user, loading, signOut } = useAuth();
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('dashboard');
 
     useEffect(() => {
-        if (!user) {
+        if (!loading && !user) {
             router.push('/login');
         }
-    }, [user, router]);
+    }, [user, loading, router]);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+        );
+    }
 
     if (!user) return null;
 
@@ -216,8 +224,8 @@ function SidebarItem({ icon, label, active, onClick }: { icon: React.ReactNode, 
         <button
             onClick={onClick}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${active
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
                 }`}
         >
             <div className={`transition-transform duration-200 ${active ? 'scale-110' : 'group-hover:scale-110'}`}>
