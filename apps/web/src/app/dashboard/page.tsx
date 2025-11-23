@@ -24,6 +24,15 @@ export default function Dashboard() {
     const { user, loading, signOut } = useAuth();
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('dashboard');
+    const [subjects, setSubjects] = useState<any[]>([]);
+    const [tasks, setTasks] = useState<any[]>([]);
+    const [stats, setStats] = useState({
+        streak: 0,
+        totalStudyTime: 0,
+        completedTasks: 0,
+        totalTasks: 0
+    });
+    const [isLoadingData, setIsLoadingData] = useState(true);
 
     useEffect(() => {
         if (!loading && !user) {
@@ -31,7 +40,57 @@ export default function Dashboard() {
         }
     }, [user, loading, router]);
 
-    if (loading) {
+    useEffect(() => {
+        if (user) {
+            fetchDashboardData();
+        }
+    }, [user]);
+
+    const fetchDashboardData = async () => {
+        try {
+            // Fetch subjects
+            const { data: subjectsData } = await supabase
+                .from('subjects')
+                .select('*, chapters(count)')
+                .order('created_at', { ascending: false });
+
+            if (subjectsData) setSubjects(subjectsData);
+
+            // Fetch tasks
+            const { data: tasksData } = await supabase
+                .from('tasks')
+                .select('*')
+                .order('due_date', { ascending: true })
+                .limit(5);
+
+            if (tasksData) setTasks(tasksData);
+
+            // Fetch study sessions for stats
+            const { data: sessionsData } = await supabase
+                .from('study_sessions')
+                .select('duration_seconds, created_at');
+
+            // Calculate stats
+            if (sessionsData) {
+                const totalSeconds = sessionsData.reduce((acc, curr) => acc + curr.duration_seconds, 0);
+                // Simple streak calculation (consecutive days with sessions) - simplified for now
+                const uniqueDays = new Set(sessionsData.map(s => new Date(s.created_at).toDateString())).size;
+
+                setStats(prev => ({
+                    ...prev,
+                    totalStudyTime: Math.round(totalSeconds / 3600), // hours
+                    streak: uniqueDays
+                }));
+            }
+
+        } catch (error) {
+            console.error('Error fetching dashboard data:', error);
+        } finally {
+            setIsLoadingData(false);
+        }
+    };
+
+    if (loading || isLoadingData) {
         return (
             <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -90,7 +149,7 @@ export default function Dashboard() {
                     <header className="flex justify-between items-center mb-10">
                         <div>
                             <h1 className="text-3xl font-serif font-bold text-white mb-1">
-                                Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">Alex!</span>
+                                Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">{user.user_metadata.full_name?.split(' ')[0] || 'Student'}!</span>
                             </h1>
                             <p className="text-slate-400">Let's continue your learning journey</p>
                         </div>
@@ -109,9 +168,13 @@ export default function Dashboard() {
                                 <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-slate-900"></span>
                             </button>
                             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 p-[2px]">
-                                <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center text-white font-medium text-sm">
-                                    JD
-                                </div>
+                                {user.user_metadata.avatar_url ? (
+                                    <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center text-white font-medium text-sm">
+                                        {user.email?.[0].toUpperCase()}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </header>
@@ -120,23 +183,23 @@ export default function Dashboard() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                         <StatCard
                             title="Study Streak"
-                            value="7 of 30 completed"
+                            value={`${stats.streak} days`}
                             icon={<Zap className="w-5 h-5 text-emerald-400" />}
-                            progress={23}
+                            progress={Math.min(stats.streak * 10, 100)}
                             color="emerald"
                         />
                         <StatCard
-                            title="Weekly Goal"
-                            value="12 of 20 completed"
-                            icon={<Target className="w-5 h-5 text-blue-400" />}
-                            progress={60}
+                            title="Total Study Time"
+                            value={`${stats.totalStudyTime} hours`}
+                            icon={<Clock className="w-5 h-5 text-blue-400" />}
+                            progress={Math.min(stats.totalStudyTime * 2, 100)}
                             color="blue"
                         />
                         <StatCard
-                            title="Reviews Due"
-                            value="8 of 15 completed"
-                            icon={<Clock className="w-5 h-5 text-purple-400" />}
-                            progress={53}
+                            title="Tasks Completed"
+                            value="0 completed"
+                            icon={<Target className="w-5 h-5 text-purple-400" />}
+                            progress={0}
                             color="purple"
                         />
                     </div>
@@ -149,67 +212,48 @@ export default function Dashboard() {
                                 <button className="text-sm text-blue-400 hover:text-blue-300 transition-colors">View All</button>
                             </div>
 
-                            <div className="grid md:grid-cols-2 gap-6">
-                                <SubjectCard
-                                    title="Mathematics"
-                                    chapters="8/12 chapters"
-                                    progress={68}
-                                    time="24h studied"
-                                    streak="3 days"
-                                    color="cyan"
-                                />
-                                <SubjectCard
-                                    title="Physics"
-                                    chapters="5/10 chapters"
-                                    progress={45}
-                                    time="18h studied"
-                                    streak="1 week"
-                                    color="orange"
-                                />
-                                <SubjectCard
-                                    title="Chemistry"
-                                    chapters="7/8 chapters"
-                                    progress={82}
-                                    time="32h studied"
-                                    streak="Today"
-                                    color="emerald"
-                                />
-                                <SubjectCard
-                                    title="Biology"
-                                    chapters="9/15 chapters"
-                                    progress={56}
-                                    time="21h studied"
-                                    streak="5 days"
-                                    color="purple"
-                                />
-                            </div>
+                            {subjects.length === 0 ? (
+                                <div className="glass-card p-8 text-center">
+                                    <p className="text-slate-400 mb-4">You haven't added any subjects yet.</p>
+                                    <button className="glass-button px-6 py-2 rounded-lg">
+                                        Add Subject
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    {subjects.map((subject) => (
+                                        <SubjectCard
+                                            key={subject.id}
+                                            title={subject.title}
+                                            chapters={`${subject.chapters[0]?.count || 0} chapters`}
+                                            progress={0}
+                                            time="0h studied"
+                                            streak="0 days"
+                                            color={subject.color || 'blue'}
+                                        />
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         {/* Upcoming */}
                         <div className="space-y-6">
                             <h2 className="text-xl font-bold text-white">Upcoming</h2>
                             <div className="space-y-4">
-                                <UpcomingCard
-                                    title="Calculus Midterm"
-                                    subject="Mathematics"
-                                    date="May 28"
-                                    time="2:00 PM"
-                                    type="test"
-                                />
-                                <UpcomingCard
-                                    title="Newton's Laws Review"
-                                    subject="Physics"
-                                    date="May 25"
-                                    time="4:30 PM"
-                                    type="review"
-                                />
-                                <UpcomingCard
-                                    title="Lab Report Due"
-                                    subject="Chemistry"
-                                    date="May 26"
-                                    time="11:59 PM"
-                                    type="deadline"
-                                />
+                                {tasks.length === 0 ? (
+                                    <p className="text-slate-400 text-sm">No upcoming tasks.</p>
+                                ) : (
+                                    tasks.map((task) => (
+                                        <UpcomingCard
+                                            key={task.id}
+                                            title={task.title}
+                                            subject="Unknown"
+                                            date={new Date(task.due_date).toLocaleDateString()}
+                                            time={new Date(task.due_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            type={task.type || 'assignment'}
+                                        />
+                                    ))
+                                )}
                             </div>
                         </div>
                     </div>
