@@ -280,6 +280,68 @@ export default function CreateLearningSetPage() {
                 </div>
             </main>
 
+            {/* AI Generation Modal */}
+            {showAIModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="glass-card p-8 w-full max-w-2xl">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                                    <Sparkles className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white">Generate with Dub5 AI</h2>
+                                    <p className="text-xs text-slate-400">Powered by advanced learning models</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowAIModal(false)}
+                                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                            >
+                                <X className="w-5 h-5 text-slate-400" />
+                            </button>
+                        </div>
+
+                        <p className="text-slate-400 mb-6">
+                            Paste your notes, article, or any text below. Dub5 AI will automatically extract key terms and definitions for you.
+                        </p>
+
+                        <textarea
+                            value={aiContext}
+                            onChange={(e) => setAiContext(e.target.value)}
+                            placeholder="Paste your context here..."
+                            className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-3 text-white h-48 resize-none focus:outline-none focus:border-blue-500 mb-6 text-sm"
+                        />
+
+                        <div className="flex gap-4">
+                            <button
+                                onClick={() => setShowAIModal(false)}
+                                className="flex-1 px-4 py-3 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleAIGenerate}
+                                disabled={isGeneratingAI || !aiContext.trim()}
+                                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-medium py-3 rounded-lg transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isGeneratingAI ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        <span>Generating...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles className="w-4 h-4" />
+                                        <span>Generate Learning Set</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Import Modal */}
             {showImportModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
