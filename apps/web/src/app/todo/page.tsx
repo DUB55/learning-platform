@@ -3,15 +3,18 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
-import { Plus, Check, Circle, Trash2, Calendar as CalendarIcon, Tag } from 'lucide-react';
+import { Plus, Check, Circle, Trash2, Calendar as CalendarIcon, Tag, Edit2, FolderOpen } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useTasks } from '@/hooks/useTasks';
+import ContextMenu from '@/components/ContextMenu';
 
 export default function TodoPage() {
     const { user } = useAuth();
     const { tasks, isLoading: loading, mutate } = useTasks(user);
     const [newTaskTitle, setNewTaskTitle] = useState('');
     const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; taskId: string } | null>(null);
+    const [editingTask, setEditingTask] = useState<{ id: string; title: string } | null>(null);
 
     const handleAddTask = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -104,6 +107,95 @@ export default function TodoPage() {
         return true;
     });
 
+    const handleContextMenu = (e: React.MouseEvent, taskId: string) => {
+        e.preventDefault();
+        setContextMenu({
+            x: e.clientX,
+            y: e.clientY,
+            taskId
+        });
+    };
+
+    const handleChangeCategory = async (taskId: string, newType: string) => {
+        try {
+            const { error } = await supabase
+                .from('tasks')
+                .update({ type: newType })
+                .eq('id', taskId);
+
+            if (!error) {
+                await mutate();
+            }
+        } catch (error) {
+            console.error('Error changing category:', error);
+        }
+    };
+
+    const handleEditTask = (taskId: string) => {
+        const task = tasks.find((t: any) => t.id === taskId);
+        if (task) {
+            setEditingTask({ id: task.id, title: task.title });
+        }
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingTask) return;
+
+        try {
+            const { error } = await supabase
+                .from('tasks')
+                .update({ title: editingTask.title })
+                .eq('id', editingTask.id);
+
+            if (!error) {
+                await mutate();
+                setEditingTask(null);
+            }
+        } catch (error) {
+            console.error('Error updating task:', error);
+        }
+    };
+
+    const getContextMenuItems = (taskId: string) => {
+        const task = tasks.find((t: any) => t.id === taskId);
+        if (!task) return [];
+
+        return [
+            {
+                icon: <Edit2 className="w-4 h-4" />,
+                label: 'Edit Task',
+                onClick: () => handleEditTask(taskId)
+            },
+            {
+                icon: <Tag className="w-4 h-4" />,
+                label: 'Assignment',
+                onClick: () => handleChangeCategory(taskId, 'assignment')
+            },
+            {
+                icon: <Tag className="w-4 h-4" />,
+                label: 'Test',
+                onClick: () => handleChangeCategory(taskId, 'test')
+            },
+            {
+                icon: <Tag className="w-4 h-4" />,
+                label: 'Review',
+                onClick: () => handleChangeCategory(taskId, 'review')
+            },
+            {
+                icon: <FolderOpen className="w-4 h-4" />,
+                label: 'Deadline',
+                onClick: () => handleChangeCategory(taskId, 'deadline')
+            },
+            {
+                icon: <Trash2 className="w-4 h-4" />,
+                label: 'Delete',
+                onClick: () => deleteTask(taskId),
+                danger: true,
+                divider: true
+            }
+        ];
+    };
+
     return (
         <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
             <Sidebar />
@@ -170,6 +262,7 @@ export default function TodoPage() {
                                     key={task.id}
                                     className={`glass-card p-4 flex items-center gap-4 group transition-all ${task.is_completed ? 'opacity-50' : ''
                                         }`}
+                                    onContextMenu={(e) => handleContextMenu(e, task.id)}
                                 >
                                     <button
                                         onClick={() => toggleTaskCompletion(task.id, task.is_completed)}
@@ -182,9 +275,24 @@ export default function TodoPage() {
                                     </button>
 
                                     <div className="flex-1">
-                                        <h3 className={`font-medium text-white ${task.is_completed ? 'line-through text-slate-400' : ''}`}>
-                                            {task.title}
-                                        </h3>
+                                        {editingTask && editingTask.id === task.id ? (
+                                            <input
+                                                type="text"
+                                                value={editingTask.title}
+                                                onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
+                                                onBlur={handleSaveEdit}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') handleSaveEdit();
+                                                    if (e.key === 'Escape') setEditingTask(null);
+                                                }}
+                                                autoFocus
+                                                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-3 py-1 text-white focus:outline-none focus:border-blue-500"
+                                            />
+                                        ) : (
+                                            <h3 className={`font-medium text-white ${task.is_completed ? 'line-through text-slate-400' : ''}`}>
+                                                {task.title}
+                                            </h3>
+                                        )}
                                         <div className="flex items-center gap-4 mt-1 text-xs text-slate-500">
                                             {task.due_date && (
                                                 <div className="flex items-center gap-1">
@@ -213,6 +321,15 @@ export default function TodoPage() {
                     </div>
                 </div>
             </main>
+
+            {/* Context Menu */}
+            {contextMenu && (
+                <ContextMenu
+                    items={getContextMenuItems(contextMenu.taskId)}
+                    position={{ x: contextMenu.x, y: contextMenu.y }}
+                    onClose={() => setContextMenu(null)}
+                />
+            )}
         </div>
     );
 }
