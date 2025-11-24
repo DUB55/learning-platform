@@ -101,10 +101,12 @@ export default function AnnouncementsPage() {
     };
 
     const handleAnnouncementClick = async (announcement: Announcement) => {
+        // Mark as read
         if (!announcement.is_read) {
             await markAsRead(announcement.id);
         }
 
+        // Navigate to linked page if exists
         if (announcement.linked_page_id && announcement.linked_page) {
             router.push(`/announcements/${announcement.linked_page.slug}`);
         }
@@ -154,36 +156,50 @@ export default function AnnouncementsPage() {
                     ) : announcements.length === 0 ? (
                         <div className="glass-card p-12 text-center">
                             <p className="text-slate-400">No announcements at this time</p>
-                            {getPriorityIcon(announcement.priority)}
-
-                            <div className="flex-1 min-w-0">
-                                <h3 className="text-xl font-bold text-white mb-2">
-                                    {announcement.title}
-                                </h3>
-                                <p className="text-slate-300 whitespace-pre-wrap mb-4">
-                                    {announcement.content}
-                                </p>
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-1 text-xs text-slate-500">
-                                        <Clock className="w-3 h-3" />
-                                        <span>{new Date(announcement.created_at).toLocaleDateString()}</span>
-                                    </div>
-                                    {announcement.linked_page_id && announcement.linked_page && (
-                                        <div className="flex items-center gap-1 text-blue-400 text-sm">
-                                            <span>Read more</span>
-                                            <ExternalLink className="w-4 h-4" />
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
                         </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {announcements.map((announcement) => (
+                                <div
+                                    key={announcement.id}
+                                    className={`glass-card p-6 transition-all duration-300 ${getPriorityStyles(announcement.priority)} ${!announcement.is_read ? 'bg-blue-500/5' : ''
+                                        } ${announcement.linked_page_id ? 'cursor-pointer hover:bg-white/5' : ''}`}
+                                    onClick={() => handleAnnouncementClick(announcement)}
+                                >
+                                    <div className="flex items-start gap-4">
+                                        {!announcement.is_read && (
+                                            <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                        )}
+
+                                        {getPriorityIcon(announcement.priority)}
+
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="text-xl font-bold text-white mb-2">
+                                                {announcement.title}
+                                            </h3>
+                                            <p className="text-slate-300 whitespace-pre-wrap mb-4">
+                                                {announcement.content}
+                                            </p>
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-1 text-xs text-slate-500">
+                                                    <Clock className="w-3 h-3" />
+                                                    <span>{new Date(announcement.created_at).toLocaleDateString()}</span>
+                                                </div>
+                                                {announcement.linked_page_id && announcement.linked_page && (
+                                                    <div className="flex items-center gap-1 text-blue-400 text-sm">
+                                                        <span>Read more</span>
+                                                        <ExternalLink className="w-4 h-4" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             ))}
+                        </div>
+                    )}
+                </div>
+            </main>
         </div>
-    )
-}
-                </div >
-            </main >
-        </div >
     );
 }
