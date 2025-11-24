@@ -12,8 +12,14 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [fullName, setFullName] = useState('');
     const [loading, setLoading] = useState(false);
-    const { signIn, signUp, signInWithGoogle } = useAuth();
+    const { signIn, signUp, signInWithGoogle, user } = useAuth();
     const router = useRouter();
+
+    useEffect(() => {
+        if (user) {
+            router.push('/dashboard');
+        }
+    }, [user, router]);
 
     // Toast state
     const [toast, setToast] = useState<{ message: string; type: ToastType; isVisible: boolean }>({
