@@ -28,6 +28,21 @@ export default function DocumentsPage() {
     useEffect(() => {
         if (user && paragraphId) {
             fetchParagraphAndDocuments();
+
+            // Subscribe to real-time updates
+            const channel = supabase
+                .channel('documents-changes')
+                .on('postgres_changes',
+                    { event: '*', schema: 'public', table: 'documents', filter: `paragraph_id=eq.${paragraphId}` },
+                    () => {
+                        fetchParagraphAndDocuments();
+                    }
+                )
+                .subscribe();
+
+            return () => {
+                supabase.removeChannel(channel);
+            };
         }
     }, [user, paragraphId]);
 
