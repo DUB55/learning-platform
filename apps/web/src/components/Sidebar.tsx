@@ -71,6 +71,12 @@ export default function Sidebar() {
                         active={isActive('/study')}
                     />
                     <SidebarItem
+                        icon={<Sparkles className="text-purple-400" />}
+                        label="Dub5 AI"
+                        href="/ai-chat"
+                        active={isActive('/ai-chat')}
+                    />
+                    <SidebarItem
                         icon={<Library />}
                         label="Library"
                         href="/library"
