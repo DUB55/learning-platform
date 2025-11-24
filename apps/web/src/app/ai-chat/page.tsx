@@ -104,37 +104,56 @@ export default function AIChatPage() {
             // Optimistically update UI
             setMessages(prev => [...prev, userMsg]);
 
-            // Get AI response
+            // Create placeholder for AI response
+            const tempAiMsgId = Date.now().toString();
+            setMessages(prev => [...prev, {
+                id: tempAiMsgId,
+                role: 'assistant',
+                content: '',
+                created_at: new Date().toISOString()
+            } as Message]);
+
+            let fullContent = '';
+
+            // Get AI response with streaming
             const contextMessages: AIMessage[] = messages.map(m => ({
                 role: m.role,
                 content: m.content
             }));
             contextMessages.push({ role: 'user', content: userContent });
 
-            const response = await dub5ai.chat(contextMessages);
+            await dub5ai.chat(contextMessages, (chunk) => {
+                fullContent += chunk;
+                setMessages(prev => prev.map(m =>
+                    m.id === tempAiMsgId
+                        ? { ...m, content: fullContent }
+                        : m
+                ));
+            });
 
-            if (response.error) {
-                throw new Error(response.error);
-            }
-
-            // Save AI message
+            // Save AI message to DB
             const { data: aiMsg, error: aiError } = await supabase
                 .from('ai_messages')
                 .insert([{
                     chat_id: chatId,
                     role: 'assistant',
-                    content: response.content
+                    content: fullContent
                 }])
                 .select()
                 .single();
 
             if (aiError) throw aiError;
 
-            setMessages(prev => [...prev, aiMsg]);
+            // Replace temp message with real one
+            setMessages(prev => prev.map(m =>
+                m.id === tempAiMsgId ? aiMsg : m
+            ));
 
         } catch (err: any) {
             console.error('Chat error:', err);
             showError(err.message || 'Failed to send message');
+            // Remove temp message if error
+            setMessages(prev => prev.filter(m => m.content !== ''));
         } finally {
             setIsTyping(false);
         }
@@ -187,8 +206,8 @@ export default function AIChatPage() {
                                     }`}
                             >
                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${msg.role === 'assistant'
-                                        ? 'bg-gradient-to-br from-blue-500 to-purple-600'
-                                        : 'bg-slate-700'
+                                    ? 'bg-gradient-to-br from-blue-500 to-purple-600'
+                                    : 'bg-slate-700'
                                     }`}>
                                     {msg.role === 'assistant' ? (
                                         <Bot className="w-5 h-5 text-white" />
