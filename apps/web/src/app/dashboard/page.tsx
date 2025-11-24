@@ -297,7 +297,7 @@ function StatCard({ title, value, icon, progress, color }: { title: string, valu
     );
 }
 
-function SubjectCard({ title, chapters, progress, time, streak, color }: any) {
+function SubjectCard({ title, chapters, progress, time, streak, color, onClick }: any) {
     const colors = {
         cyan: 'border-cyan-500/50',
         orange: 'border-orange-500/50',
@@ -315,7 +315,10 @@ function SubjectCard({ title, chapters, progress, time, streak, color }: any) {
     };
 
     return (
-        <div className={`glass-card p-6 border-l-4 ${colors[color] || colors.blue} hover:bg-white/5 transition-all duration-300 group`}>
+        <div
+            className={`glass-card p-6 border-l-4 ${colors[color] || colors.blue} hover:bg-white/5 transition-all duration-300 group cursor-pointer`}
+            onClick={onClick}
+        >
             <div className="flex justify-between items-start mb-6">
                 <div>
                     <h3 className="text-lg font-bold text-white mb-1">{title}</h3>
