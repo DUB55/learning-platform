@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 export default function Dashboard() {
-    const { user, loading } = useAuth();
+    const { user, profile, loading } = useAuth();
     const router = useRouter();
     const [subjects, setSubjects] = useState<any[]>([]);
     const [tasks, setTasks] = useState<any[]>([]);
