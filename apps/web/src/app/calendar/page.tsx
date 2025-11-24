@@ -108,6 +108,16 @@ export default function CalendarPage() {
                             <p className="text-slate-400">Track your deadlines and study schedule</p>
                         </div>
                         <div className="flex items-center gap-4">
+                            <button
+                                onClick={() => {
+                                    setSelectedDate(new Date());
+                                    setShowEventModal(true);
+                                }}
+                                className="glass-button px-4 py-2 rounded-xl flex items-center gap-2"
+                            >
+                                <Plus className="w-4 h-4" />
+                                <span>Add Event</span>
+                            </button>
                             <div className="flex items-center bg-slate-800/50 rounded-xl p-1 border border-white/10">
                                 <button onClick={prevMonth} className="p-2 hover:bg-white/5 rounded-lg text-slate-400 hover:text-white transition-colors">
                                     <ChevronLeft className="w-5 h-5" />
