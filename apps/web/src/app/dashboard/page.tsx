@@ -21,6 +21,7 @@ export default function Dashboard() {
     const router = useRouter();
     const [subjects, setSubjects] = useState<any[]>([]);
     const [tasks, setTasks] = useState<any[]>([]);
+    const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
     const [stats, setStats] = useState({
         streak: 0,
         totalStudyTime: 0,
@@ -43,20 +44,43 @@ export default function Dashboard() {
 
     const fetchDashboardData = async () => {
         try {
-            // Fetch subjects
+            // Fetch subjects (limit to 6 for dashboard)
             const { data: subjectsData } = await supabase
                 .from('subjects')
-                .select('*, chapters(count)')
-                .order('created_at', { ascending: false });
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(6);
 
-            if (subjectsData) setSubjects(subjectsData);
+            if (subjectsData) {
+                // Get unit counts for each subject
+                const subjectsWithCounts = await Promise.all(
+                    subjectsData.map(async (subject) => {
+                        const { count } = await supabase
+                            .from('units')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('subject_id', subject.id);
+                        return { ...subject, unit_count: count || 0 };
+                    })
+                );
+                setSubjects(subjectsWithCounts);
+            }
 
-            // Fetch tasks
+            // Fetch upcoming calendar events (next 5)
+            const today = new Date().toISOString();
+            const { data: eventsData } = await supabase
+                .from('calendar_events')
+                .select('*')
+                .gte('start_date', today)
+                .order('start_date', { ascending: true })
+                .limit(5);
+
+            if (eventsData) setUpcomingEvents(eventsData);
+
+            // Still fetch tasks for stats
             const { data: tasksData } = await supabase
                 .from('tasks')
                 .select('*')
-                .order('due_date', { ascending: true })
-                .limit(5);
+                .order('due_date', { ascending: true });
 
             if (tasksData) setTasks(tasksData);
 
@@ -170,15 +194,23 @@ export default function Dashboard() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Subjects */}
                         <div className="lg:col-span-2 space-y-6">
-                            <div className="flex justify-between items-center">
+                            <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-xl font-bold text-white">Your Subjects</h2>
-                                <button className="text-sm text-blue-400 hover:text-blue-300 transition-colors">View All</button>
+                                <button
+                                    onClick={() => router.push('/subjects')}
+                                    className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                                >
+                                    View All
+                                </button>
                             </div>
 
                             {subjects.length === 0 ? (
                                 <div className="glass-card p-8 text-center">
                                     <p className="text-slate-400 mb-4">You haven't added any subjects yet.</p>
-                                    <button className="glass-button px-6 py-2 rounded-lg">
+                                    <button
+                                        onClick={() => router.push('/subjects')}
+                                        className="glass-button px-6 py-2 rounded-lg"
+                                    >
                                         Add Subject
                                     </button>
                                 </div>
@@ -188,32 +220,42 @@ export default function Dashboard() {
                                         <SubjectCard
                                             key={subject.id}
                                             title={subject.title}
-                                            chapters={`${subject.chapters[0]?.count || 0} chapters`}
+                                            chapters={`${subject.unit_count || 0} units`}
                                             progress={0}
                                             time="0h studied"
                                             streak="0 days"
                                             color={subject.color || 'blue'}
+                                            onClick={() => router.push(`/subjects/${subject.id}/units`)}
                                         />
                                     ))}
                                 </div>
                             )}
                         </div>
 
-                        {/* Upcoming */}
+                        {/* Upcoming Events */}
                         <div className="space-y-6">
-                            <h2 className="text-xl font-bold text-white">Upcoming</h2>
+                            <h2 className="text-xl font-bold text-white mb-6">Upcoming Events</h2>
                             <div className="space-y-4">
-                                {tasks.length === 0 ? (
-                                    <p className="text-slate-400 text-sm">No upcoming tasks.</p>
+                                {upcomingEvents.length === 0 ? (
+                                    <div className="glass-card p-6 text-center">
+                                        <p className="text-slate-400 text-sm">No upcoming events.</p>
+                                        <button
+                                            onClick={() => router.push('/calendar')}
+                                            className="text-sm text-blue-400 hover:text-blue-300 mt-2"
+                                        >
+                                            View Calendar
+                                        </button>
+                                    </div>
                                 ) : (
-                                    tasks.map((task) => (
+                                    upcomingEvents.map((event) => (
                                         <UpcomingCard
-                                            key={task.id}
-                                            title={task.title}
-                                            subject="Unknown"
-                                            date={new Date(task.due_date).toLocaleDateString()}
-                                            time={new Date(task.due_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            type={task.type || 'assignment'}
+                                            key={event.id}
+                                            title={event.title}
+                                            subject={event.description || ''}
+                                            date={new Date(event.start_date).toLocaleDateString()}
+                                            time={new Date(event.start_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            type="event"
+                                            color={event.color || 'blue'}
                                         />
                                     ))
                                 )}
