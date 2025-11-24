@@ -89,8 +89,11 @@ export default function LoginPage() {
                                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                                     <input
                                         type="text"
+                                        value={fullName}
+                                        onChange={(e) => setFullName(e.target.value)}
                                         placeholder="John Doe"
                                         className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                                        required={!isLogin}
                                     />
                                 </div>
                             </div>
