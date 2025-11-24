@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Plus, MoreVertical, FileText, Files } from 'lucide-react';
+import { ArrowLeft, Plus, MoreVertical, FileText, Files, Globe, Lock, Edit2, Trash2 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
+import ResourceContextMenu from '@/components/ResourceContextMenu';
 
 export default function ParagraphsPage() {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const router = useRouter();
     const params = useParams();
     const subjectId = params.id as string;
@@ -19,6 +20,8 @@ export default function ParagraphsPage() {
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
     const [newParagraphTitle, setNewParagraphTitle] = useState('');
+    const [resourceMenu, setResourceMenu] = useState<{ x: number; y: number; paragraphId: string } | null>(null);
+    const [editingParagraph, setEditingParagraph] = useState<{ id: string; title: string } | null>(null);
 
     useEffect(() => {
         if (user && unitId) {
@@ -89,16 +92,93 @@ export default function ParagraphsPage() {
         }
     };
 
-    const handleDeleteParagraph = async (paragraphId: string) => {
-        if (confirm('Delete this paragraph and all its documents?')) {
-            const { error } = await supabase
-                .from('paragraphs')
-                .delete()
-                .eq('id', paragraphId);
+    const handleToggleGlobal = async (paragraphId: string) => {
+        const paragraph = paragraphs.find(p => p.id === paragraphId);
+        if (!paragraph) return;
 
-            if (!error) {
-                setParagraphs(paragraphs.filter(p => p.id !== paragraphId));
+        const { error } = await supabase
+            .from('paragraphs')
+            .update({ is_global: !paragraph.is_global })
+            .eq('id', paragraphId);
+
+        if (!error) {
+            fetchUnitAndParagraphs();
+        }
+    };
+
+    const handleRenameParagraph = (paragraphId: string) => {
+        const paragraph = paragraphs.find(p => p.id === paragraphId);
+        if (paragraph) {
+            setEditingParagraph({ id: paragraph.id, title: paragraph.title });
+        }
+    };
+
+    const handleSaveRename = async () => {
+        if (!editingParagraph) return;
+
+        const { error } = await supabase
+            .from('paragraphs')
+            .update({ title: editingParagraph.title })
+            .eq('id', editingParagraph.id);
+
+        if (!error) {
+            setEditingParagraph(null);
+            fetchUnitAndParagraphs();
+        }
+    };
+
+    const handleResourceContextMenu = (e: React.MouseEvent, paragraphId: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setResourceMenu({
+            x: e.clientX,
+            y: e.clientY,
+            paragraphId
+        });
+    };
+
+    const getResourceMenuItems = (paragraphId: string) => {
+        const paragraph = paragraphs.find(p => p.id === paragraphId);
+        if (!paragraph) return [];
+
+        const items = [
+            {
+                icon: <Edit2 className="w-4 h-4" />,
+                label: 'Rename',
+                onClick: () => handleRenameParagraph(paragraphId)
             }
+        ];
+
+        // Only admins can toggle global status
+        if (profile?.is_admin) {
+            items.unshift({
+                icon: paragraph.is_global ? <Lock className="w-4 h-4" /> : <Globe className="w-4 h-4" />,
+                label: paragraph.is_global ? 'Make Private' : 'Make Global',
+                onClick: () => handleToggleGlobal(paragraphId)
+            });
+        }
+
+        items.push({
+            icon: <Trash2 className="w-4 h-4" />,
+            label: 'Delete',
+            onClick: () => handleDeleteParagraph(paragraphId),
+            danger: true,
+            divider: true
+        });
+
+        return items;
+    };
+
+    const handleDeleteParagraph = async (paragraphId: string) => {
+        if (!confirm('Delete this paragraph and all its documents?')) return;
+
+        const { error } = await supabase
+            .from('paragraphs')
+            .delete()
+            .eq('id', paragraphId);
+
+        if (!error) {
+            setParagraphs(paragraphs.filter(p => p.id !== paragraphId));
         }
     };
 
@@ -149,19 +229,38 @@ export default function ParagraphsPage() {
                                 key={paragraph.id}
                                 className="glass-card p-6 border-l-4 border-green-500/50 hover:bg-white/5 transition-all duration-300 group cursor-pointer"
                                 onClick={() => router.push(`/subjects/${subjectId}/units/${unitId}/paragraphs/${paragraph.id}/documents`)}
+                                onContextMenu={(e) => handleResourceContextMenu(e, paragraph.id)}
                             >
                                 <div className="flex justify-between items-start mb-6">
-                                    <div>
-                                        <h3 className="text-lg font-bold text-white mb-1">{paragraph.title}</h3>
-                                        <p className="text-slate-400 text-sm">{paragraph.document_count || 0} documents</p>
-                                    </div>
-                                    <div onClick={(e) => e.stopPropagation()}>
-                                        <button
-                                            onClick={() => handleDeleteParagraph(paragraph.id)}
-                                            className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                                        >
-                                            <MoreVertical className="w-5 h-5" />
-                                        </button>
+                                    <div className="flex-1">
+                                        {editingParagraph && editingParagraph.id === paragraph.id ? (
+                                            <input
+                                                type="text"
+                                                value={editingParagraph.title}
+                                                onChange={(e) => setEditingParagraph({ ...editingParagraph, title: e.target.value })}
+                                                onBlur={handleSaveRename}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') handleSaveRename();
+                                                    if (e.key === 'Escape') setEditingParagraph(null);
+                                                }}
+                                                onClick={(e) => e.stopPropagation()}
+                                                autoFocus
+                                                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-3 py-1 text-white text-lg font-bold focus:outline-none focus:border-blue-500"
+                                            />
+                                        ) : (
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <h3 className="text-lg font-bold text-white">{paragraph.title}</h3>
+                                                    {paragraph.is_global && (
+                                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center gap-1">
+                                                            <Globe className="w-2.5 h-2.5" />
+                                                            Global
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-slate-400 text-sm">{paragraph.document_count || 0} documents</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -214,6 +313,18 @@ export default function ParagraphsPage() {
                                 </form>
                             </div>
                         </div>
+                    )}
+
+                    {/* Resource Context Menu */}
+                    {resourceMenu && (
+                        <ResourceContextMenu
+                            items={getResourceMenuItems(resourceMenu.paragraphId)}
+                            position={{ x: resourceMenu.x, y: resourceMenu.y }}
+                            onClose={() => setResourceMenu(null)}
+                            resourceType="paragraph"
+                            isGlobal={paragraphs.find(p => p.id === resourceMenu.paragraphId)?.is_global || false}
+                            isAdmin={profile?.is_admin || false}
+                        />
                     )}
                 </div>
             </main>
