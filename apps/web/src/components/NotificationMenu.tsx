@@ -190,41 +190,64 @@ export default function NotificationMenu({ userId }: NotificationMenuProps) {
                         ) : announcements.length === 0 ? (
                             <div className="p-8 text-center text-slate-400">
                                 <Bell className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                                {new Date(announcement.created_at).toLocaleDateString()}
-                            </span>
+                                <p>No announcements</p>
+                            </div>
+                        ) : (
+                            announcements.map((announcement) => (
+                                <div
+                                    key={announcement.id}
+                                    className={`p-4 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer ${!announcement.is_read ? 'bg-blue-500/5' : ''
+                                        } ${getPriorityStyles(announcement.priority)}`}
+                                    onClick={() => handleAnnouncementClick(announcement)}
+                                >
+                                    <div className="flex items-start gap-3">
+                                        {!announcement.is_read && (
+                                            <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                        )}
+                                        {shouldShowPriority(announcement.priority) && getPriorityIcon(announcement.priority)}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h4 className="text-white font-medium text-sm truncate">
+                                                    {announcement.title}
+                                                </h4>
+                                            </div>
+                                            <p className="text-slate-400 text-xs line-clamp-2">
+                                                {announcement.content.replace(/<[^>]*>/g, '')}
+                                            </p>
+                                            <div className="flex items-center justify-between mt-2">
+                                                <span className="text-slate-500 text-xs">
+                                                    {new Date(announcement.created_at).toLocaleDateString()}
+                                                </span>
                                                 {announcement.linked_page_id && (
-                            <span className="flex items-center gap-1 text-blue-400 text-xs">
-                                <span>View details</span>
-                                <ExternalLink className="w-3 h-3" />
-                            </span>
+                                                    <span className="flex items-center gap-1 text-blue-400 text-xs">
+                                                        <span>View details</span>
+                                                        <ExternalLink className="w-3 h-3" />
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
                         )}
                     </div>
-                </div>
-                                    </div>
-                                </div >
-                            ))
-                        )
-}
-                    </div >
 
-    {/* Footer */ }
-{
-    announcements.length > 0 && (
-        <div className="px-4 py-3 bg-slate-900/50 border-t border-white/10">
-            <button
-                onClick={() => {
-                    router.push('/announcements');
-                    setIsOpen(false);
-                }}
-                className="w-full text-center text-sm text-blue-400 hover:text-blue-300 transition-colors"
-            >
-                View all announcements
-            </button>
-        </div>
-    )
-}
-                </div >
+                    {/* Footer */}
+                    {announcements.length > 0 && (
+                        <div className="px-4 py-3 bg-slate-900/50 border-t border-white/10">
+                            <button
+                                onClick={() => {
+                                    router.push('/announcements');
+                                    setIsOpen(false);
+                                }}
+                                className="w-full text-center text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                            >
+                                View all announcements
+                            </button>
+                        </div>
+                    )}
+                </div>
             )}
-        </div >
+        </div>
     );
 }
