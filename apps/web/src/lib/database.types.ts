@@ -165,6 +165,148 @@ export interface Database {
                     created_at?: string
                 }
             }
+            units: {
+                Row: {
+                    id: string
+                    subject_id: string
+                    title: string
+                    order_index: number
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    subject_id: string
+                    title: string
+                    order_index?: number
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    subject_id?: string
+                    title?: string
+                    order_index?: number
+                    created_at?: string
+                }
+            }
+            paragraphs: {
+                Row: {
+                    id: string
+                    unit_id: string
+                    title: string
+                    order_index: number
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    unit_id: string
+                    title: string
+                    order_index?: number
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    unit_id?: string
+                    title?: string
+                    order_index?: number
+                    created_at?: string
+                }
+            }
+            documents: {
+                Row: {
+                    id: string
+                    paragraph_id: string
+                    title: string
+                    content: Json
+                    document_type: 'rich_text' | 'html' | 'youtube' | 'image'
+                    order_index: number
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    paragraph_id: string
+                    title: string
+                    content?: Json
+                    document_type?: 'rich_text' | 'html' | 'youtube' | 'image'
+                    order_index?: number
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: string
+                    paragraph_id?: string
+                    title?: string
+                    content?: Json
+                    document_type?: 'rich_text' | 'html' | 'youtube' | 'image'
+                    order_index?: number
+                    created_at?: string
+                    updated_at?: string
+                }
+            }
+            calendar_events: {
+                Row: {
+                    id: string
+                    user_id: string
+                    title: string
+                    description: string | null
+                    start_date: string
+                    end_date: string | null
+                    color: string
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    title: string
+                    description?: string | null
+                    start_date: string
+                    end_date?: string | null
+                    color?: string
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    title?: string
+                    description?: string | null
+                    start_date?: string
+                    end_date?: string | null
+                    color?: string
+                    created_at?: string
+                }
+            }
+            user_settings: {
+                Row: {
+                    id: string
+                    user_id: string
+                    theme: 'light' | 'dark'
+                    email_notifications: boolean
+                    push_notifications: boolean
+                    study_reminders: boolean
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    theme?: 'light' | 'dark'
+                    email_notifications?: boolean
+                    push_notifications?: boolean
+                    study_reminders?: boolean
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    theme?: 'light' | 'dark'
+                    email_notifications?: boolean
+                    push_notifications?: boolean
+                    study_reminders?: boolean
+                    created_at?: string
+                    updated_at?: string
+                }
+            }
         }
     }
 }
