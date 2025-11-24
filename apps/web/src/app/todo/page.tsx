@@ -168,6 +168,23 @@ export default function TodoPage() {
                             filteredTasks.map((task: any) => (
                                 <div
                                     key={task.id}
+                                    className={`glass-card p-4 flex items-center gap-4 group transition-all ${task.is_completed ? 'opacity-50' : ''
+                                        }`}
+                                >
+                                    <button
+                                        onClick={() => toggleTaskCompletion(task.id, task.is_completed)}
+                                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${task.is_completed
+                                            ? 'bg-blue-500 border-blue-500 text-white'
+                                            : 'border-slate-500 text-transparent hover:border-blue-500'
+                                            }`}
+                                    >
+                                        {task.is_completed && <Check className="w-4 h-4" />}
+                                    </button>
+
+                                    <div className="flex-1">
+                                        <h3 className={`font-medium text-white ${task.is_completed ? 'line-through text-slate-400' : ''}`}>
+                                            {task.title}
+                                        </h3>
                                         <div className="flex items-center gap-4 mt-1 text-xs text-slate-500">
                                             {task.due_date && (
                                                 <div className="flex items-center gap-1">
@@ -184,18 +201,18 @@ export default function TodoPage() {
                                         </div>
                                     </div>
 
-                    <button
-                        onClick={() => deleteTask(task.id)}
-                        className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </button>
-                </div>
-                ))
+                                    <button
+                                        onClick={() => deleteTask(task.id)}
+                                        className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ))
                         )}
+                    </div>
+                </div>
+            </main>
         </div>
-                </div >
-            </main >
-        </div >
     );
 }
