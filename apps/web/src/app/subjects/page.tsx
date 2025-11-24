@@ -104,11 +104,13 @@ export default function SubjectsPage() {
                                         </div>
                                         <p className="text-slate-400 text-sm">{subject.chapters[0]?.count || 0} chapters</p>
                                     </div>
-                                    {(!subject.is_public || subject.user_id === user?.id) && (
-                                        <button className="text-slate-500 hover:text-white transition-colors">
-                                            <MoreHorizontal className="w-5 h-5" />
-                                        </button>
-                                    )}
+                                    <SubjectMenu
+                                        subjectId={subject.id}
+                                        subjectTitle={subject.title}
+                                        isOwner={subject.user_id === user?.id}
+                                        onView={() => router.push(`/subjects/${subject.id}`)}
+                                        onDelete={() => handleDeleteSubject(subject.id)}
+                                    />
                                 </div>
 
                                 <div className="flex justify-between items-center text-xs text-slate-400 pt-4 border-t border-white/5">
