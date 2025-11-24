@@ -123,6 +123,16 @@ export default function SubjectsPage() {
                                 key={subject.id}
                                 className="glass-card p-6 border-l-4 border-blue-500/50 hover:bg-white/5 transition-all duration-300 group cursor-pointer"
                                 onClick={() => router.push(`/subjects/${subject.id}/units`)}
+                                onContextMenu={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    // Trigger the same menu as three-dot button
+                                    const menu = document.querySelector(`[data-subject-menu="${subject.id}"]`);
+                                    if (menu) {
+                                        const button = menu.querySelector('button');
+                                        if (button) button.click();
+                                    }
+                                }}
                             >
                                 <div className="flex justify-between items-start mb-6">
                                     <div>
