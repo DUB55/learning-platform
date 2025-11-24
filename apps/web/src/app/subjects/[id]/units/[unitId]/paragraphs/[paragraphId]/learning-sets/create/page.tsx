@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
-import { Plus, ArrowLeft, Upload, X, Trash2 } from 'lucide-react';
+import { Plus, ArrowLeft, Upload, X, Trash2, Sparkles } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { dub5ai } from '@/lib/dub5ai';
 
 interface TermDefinitionPair {
     id: string;
@@ -28,12 +29,39 @@ export default function CreateLearningSetPage() {
         { id: '4', term: '', definition: '' },
     ]);
     const [showImportModal, setShowImportModal] = useState(false);
+    const [showAIModal, setShowAIModal] = useState(false);
     const [importText, setImportText] = useState('');
+    const [aiContext, setAiContext] = useState('');
+    const [isGeneratingAI, setIsGeneratingAI] = useState(false);
     const [termSeparator, setTermSeparator] = useState('tab');
     const [pairSeparator, setPairSeparator] = useState('newline');
     const [customTermSep, setCustomTermSep] = useState('');
     const [customPairSep, setCustomPairSep] = useState('');
     const [isCreating, setIsCreating] = useState(false);
+
+    const handleAIGenerate = async () => {
+        if (!aiContext.trim()) return;
+
+        setIsGeneratingAI(true);
+        try {
+            const generatedPairs = await dub5ai.generateLearningSet(aiContext);
+
+            const newPairs = generatedPairs.map(p => ({
+                id: Date.now().toString() + Math.random(),
+                term: p.term,
+                definition: p.definition
+            }));
+
+            setPairs(newPairs);
+            setShowAIModal(false);
+            setAiContext('');
+        } catch (error) {
+            console.error('AI Generation error:', error);
+            alert('Failed to generate learning set. Please try again.');
+        } finally {
+            setIsGeneratingAI(false);
+        }
+    };
 
     const addPair = () => {
         setPairs([...pairs, { id: Date.now().toString(), term: '', definition: '' }]);
