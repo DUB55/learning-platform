@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
-import { CheckCircle2, XCircle, RefreshCw, GitCommit, Clock, ShieldAlert } from 'lucide-react';
+import { CheckCircle2, XCircle, RefreshCw, GitCommit, Clock, ShieldAlert, Github } from 'lucide-react';
 import { getGitHistory, CommitInfo } from './actions';
 import { useRouter } from 'next/navigation';
 
