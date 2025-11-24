@@ -146,7 +146,7 @@ export default function SubjectsPage() {
                                         </div>
                                         <p className="text-slate-400 text-sm">{subject.unit_count || 0} units</p>
                                     </div>
-                                    <div onClick={(e) => e.stopPropagation()}>
+                                    <div data-subject-menu={subject.id} onClick={(e) => e.stopPropagation()}>
                                         <SubjectMenu
                                             subjectId={subject.id}
                                             subjectTitle={subject.title}
