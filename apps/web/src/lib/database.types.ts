@@ -307,6 +307,83 @@ export interface Database {
                     updated_at?: string
                 }
             }
+            admin_settings: {
+                Row: {
+                    id: string
+                    setting_key: string
+                    setting_value: Json
+                    description: string | null
+                    category: string
+                    updated_at: string
+                    updated_by: string | null
+                }
+                Insert: {
+                    id?: string
+                    setting_key: string
+                    setting_value?: Json
+                    description?: string | null
+                    category?: string
+                    updated_at?: string
+                    updated_by?: string | null
+                }
+                Update: {
+                    id?: string
+                    setting_key?: string
+                    setting_value?: Json
+                    description?: string | null
+                    category?: string
+                    updated_at?: string
+                    updated_by?: string | null
+                }
+            }
+            user_permission_overrides: {
+                Row: {
+                    id: string
+                    user_id: string
+                    permission_key: string
+                    is_enabled: boolean
+                    granted_by: string | null
+                    granted_at: string
+                    expires_at: string | null
+                    reason: string | null
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    permission_key: string
+                    is_enabled?: boolean
+                    granted_by?: string | null
+                    granted_at?: string
+                    expires_at?: string | null
+                    reason?: string | null
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    permission_key?: string
+                    is_enabled?: boolean
+                    granted_by?: string | null
+                    granted_at?: string
+                    expires_at?: string | null
+                    reason?: string | null
+                }
+            }
+            push_notifications?: boolean
+            study_reminders?: boolean
+            created_at?: string
+            updated_at?: string
         }
+        Update: {
+            id?: string
+            user_id?: string
+            theme?: 'light' | 'dark'
+            email_notifications?: boolean
+            push_notifications?: boolean
+            study_reminders?: boolean
+            created_at?: string
+            updated_at?: string
+        }
+    }
+}
     }
 }
