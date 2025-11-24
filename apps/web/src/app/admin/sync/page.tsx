@@ -73,6 +73,30 @@ export default function AdminSyncPage() {
                         <p className="text-slate-400">Monitor your automatic code backups and deployment status</p>
                     </header>
 
+                    {/* Actions & Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div className="glass-card p-6">
+                            <h3 className="text-lg font-medium text-white mb-4">Quick Actions</h3>
+                            <a
+                                href="https://github.com/Mohammed-88/learning-platform"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="glass-button w-full px-4 py-3 rounded-xl flex items-center justify-center gap-2 text-white hover:bg-white/10 transition-colors"
+                            >
+                                <Github className="w-5 h-5" />
+                                <span>Open GitHub Repository</span>
+                            </a>
+                        </div>
+
+                        <div className="glass-card p-6">
+                            <h3 className="text-lg font-medium text-white mb-2">Local Sync Command</h3>
+                            <p className="text-slate-400 text-xs mb-3">Run this on your PC to start background sync:</p>
+                            <code className="block bg-black/50 p-3 rounded-lg text-green-400 font-mono text-xs select-all cursor-pointer hover:bg-black/70 transition-colors">
+                                wscript run-silent.vbs
+                            </code>
+                        </div>
+                    </div>
+
                     {/* Status Card */}
                     <div className="glass-card p-8 mb-8 flex items-center justify-between">
                         <div>
