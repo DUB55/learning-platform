@@ -137,15 +137,7 @@ export default function Dashboard() {
                                 <Bell className="w-5 h-5" />
                                 <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-slate-900"></span>
                             </button>
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 p-[2px]">
-                                {user.user_metadata.avatar_url ? (
-                                    <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full rounded-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center text-white font-medium text-sm">
-                                        {user.email?.[0].toUpperCase()}
-                                    </div>
-                                )}
-                            </div>
+                            <ProfileMenu />
                         </div>
                     </header>
 
