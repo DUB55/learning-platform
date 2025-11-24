@@ -22,6 +22,21 @@ export default function SubjectsPage() {
     useEffect(() => {
         if (user) {
             fetchSubjects();
+
+            // Subscribe to real-time updates
+            const channel = supabase
+                .channel('subjects-changes')
+                .on('postgres_changes',
+                    { event: '*', schema: 'public', table: 'subjects' },
+                    () => {
+                        fetchSubjects();
+                    }
+                )
+                .subscribe();
+
+            return () => {
+                supabase.removeChannel(channel);
+            };
         }
     }, [user]);
 
