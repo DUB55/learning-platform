@@ -111,9 +111,16 @@ export default function Dashboard() {
                     {/* Header */}
                     <header className="flex justify-between items-center mb-10">
                         <div>
-                            <h1 className="text-3xl font-serif font-bold text-white mb-1">
-                                Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">{user.user_metadata.full_name?.split(' ')[0] || 'Student'}!</span>
-                            </h1>
+                            <div className="flex items-center gap-3 mb-1">
+                                <h1 className="text-3xl font-serif font-bold text-white">
+                                    Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">{user.user_metadata.full_name?.split(' ')[0] || 'Student'}!</span>
+                                </h1>
+                                {profile?.is_admin && (
+                                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/50 uppercase tracking-wider shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+                                        Admin
+                                    </span>
+                                )}
+                            </div>
                             <p className="text-slate-400">Let's continue your learning journey</p>
                         </div>
 
