@@ -111,13 +111,29 @@ export default function AdminPage() {
                                 <ShieldAlert className="w-8 h-8 text-red-500" />
                                 <h1 className="text-3xl font-serif font-bold text-white">Admin Dashboard</h1>
                             </div>
-                            <button
-                                onClick={() => router.push('/admin/permissions')}
-                                className="glass-button px-4 py-2 rounded-xl flex items-center gap-2"
-                            >
-                                <ShieldAlert className="w-4 h-4" />
-                                <span>Permissions</span>
-                            </button>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => router.push('/admin/announcements')}
+                                    className="glass-button px-4 py-2 rounded-xl flex items-center gap-2"
+                                >
+                                    <Globe className="w-4 h-4" />
+                                    <span>Announcements</span>
+                                </button>
+                                <button
+                                    onClick={() => router.push('/admin/sync')}
+                                    className="glass-button px-4 py-2 rounded-xl flex items-center gap-2"
+                                >
+                                    <Database className="w-4 h-4" />
+                                    <span>Git Sync</span>
+                                </button>
+                                <button
+                                    onClick={() => router.push('/admin/permissions')}
+                                    className="glass-button px-4 py-2 rounded-xl flex items-center gap-2"
+                                >
+                                    <ShieldAlert className="w-4 h-4" />
+                                    <span>Permissions</span>
+                                </button>
+                            </div>
                         </div>
                         <p className="text-slate-400">Manage global subjects and system settings</p>
                     </header>
