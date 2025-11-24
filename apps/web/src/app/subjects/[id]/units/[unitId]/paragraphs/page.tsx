@@ -107,6 +107,7 @@ export default function ParagraphsPage() {
             .insert([
                 {
                     unit_id: unitId,
+                    chapter_id: unitId, // Fix for schema mismatch
                     title: newParagraphTitle.trim(),
                     order_index: paragraphs.length
                 }
