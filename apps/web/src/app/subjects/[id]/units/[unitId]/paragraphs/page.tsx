@@ -16,6 +16,7 @@ export default function ParagraphsPage() {
     const params = useParams();
     const subjectId = params.id as string;
     const unitId = params.unitId as string;
+    const { toasts, hideToast, success, error, info } = useToast();
 
     const [unit, setUnit] = useState<any>(null);
     const [paragraphs, setParagraphs] = useState<any[]>([]);
