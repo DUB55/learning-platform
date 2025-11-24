@@ -16,6 +16,22 @@ import {
     RefreshCw
 } from 'lucide-react';
 
+export default function Sidebar() {
+    const pathname = usePathname();
+    const { signOut, profile } = useAuth();
+
+    const isActive = (path: string) => {
+        // Exact match for dashboard
+        if (path === '/dashboard') return pathname === '/dashboard';
+        // Exact match for /admin (not /admin/*)
+        if (path === '/admin') return pathname === '/admin';
+        // For all other paths, use startsWith
+        return pathname.startsWith(path);
+    };
+
+    return (
+        <aside className="w-64 bg-slate-900/50 backdrop-blur-xl border-r border-white/5 flex flex-col h-screen sticky top-0">
+            <div className="p-6">
                 <div className="flex items-center gap-3 mb-8">
                     <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
                         <BookOpen className="w-5 h-5 text-white" />
@@ -77,26 +93,26 @@ import {
                         />
                     )}
                 </nav>
-            </div >
+            </div>
 
-    <div className="mt-auto p-6 border-t border-white/5">
-        <nav className="space-y-1">
-            <SidebarItem
-                icon={<Settings />}
-                label="Settings"
-                href="/settings"
-                active={isActive('/settings')}
-            />
-            <button
-                onClick={() => signOut()}
-                className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all duration-200 group"
-            >
-                <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                <span className="font-medium">Sign Out</span>
-            </button>
-        </nav>
-    </div>
-        </aside >
+            <div className="mt-auto p-6 border-t border-white/5">
+                <nav className="space-y-1">
+                    <SidebarItem
+                        icon={<Settings />}
+                        label="Settings"
+                        href="/settings"
+                        active={isActive('/settings')}
+                    />
+                    <button
+                        onClick={() => signOut()}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all duration-200 group"
+                    >
+                        <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                        <span className="font-medium">Sign Out</span>
+                    </button>
+                </nav>
+            </div>
+        </aside>
     );
 }
 
