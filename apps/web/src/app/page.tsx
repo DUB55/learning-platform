@@ -66,6 +66,73 @@ export default function Home() {
                 </div>
             </div>
 
+            {/* Features Grid */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+                <div className="text-center mb-16">
+                    <h2 className="text-3xl md:text-5xl font-serif font-bold text-white mb-6">
+                        Alles wat je nodig hebt om te <span className="text-purple-400">excelleren</span>
+                    </h2>
+                    <p className="text-slate-400 max-w-2xl mx-auto">
+                        Krachtige functies ontworpen om jouw leerervaring naar een hoger niveau te tillen.
+                    </p>
+                </div>
+
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <FeatureCard
+                        icon={<Brain className="w-6 h-6 text-blue-400" />}
+                        title="AI-Powered Learning"
+                        description="Krijg gepersonaliseerde hulp van je AI-tutor, 24/7 beschikbaar voor al je vragen."
+                        delay="0s"
+                    />
+                    <FeatureCard
+                        icon={<Calendar className="w-6 h-6 text-purple-400" />}
+                        title="Smart Scheduling"
+                        description="Organiseer je studiesessies met intelligente agenda-integratie en planning."
+                        delay="0.1s"
+                    />
+                    <FeatureCard
+                        icon={<BarChart3 className="w-6 h-6 text-pink-400" />}
+                        title="Progress Tracking"
+                        description="Monitor je leertraject met gedetailleerde analyses en inzichten."
+                        delay="0.2s"
+                    />
+                    <FeatureCard
+                        icon={<BookOpen className="w-6 h-6 text-emerald-400" />}
+                        title="Rich Library"
+                        description="Toegang tot duizenden leermiddelen en gedeelde samenvattingen op één plek."
+                        delay="0.3s"
+                    />
+                    <FeatureCard
+                        icon={<Trophy className="w-6 h-6 text-amber-400" />}
+                        title="Gamification"
+                        description="Blijf gemotiveerd met achievements, streaks en beloningen voor je inzet."
+                        delay="0.4s"
+                    />
+                    <FeatureCard
+                        icon={<Zap className="w-6 h-6 text-cyan-400" />}
+                        title="Study Modes"
+                        description="Meerdere leerformaten: flashcards, quizzen, oefentoetsen en meer."
+                        delay="0.5s"
+                    />
+                </div>
+
+                <div className="mt-20 text-center">
+                    <Link
+                        href="/login"
+                        className="inline-flex items-center gap-2 px-8 py-4 bg-white text-black font-medium rounded-xl hover:bg-slate-100 transition-all transform hover:scale-105 shadow-xl"
+                    >
+                        Begin vandaag nog
+                        <ArrowRight className="w-5 h-5" />
+                    </Link>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function FeatureCard({ icon, title, description, delay }: { icon: React.ReactNode, title: string, description: string, delay: string }) {
+    return (
+        <div
             className="glass-card p-8 hover:bg-white/5 transition-colors group animate-slide-up"
             style={{ animationDelay: delay }}
         >
