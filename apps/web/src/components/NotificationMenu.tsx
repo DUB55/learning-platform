@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Bell, X, ExternalLink } from 'lucide-react';
+import { Bell, X, ExternalLink, AlertCircle, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
@@ -132,14 +132,26 @@ export default function NotificationMenu({ userId }: NotificationMenuProps) {
         }
     };
 
-    const getPriorityColor = (priority: string) => {
-        switch (priority) {
-            case 'urgent': return 'text-red-400 bg-red-500/10 border-red-500/30';
-            case 'high': return 'text-orange-400 bg-orange-500/10 border-orange-500/30';
-            case 'normal': return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
-            case 'low': return 'text-slate-400 bg-slate-500/10 border-slate-500/30';
-            default: return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
+    const getPriorityIcon = (priority: string) => {
+        if (priority === 'urgent') {
+            return <AlertCircle className="w-4 h-4 text-red-400" />;
+        } else if (priority === 'high') {
+            return <AlertTriangle className="w-4 h-4 text-orange-400" />;
         }
+        return null;
+    };
+
+    const shouldShowPriority = (priority: string) => {
+        return priority === 'high' || priority === 'urgent';
+    };
+
+    const getPriorityStyles = (priority: string) => {
+        if (priority === 'urgent') {
+            return 'bg-red-500/10';
+        } else if (priority === 'high') {
+            return 'bg-orange-500/10';
+        }
+        return '';
     };
 
     return (
@@ -151,9 +163,7 @@ export default function NotificationMenu({ userId }: NotificationMenuProps) {
             >
                 <Bell className="w-5 h-5 text-slate-400 hover:text-white transition-colors" />
                 {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
-                        {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
+                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full"></span>
                 )}
             </button>
 
@@ -180,66 +190,41 @@ export default function NotificationMenu({ userId }: NotificationMenuProps) {
                         ) : announcements.length === 0 ? (
                             <div className="p-8 text-center text-slate-400">
                                 <Bell className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                                <p>No announcements</p>
-                            </div>
-                        ) : (
-                            announcements.map((announcement) => (
-                                <div
-                                    key={announcement.id}
-                                    className={`p-4 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer ${!announcement.is_read ? 'bg-blue-500/5' : ''
-                                        }`}
-                                    onClick={() => handleAnnouncementClick(announcement)}
-                                >
-                                    <div className="flex items-start gap-3">
-                                        {!announcement.is_read && (
-                                            <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                                        )}
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h4 className="text-white font-medium text-sm truncate">
-                                                    {announcement.title}
-                                                </h4>
-                                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${getPriorityColor(announcement.priority)}`}>
-                                                    {announcement.priority}
-                                                </span>
-                                            </div>
-                                            <p className="text-slate-400 text-xs line-clamp-2">
-                                                {announcement.content.replace(/<[^>]*>/g, '')}
-                                            </p>
-                                            <div className="flex items-center justify-between mt-2">
-                                                <span className="text-slate-500 text-xs">
-                                                    {new Date(announcement.created_at).toLocaleDateString()}
-                                                </span>
+                                {new Date(announcement.created_at).toLocaleDateString()}
+                            </span>
                                                 {announcement.linked_page_id && (
-                                                    <span className="flex items-center gap-1 text-blue-400 text-xs">
-                                                        <span>View details</span>
-                                                        <ExternalLink className="w-3 h-3" />
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))
+                            <span className="flex items-center gap-1 text-blue-400 text-xs">
+                                <span>View details</span>
+                                <ExternalLink className="w-3 h-3" />
+                            </span>
                         )}
                     </div>
-
-                    {/* Footer */}
-                    {announcements.length > 0 && (
-                        <div className="px-4 py-3 bg-slate-900/50 border-t border-white/10">
-                            <button
-                                onClick={() => {
-                                    router.push('/announcements');
-                                    setIsOpen(false);
-                                }}
-                                className="w-full text-center text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                            >
-                                View all announcements
-                            </button>
-                        </div>
-                    )}
                 </div>
-            )}
+                                    </div>
+                                </div >
+                            ))
+                        )
+}
+                    </div >
+
+    {/* Footer */ }
+{
+    announcements.length > 0 && (
+        <div className="px-4 py-3 bg-slate-900/50 border-t border-white/10">
+            <button
+                onClick={() => {
+                    router.push('/announcements');
+                    setIsOpen(false);
+                }}
+                className="w-full text-center text-sm text-blue-400 hover:text-blue-300 transition-colors"
+            >
+                View all announcements
+            </button>
         </div>
+    )
+}
+                </div >
+            )}
+        </div >
     );
 }
