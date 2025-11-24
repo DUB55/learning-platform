@@ -80,6 +80,14 @@ export default function Sidebar() {
                             active={isActive('/admin')}
                         />
                     )}
+                    {profile?.is_admin && (
+                        <SidebarItem
+                            icon={<RefreshCw className="text-emerald-400" />}
+                            label="Git Sync"
+                            href="/admin/sync"
+                            active={isActive('/admin/sync')}
+                        />
+                    )}
                 </nav>
             </div>
 
