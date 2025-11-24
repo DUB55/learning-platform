@@ -10,6 +10,7 @@ export default function LoginPage() {
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [fullName, setFullName] = useState('');
     const [loading, setLoading] = useState(false);
     const { signIn, signUp, signInWithGoogle } = useAuth();
     const router = useRouter();
@@ -34,7 +35,7 @@ export default function LoginPage() {
                 showToast('Successfully logged in!', 'success');
                 setTimeout(() => router.push('/dashboard'), 1000);
             } else {
-                await signUp(email, password);
+                await signUp(email, password, fullName);
                 showToast('Account created! Please check your email.', 'success');
             }
         } catch (error: any) {
