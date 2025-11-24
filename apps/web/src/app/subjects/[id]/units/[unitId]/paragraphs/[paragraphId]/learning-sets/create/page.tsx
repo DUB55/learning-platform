@@ -207,8 +207,15 @@ export default function CreateLearningSetPage() {
                         </div>
                     </div>
 
-                    {/* Import Button */}
-                    <div className="flex justify-end mb-4">
+                    {/* Import & AI Buttons */}
+                    <div className="flex justify-end gap-3 mb-4">
+                        <button
+                            onClick={() => setShowAIModal(true)}
+                            className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 hover:from-blue-600/30 hover:to-purple-600/30 border border-blue-500/30 text-blue-300 px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
+                        >
+                            <Sparkles className="w-4 h-4" />
+                            <span>Generate with AI</span>
+                        </button>
                         <button
                             onClick={() => setShowImportModal(true)}
                             className="glass-button px-4 py-2 rounded-lg flex items-center gap-2"
