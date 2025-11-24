@@ -5,13 +5,6 @@ export interface AIMessage {
     content: string;
 }
 
-import { supabase } from './supabase';
-
-export interface AIMessage {
-    role: 'user' | 'assistant' | 'system';
-    content: string;
-}
-
 export interface AIResponse {
     content: string;
     error?: string;
