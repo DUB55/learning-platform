@@ -7,6 +7,8 @@ import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Plus, MoreVertical, FileText, Files, Globe, Lock, Edit2, Trash2 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import ResourceContextMenu from '@/components/ResourceContextMenu';
+import Toast from '@/components/Toast';
+import { useToast } from '@/hooks/useToast';
 
 export default function ParagraphsPage() {
     const { user, profile } = useAuth();
