@@ -446,6 +446,70 @@ export interface Database {
                     created_at?: string
                 }
             }
+            practice_tests: {
+                Row: {
+                    id: string
+                    user_id: string
+                    subject_id: string | null
+                    title: string
+                    description: string | null
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    subject_id?: string | null
+                    title: string
+                    description?: string | null
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    subject_id?: string | null
+                    title?: string
+                    description?: string | null
+                    created_at?: string
+                    updated_at?: string
+                }
+            }
+            practice_test_questions: {
+                Row: {
+                    id: string
+                    test_id: string
+                    question_text: string
+                    question_type: 'multiple_choice' | 'true_false' | 'short_answer'
+                    options: string[] | null
+                    correct_answer: string
+                    explanation: string | null
+                    order_index: number
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    test_id: string
+                    question_text: string
+                    question_type: 'multiple_choice' | 'true_false' | 'short_answer'
+                    options?: string[] | null
+                    correct_answer: string
+                    explanation?: string | null
+                    order_index?: number
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    test_id?: string
+                    question_text?: string
+                    question_type?: 'multiple_choice' | 'true_false' | 'short_answer'
+                    options?: string[] | null
+                    correct_answer?: string
+                    explanation?: string | null
+                    order_index?: number
+                    created_at?: string
+                }
+            }
         }
     }
 }
