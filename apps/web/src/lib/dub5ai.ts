@@ -152,6 +152,35 @@ class Dub5AIService {
             throw new Error('Failed to generate study plan');
         }
     }
+
+    /**
+     * Generates a practice test JSON
+     */
+    async generatePracticeTest(context: string, topic: string): Promise<{ title: string; questions: any[] }> {
+        const prompt = `Create a practice test about "${topic}" based on the following text: "${context.slice(0, 4000)}". 
+        Return ONLY a raw JSON object with:
+        1. "title": string
+        2. "questions": array of objects, each having:
+           - "question_text": string
+           - "question_type": "multiple_choice" | "true_false" | "short_answer"
+           - "options": array of strings (only for multiple_choice)
+           - "correct_answer": string
+           - "explanation": string
+        `;
+
+        try {
+            const result = await this.streamRequest(prompt, {
+                task: 'quiz',
+                params: { format: 'json' }
+            });
+
+            const cleanResult = result.replace(/```json/g, '').replace(/```/g, '').trim();
+            return JSON.parse(cleanResult);
+        } catch (error) {
+            console.error('Failed to generate practice test:', error);
+            throw new Error('Failed to generate practice test');
+        }
+    }
 }
 
 export const dub5ai = new Dub5AIService();
