@@ -1,8 +1,29 @@
 $ErrorActionPreference = "SilentlyContinue"
 
+$statusFile = "apps\web\public\git-status.json"
+
+function Update-Status {
+    param (
+        [string]$Status,
+        [string]$Message
+    )
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $json = @{
+        lastSync = $timestamp
+        status = $Status
+        message = $Message
+    } | ConvertTo-Json
+    
+    Set-Content -Path $statusFile -Value $json
+}
+
 Write-Host "Starting Git Auto-Sync..." -ForegroundColor Cyan
 Write-Host "Monitoring for changes in $(Get-Location)..." -ForegroundColor Gray
+Write-Host "Status file: $statusFile" -ForegroundColor Gray
 Write-Host "Press Ctrl+C to stop." -ForegroundColor Yellow
+
+# Initial status
+Update-Status -Status "active" -Message "Monitoring started"
 
 while ($true) {
     # Check for changes
@@ -25,8 +46,10 @@ while ($true) {
         
         if ($?) {
             Write-Host "Successfully synced at $timestamp" -ForegroundColor Green
+            Update-Status -Status "success" -Message "Synced at $timestamp"
         } else {
             Write-Host "Push failed. Retrying in next cycle..." -ForegroundColor Red
+            Update-Status -Status "error" -Message "Push failed at $timestamp"
         }
     }
     
