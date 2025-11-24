@@ -14,6 +14,7 @@ import {
     MoreHorizontal,
     Calendar as CalendarIcon
 } from 'lucide-react';
+import ProfileMenu from '@/components/ProfileMenu';
 
 export default function Dashboard() {
     const { user, profile, loading } = useAuth();
