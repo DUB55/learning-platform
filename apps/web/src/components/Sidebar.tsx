@@ -12,7 +12,8 @@ import {
     Library,
     Settings,
     LogOut,
-    ShieldAlert
+    ShieldAlert,
+    RefreshCw
 } from 'lucide-react';
 
 export default function Sidebar() {
