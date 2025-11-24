@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
-import { Plus, CheckCircle2, Circle, Trash2, Calendar as CalendarIcon, Tag } from 'lucide-react';
+import { Plus, Check, Circle, Trash2, Calendar as CalendarIcon, Tag } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useTasks } from '@/hooks/useTasks';
 
@@ -145,8 +145,8 @@ export default function TodoPage() {
                                 key={f}
                                 onClick={() => setFilter(f)}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${filter === f
-                                        ? 'bg-blue-600 text-white'
-                                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                    ? 'bg-blue-600 text-white'
+                                    : 'text-slate-400 hover:text-white hover:bg-white/5'
                                     }`}
                             >
                                 {f}
@@ -174,8 +174,8 @@ export default function TodoPage() {
                                     <button
                                         onClick={() => toggleTaskCompletion(task.id, task.is_completed)}
                                         className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${task.is_completed
-                                                ? 'bg-blue-500 border-blue-500 text-white'
-                                                : 'border-slate-500 text-transparent hover:border-blue-500'
+                                            ? 'bg-blue-500 border-blue-500 text-white'
+                                            : 'border-slate-500 text-transparent hover:border-blue-500'
                                             }`}
                                     >
                                         <CheckCircle2 className="w-4 h-4" />
