@@ -15,18 +15,21 @@ export interface Database {
                     full_name: string | null
                     avatar_url: string | null
                     updated_at: string | null
+                    is_admin: boolean
                 }
                 Insert: {
                     id: string
                     full_name?: string | null
                     avatar_url?: string | null
                     updated_at?: string | null
+                    is_admin?: boolean
                 }
                 Update: {
                     id?: string
                     full_name?: string | null
                     avatar_url?: string | null
                     updated_at?: string | null
+                    is_admin?: boolean
                 }
             }
             subjects: {
@@ -35,6 +38,7 @@ export interface Database {
                     user_id: string
                     title: string
                     color: string
+                    is_public: boolean
                     created_at: string
                 }
                 Insert: {
@@ -42,6 +46,7 @@ export interface Database {
                     user_id: string
                     title: string
                     color?: string
+                    is_public?: boolean
                     created_at?: string
                 }
                 Update: {
@@ -49,6 +54,7 @@ export interface Database {
                     user_id?: string
                     title?: string
                     color?: string
+                    is_public?: boolean
                     created_at?: string
                 }
             }
@@ -127,6 +133,35 @@ export interface Database {
                     due_date?: string | null
                     type?: 'test' | 'review' | 'assignment' | 'deadline' | null
                     is_completed?: boolean
+                    created_at?: string
+                }
+            }
+            resources: {
+                Row: {
+                    id: string
+                    user_id: string
+                    subject_id: string | null
+                    title: string
+                    type: 'pdf' | 'link' | 'video' | 'image' | 'other'
+                    url: string
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    subject_id?: string | null
+                    title: string
+                    type: 'pdf' | 'link' | 'video' | 'image' | 'other'
+                    url: string
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    subject_id?: string | null
+                    title?: string
+                    type?: 'pdf' | 'link' | 'video' | 'image' | 'other'
+                    url?: string
                     created_at?: string
                 }
             }

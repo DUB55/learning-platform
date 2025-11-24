@@ -16,5 +16,7 @@
         "turbo": "^1.10.0",
         "typescript": "^5.2.0"
     },
-    "dependencies": {}
+    "dependencies": {
+        "swr": "^2.3.6"
+    }
 }

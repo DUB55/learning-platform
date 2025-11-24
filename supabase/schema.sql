@@ -1,24 +1,7 @@
--- Reset tables (WARNING: This will delete data in these tables)
-drop table if exists public.tasks cascade;
-drop table if exists public.study_sessions cascade;
-drop table if exists public.chapters cascade;
-drop table if exists public.subjects cascade;
-drop table if exists public.profiles cascade;
-
--- Create profiles table
-create table public.profiles (
-  id uuid references auth.users not null primary key,
-  full_name text,
-  avatar_url text,
-  updated_at timestamp with time zone
-);
-
--- Create subjects table
-create table public.subjects (
-  id uuid default gen_random_uuid() primary key,
   user_id uuid references public.profiles(id) not null,
   title text not null,
   color text default 'blue',
+  is_public boolean default false,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -52,12 +35,24 @@ create table public.tasks (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
+-- Create resources table
+create table public.resources (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.profiles(id) not null,
+  subject_id uuid references public.subjects(id) on delete set null,
+  title text not null,
+  type text check (type in ('pdf', 'link', 'video', 'image', 'other')),
+  url text not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
 -- Set up Row Level Security (RLS)
 alter table public.profiles enable row level security;
 alter table public.subjects enable row level security;
 alter table public.chapters enable row level security;
 alter table public.study_sessions enable row level security;
 alter table public.tasks enable row level security;
+alter table public.resources enable row level security;
 
 -- Profiles policies
 create policy "Public profiles are viewable by everyone."
@@ -73,9 +68,9 @@ create policy "Users can update own profile."
   using ( auth.uid() = id );
 
 -- Subjects policies
-create policy "Users can view own subjects."
+create policy "Users can view own or public subjects."
   on subjects for select
-  using ( auth.uid() = user_id );
+  using ( auth.uid() = user_id or is_public = true );
 
 create policy "Users can insert own subjects."
   on subjects for insert
@@ -120,29 +115,26 @@ create policy "Users can view own tasks."
   on tasks for select
   using ( auth.uid() = user_id );
 
+-- Resources policies
+create policy "Users can view own resources."
+  on resources for select
+  using ( auth.uid() = user_id );
+
+create policy "Users can insert own resources."
+  on resources for insert
+  with check ( auth.uid() = user_id );
+
+create policy "Users can update own resources."
+  on resources for update
+  using ( auth.uid() = user_id );
+
+create policy "Users can delete own resources."
+  on resources for delete
+  using ( auth.uid() = user_id );
+
 create policy "Users can insert own tasks."
   on tasks for insert
   with check ( auth.uid() = user_id );
 
-create policy "Users can update own tasks."
-  on tasks for update
-  using ( auth.uid() = user_id );
-
-create policy "Users can delete own tasks."
-  on tasks for delete
-  using ( auth.uid() = user_id );
-
--- Function to handle new user signup
-create or replace function public.handle_new_user()
-returns trigger as $$
-begin
-  insert into public.profiles (id, full_name, avatar_url)
-  values (new.id, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url');
-  return new;
-end;
-$$ language plpgsql security definer;
-
--- Trigger for new user signup
-create or replace trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();

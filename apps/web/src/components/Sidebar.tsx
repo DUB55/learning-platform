@@ -11,12 +11,13 @@ import {
     Zap,
     Library,
     Settings,
-    LogOut
+    LogOut,
+    ShieldAlert
 } from 'lucide-react';
 
 export default function Sidebar() {
     const pathname = usePathname();
-    const { signOut } = useAuth();
+    const { signOut, profile } = useAuth();
 
     const isActive = (path: string) => {
         if (path === '/dashboard' && pathname === '/dashboard') return true;
@@ -71,6 +72,14 @@ export default function Sidebar() {
                         href="/library"
                         active={isActive('/library')}
                     />
+                    {profile?.is_admin && (
+                        <SidebarItem
+                            icon={<ShieldAlert className="text-red-400" />}
+                            label="Admin"
+                            href="/admin"
+                            active={isActive('/admin')}
+                        />
+                    )}
                 </nav>
             </div>
 

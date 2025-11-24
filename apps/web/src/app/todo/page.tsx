@@ -1,66 +1,69 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
 import { Plus, CheckCircle2, Circle, Trash2, Calendar as CalendarIcon, Tag } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useTasks } from '@/hooks/useTasks';
 
 export default function TodoPage() {
     const { user } = useAuth();
-    const [tasks, setTasks] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { tasks, isLoading: loading, mutate } = useTasks(user);
     const [newTaskTitle, setNewTaskTitle] = useState('');
     const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
-
-    useEffect(() => {
-        if (user) {
-            fetchTasks();
-        }
-    }, [user]);
-
-    const fetchTasks = async () => {
-        try {
-            const { data } = await supabase
-                .from('tasks')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (data) setTasks(data);
-        } catch (error) {
-            console.error('Error fetching tasks:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleAddTask = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user || !newTaskTitle.trim()) return;
 
+        const tempId = Math.random().toString();
+        const newTask = {
+            id: tempId,
+            user_id: user.id,
+            title: newTaskTitle,
+            is_completed: false,
+            type: 'assignment',
+            created_at: new Date().toISOString()
+        };
+
         try {
-            const { error } = await supabase
+            // Optimistic update: Update local cache immediately
+            await mutate([...tasks, newTask], false);
+            setNewTaskTitle('');
+
+            const { data, error } = await supabase
                 .from('tasks')
                 .insert([
                     {
                         user_id: user.id,
                         title: newTaskTitle,
                         is_completed: false,
-                        type: 'assignment' // Default type
+                        type: 'assignment'
                     }
-                ] as any);
+                ] as any)
+                .select()
+                .single();
 
             if (error) throw error;
 
-            setNewTaskTitle('');
-            fetchTasks();
+            // Revalidate to get the real ID and data from server
+            await mutate();
         } catch (error) {
             console.error('Error adding task:', error);
+            // Revert to previous state on error
+            await mutate();
         }
     };
 
     const toggleTaskCompletion = async (taskId: string, currentStatus: boolean) => {
         try {
+            // Optimistic update
+            const updatedTasks = tasks.map((t: any) =>
+                t.id === taskId ? { ...t, is_completed: !currentStatus } : t
+            );
+            await mutate(updatedTasks, false);
+
             const { error } = await supabase
                 .from('tasks')
                 .update({ is_completed: !currentStatus })
@@ -68,16 +71,19 @@ export default function TodoPage() {
 
             if (error) throw error;
 
-            // Optimistic update
-            setTasks(tasks.map(t => t.id === taskId ? { ...t, is_completed: !currentStatus } : t));
+            await mutate(); // Revalidate
         } catch (error) {
             console.error('Error updating task:', error);
-            fetchTasks(); // Revert on error
+            await mutate(); // Revert on error
         }
     };
 
     const deleteTask = async (taskId: string) => {
         try {
+            // Optimistic update
+            const updatedTasks = tasks.filter((t: any) => t.id !== taskId);
+            await mutate(updatedTasks, false);
+
             const { error } = await supabase
                 .from('tasks')
                 .delete()
@@ -85,13 +91,14 @@ export default function TodoPage() {
 
             if (error) throw error;
 
-            setTasks(tasks.filter(t => t.id !== taskId));
+            await mutate(); // Revalidate
         } catch (error) {
             console.error('Error deleting task:', error);
+            await mutate(); // Revert on error
         }
     };
 
-    const filteredTasks = tasks.filter(task => {
+    const filteredTasks = tasks.filter((task: any) => {
         if (filter === 'active') return !task.is_completed;
         if (filter === 'completed') return task.is_completed;
         return true;
@@ -158,7 +165,7 @@ export default function TodoPage() {
                                 <p>No tasks found</p>
                             </div>
                         ) : (
-                            filteredTasks.map((task) => (
+                            filteredTasks.map((task: any) => (
                                 <div
                                     key={task.id}
                                     className={`glass-card p-4 flex items-center gap-4 group transition-all ${task.is_completed ? 'opacity-50' : ''

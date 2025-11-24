@@ -3,35 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
+import { useTasks } from '@/hooks/useTasks';
 import { ChevronLeft, ChevronRight, Plus, Clock, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function CalendarPage() {
     const { user } = useAuth();
+    const { tasks, isLoading: loading } = useTasks(user);
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [tasks, setTasks] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        if (user) {
-            fetchTasks();
-        }
-    }, [user]);
-
-    const fetchTasks = async () => {
-        try {
-            const { data } = await supabase
-                .from('tasks')
-                .select('*')
-                .order('due_date', { ascending: true });
-
-            if (data) setTasks(data);
-        } catch (error) {
-            console.error('Error fetching tasks:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
     const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
