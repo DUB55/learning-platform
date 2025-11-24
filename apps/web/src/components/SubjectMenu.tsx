@@ -31,54 +31,40 @@ export default function SubjectMenu({ subjectId, subjectTitle, isOwner, onEdit, 
                 <MoreVertical className="w-5 h-5" />
             </button>
 
-            {isOpen && (
-                <>
-                    {/* Backdrop */}
-                    <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setIsOpen(false)}
-                    ></div>
+            <Eye className="w-4 h-4" />
+            <span className="text-sm">View Details</span>
+        </button>
 
-                    {/* Menu */}
-                    <div className="absolute right-0 mt-2 w-48 glass-card border border-white/10 rounded-xl shadow-xl overflow-hidden z-20 animate-fade-in">
-                        <button
-                            onClick={() => {
-                                onView?.();
-                                setIsOpen(false);
-                            }}
-                            className="w-full flex items-center gap-3 px-4 py-2.5 text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
-                        >
-                            <Eye className="w-4 h-4" />
-                            <span className="text-sm">View Details</span>
-                        </button>
+                        {
+        isOwner && (
+            <>
+                <button
+                    onClick={() => {
+                        onEdit?.();
+                        setIsOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                >
+                    <Edit2 className="w-4 h-4" />
+                    <span className="text-sm">Edit Subject</span>
+                </button>
 
-                        {isOwner && (
-                            <>
-                                <button
-                                    onClick={() => {
-                                        onEdit?.();
-                                        setIsOpen(false);
-                                    }}
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
-                                >
-                                    <Edit2 className="w-4 h-4" />
-                                    <span className="text-sm">Edit Subject</span>
-                                </button>
+                <div className="border-t border-white/10"></div>
 
-                                <div className="border-t border-white/10"></div>
-
-                                <button
-                                    onClick={handleDelete}
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                    <span className="text-sm">Delete</span>
-                                </button>
-                            </>
-                        )}
-                    </div>
+                <button
+                    onClick={handleDelete}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+                >
+                    <Trash2 className="w-4 h-4" />
+                    <span className="text-sm">Delete</span>
+                </button>
+            </>
+        )
+    }
+                    </div >
                 </>
-            )}
-        </div>
+            )
+}
+        </div >
     );
 }
