@@ -15,6 +15,7 @@ import {
     Calendar as CalendarIcon
 } from 'lucide-react';
 import ProfileMenu from '@/components/ProfileMenu';
+import NotificationMenu from '@/components/NotificationMenu';
 
 export default function Dashboard() {
     const { user, profile, loading } = useAuth();
@@ -158,10 +159,7 @@ export default function Dashboard() {
                                     className="bg-slate-800/50 border border-white/10 rounded-full pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors w-64"
                                 />
                             </div>
-                            <button className="w-10 h-10 rounded-full bg-slate-800/50 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors relative">
-                                <Bell className="w-5 h-5" />
-                                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-slate-900"></span>
-                            </button>
+                            <NotificationMenu userId={user.id} />
                             <ProfileMenu />
                         </div>
                     </header>
