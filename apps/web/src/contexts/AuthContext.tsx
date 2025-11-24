@@ -68,6 +68,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 .select('*')
                 .eq('id', userId)
                 .single();
+            console.log('👤 Profile loaded:', data);
+            console.log('🔐 Is Admin:', data?.is_admin);
             setProfile(data);
         } catch (error) {
             console.error('Error fetching profile:', error);
