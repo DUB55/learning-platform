@@ -26,6 +26,21 @@ export default function ParagraphsPage() {
     useEffect(() => {
         if (user && unitId) {
             fetchUnitAndParagraphs();
+
+            // Subscribe to real-time updates
+            const channel = supabase
+                .channel('paragraphs-changes')
+                .on('postgres_changes',
+                    { event: '*', schema: 'public', table: 'paragraphs', filter: `unit_id=eq.${unitId}` },
+                    () => {
+                        fetchUnitAndParagraphs();
+                    }
+                )
+                .subscribe();
+
+            return () => {
+                supabase.removeChannel(channel);
+            };
         }
     }, [user, unitId]);
 
