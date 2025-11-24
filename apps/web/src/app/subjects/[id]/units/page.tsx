@@ -25,6 +25,21 @@ export default function UnitsPage() {
     useEffect(() => {
         if (user && subjectId) {
             fetchSubjectAndUnits();
+
+            // Subscribe to real-time updates
+            const channel = supabase
+                .channel('units-changes')
+                .on('postgres_changes',
+                    { event: '*', schema: 'public', table: 'units', filter: `subject_id=eq.${subjectId}` },
+                    () => {
+                        fetchSubjectAndUnits();
+                    }
+                )
+                .subscribe();
+
+            return () => {
+                supabase.removeChannel(channel);
+            };
         }
     }, [user, subjectId]);
 
