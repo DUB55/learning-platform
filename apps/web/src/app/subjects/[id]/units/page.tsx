@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Plus, MoreVertical, Clock, FileText } from 'lucide-react';
+import { ArrowLeft, Plus, MoreVertical, Clock, FileText, Globe, Lock, Edit2, Trash2 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
+import ResourceContextMenu from '@/components/ResourceContextMenu';
 
 export default function UnitsPage() {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const router = useRouter();
     const params = useParams();
     const subjectId = params.id as string;
@@ -18,6 +19,8 @@ export default function UnitsPage() {
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
     const [newUnitTitle, setNewUnitTitle] = useState('');
+    const [resourceMenu, setResourceMenu] = useState<{ x: number; y: number; unitId: string } | null>(null);
+    const [editingUnit, setEditingUnit] = useState<{ id: string; title: string } | null>(null);
 
     useEffect(() => {
         if (user && subjectId) {
@@ -88,16 +91,93 @@ export default function UnitsPage() {
         }
     };
 
-    const handleDeleteUnit = async (unitId: string) => {
-        if (confirm('Delete this unit and all its paragraphs?')) {
-            const { error } = await supabase
-                .from('units')
-                .delete()
-                .eq('id', unitId);
+    const handleToggleGlobal = async (unitId: string) => {
+        const unit = units.find(u => u.id === unitId);
+        if (!unit) return;
 
-            if (!error) {
-                setUnits(units.filter(u => u.id !== unitId));
+        const { error } = await supabase
+            .from('units')
+            .update({ is_global: !unit.is_global })
+            .eq('id', unitId);
+
+        if (!error) {
+            fetchSubjectAndUnits();
+        }
+    };
+
+    const handleRenameUnit = (unitId: string) => {
+        const unit = units.find(u => u.id === unitId);
+        if (unit) {
+            setEditingUnit({ id: unit.id, title: unit.title });
+        }
+    };
+
+    const handleSaveRename = async () => {
+        if (!editingUnit) return;
+
+        const { error } = await supabase
+            .from('units')
+            .update({ title: editingUnit.title })
+            .eq('id', editingUnit.id);
+
+        if (!error) {
+            setEditingUnit(null);
+            fetchSubjectAndUnits();
+        }
+    };
+
+    const handleResourceContextMenu = (e: React.MouseEvent, unitId: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setResourceMenu({
+            x: e.clientX,
+            y: e.clientY,
+            unitId
+        });
+    };
+
+    const getResourceMenuItems = (unitId: string) => {
+        const unit = units.find(u => u.id === unitId);
+        if (!unit) return [];
+
+        const items = [
+            {
+                icon: <Edit2 className="w-4 h-4" />,
+                label: 'Rename',
+                onClick: () => handleRenameUnit(unitId)
             }
+        ];
+
+        // Only admins can toggle global status
+        if (profile?.is_admin) {
+            items.unshift({
+                icon: unit.is_global ? <Lock className="w-4 h-4" /> : <Globe className="w-4 h-4" />,
+                label: unit.is_global ? 'Make Private' : 'Make Global',
+                onClick: () => handleToggleGlobal(unitId)
+            });
+        }
+
+        items.push({
+            icon: <Trash2 className="w-4 h-4" />,
+            label: 'Delete',
+            onClick: () => handleDeleteUnit(unitId),
+            danger: true,
+            divider: true
+        });
+
+        return items;
+    };
+
+    const handleDeleteUnit = async (unitId: string) => {
+        if (!confirm('Delete this unit and all its paragraphs?')) return;
+
+        const { error } = await supabase
+            .from('units')
+            .delete()
+            .eq('id', unitId);
+
+        if (!error) {
+            setUnits(units.filter(u => u.id !== unitId));
         }
     };
 
@@ -148,19 +228,38 @@ export default function UnitsPage() {
                                 key={unit.id}
                                 className="glass-card p-6 border-l-4 border-purple-500/50 hover:bg-white/5 transition-all duration-300 group cursor-pointer"
                                 onClick={() => router.push(`/subjects/${subjectId}/units/${unit.id}/paragraphs`)}
+                                onContextMenu={(e) => handleResourceContextMenu(e, unit.id)}
                             >
                                 <div className="flex justify-between items-start mb-6">
-                                    <div>
-                                        <h3 className="text-lg font-bold text-white mb-1">{unit.title}</h3>
-                                        <p className="text-slate-400 text-sm">{unit.paragraph_count || 0} paragraphs</p>
-                                    </div>
-                                    <div onClick={(e) => e.stopPropagation()}>
-                                        <button
-                                            onClick={() => handleDeleteUnit(unit.id)}
-                                            className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                                        >
-                                            <MoreVertical className="w-5 h-5" />
-                                        </button>
+                                    <div className="flex-1">
+                                        {editingUnit && editingUnit.id === unit.id ? (
+                                            <input
+                                                type="text"
+                                                value={editingUnit.title}
+                                                onChange={(e) => setEditingUnit({ ...editingUnit, title: e.target.value })}
+                                                onBlur={handleSaveRename}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') handleSaveRename();
+                                                    if (e.key === 'Escape') setEditingUnit(null);
+                                                }}
+                                                onClick={(e) => e.stopPropagation()}
+                                                autoFocus
+                                                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-3 py-1 text-white text-lg font-bold focus:outline-none focus:border-blue-500"
+                                            />
+                                        ) : (
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <h3 className="text-lg font-bold text-white">{unit.title}</h3>
+                                                    {unit.is_global && (
+                                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center gap-1">
+                                                            <Globe className="w-2.5 h-2.5" />
+                                                            Global
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-slate-400 text-sm">{unit.paragraph_count || 0} paragraphs</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -213,6 +312,18 @@ export default function UnitsPage() {
                                 </form>
                             </div>
                         </div>
+                    )}
+
+                    {/* Resource Context Menu */}
+                    {resourceMenu && (
+                        <ResourceContextMenu
+                            items={getResourceMenuItems(resourceMenu.unitId)}
+                            position={{ x: resourceMenu.x, y: resourceMenu.y }}
+                            onClose={() => setResourceMenu(null)}
+                            resourceType="unit"
+                            isGlobal={units.find(u => u.id === resourceMenu.unitId)?.is_global || false}
+                            isAdmin={profile?.is_admin || false}
+                        />
                     )}
                 </div>
             </main>
