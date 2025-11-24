@@ -13,7 +13,8 @@ import {
     Settings,
     LogOut,
     ShieldAlert,
-    RefreshCw
+    RefreshCw,
+    Sparkles
 } from 'lucide-react';
 
 export default function Sidebar() {
