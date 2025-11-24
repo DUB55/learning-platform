@@ -1,67 +1,81 @@
-'use client';
-
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
-import { ArrowRight, BookOpen } from 'lucide-react';
+import { ArrowRight, BookOpen, Brain, Zap, CheckCircle2, BarChart3, Calendar, Trophy } from 'lucide-react';
 
-export default function HomePage() {
-    const router = useRouter();
-    const { user, loading } = useAuth();
-
-    // Auto-redirect logged-in users to dashboard
-    useEffect(() => {
-        if (!loading && user) {
-            router.push('/dashboard');
-        }
-    }, [user, loading, router]);
-
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-            </div>
-        );
-    }
-
+export default function Home() {
     return (
-        <div className="min-h-screen bg-[#0f172a] relative overflow-hidden">
+        <div className="min-h-screen relative overflow-hidden">
             {/* Background Elements */}
             <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]"></div>
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px] opacity-50"></div>
-            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[100px] opacity-50"></div>
 
-            {/* Content */}
-            <div className="relative z-10">
-                {/* Navbar */}
-                <nav className="p-6 flex justify-between items-center max-w-7xl mx-auto">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
-                            <BookOpen className="w-5 h-5 text-white" />
+            {/* Navigation */}
+            <nav className="fixed top-0 w-full z-50 border-b border-white/10 bg-black/20 backdrop-blur-md">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between items-center h-16">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                                <BookOpen className="w-5 h-5 text-white" />
+                            </div>
+                            <span className="text-xl font-serif font-bold text-white tracking-tight">Leerplatform</span>
                         </div>
-                        <span className="text-lg font-serif font-bold text-white tracking-tight">LearnHub</span>
+                        <div className="flex items-center gap-4">
+                            <Link href="/login" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
+                                Inloggen
+                            </Link>
+                            <Link
+                                href="/login"
+                                className="px-4 py-2 bg-white text-black text-sm font-medium rounded-lg hover:bg-slate-100 transition-colors"
+                            >
+                                Start nu
+                            </Link>
+                        </div>
                     </div>
-                    <Link href="/login" className="glass-button px-4 py-2 rounded-xl">
-                        Sign In
-                    </Link>
-                </nav>
+                </div>
+            </nav>
 
-                {/* Hero Section */}
-                <div className="max-w-7xl mx-auto px-6 py-20 text-center">
-                    <h1 className="text-5xl md:text-6xl font-serif font-bold text-white mb-6 animate-fade-in">
-                        Your Personal
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400"> Learning Hub</span>
+            {/* Hero Section */}
+            <div className="relative pt-32 pb-20 sm:pt-40 sm:pb-24">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-8 animate-fade-in">
+                        <span className="flex h-2 w-2 rounded-full bg-blue-500"></span>
+                        <span className="text-sm text-slate-300">De toekomst van leren is hier</span>
+                    </div>
+
+                    <h1 className="text-5xl md:text-7xl font-serif font-bold text-white mb-8 tracking-tight animate-slide-up">
+                        Leer slimmer met <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
+                            AI-Powered Education
+                        </span>
                     </h1>
-                    <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
-                        Master your subjects with AI-powered study tools, spaced repetition, and intelligent progress tracking.
+
+                    <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                        Transformeer je studieroutine met gepersonaliseerde AI-begeleiding, slimme planning en boeiende leermodi.
                     </p>
-                    <Link href="/login" className="bg-blue-600 hover:bg-blue-500 text-white font-medium px-6 py-3 rounded-xl transition-all shadow-lg hover:shadow-blue-500/25 inline-flex items-center gap-2 group">
-                        Get Started
-                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    </Link>
+
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up" style={{ animationDelay: '0.2s' }}>
+                        <Link
+                            href="/login"
+                            className="group px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl transition-all shadow-lg hover:shadow-blue-500/25 flex items-center justify-center gap-2"
+                        >
+                            Start nu gratis
+                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        </Link>
+                        <button className="px-8 py-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 font-medium rounded-xl backdrop-blur-sm transition-colors">
+                            Meer informatie
+                        </button>
+                    </div>
                 </div>
             </div>
+
+            className="glass-card p-8 hover:bg-white/5 transition-colors group animate-slide-up"
+            style={{ animationDelay: delay }}
+        >
+            <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 border border-white/10">
+                {icon}
+            </div>
+            <h3 className="text-xl font-bold text-white mb-3">{title}</h3>
+            <p className="text-slate-400 leading-relaxed">
+                {description}
+            </p>
         </div>
     );
 }
