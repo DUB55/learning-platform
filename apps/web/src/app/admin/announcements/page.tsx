@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
-import { Plus, Edit2, Trash2, Eye, Globe, Clock } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, Clock, FileText } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface Announcement {
@@ -17,19 +17,30 @@ interface Announcement {
     created_at: string;
 }
 
+interface AnnouncementPage {
+    id: string;
+    title: string;
+    slug: string;
+}
+
 export default function AdminAnnouncementsPage() {
     const { user, profile, loading } = useAuth();
     const router = useRouter();
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+    const [pages, setPages] = useState<AnnouncementPage[]>([]);
     const [isLoadingData, setIsLoadingData] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
     const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
+    const [createLinkedPage, setCreateLinkedPage] = useState(false);
 
     const [formData, setFormData] = useState({
         title: '',
         content: '',
         priority: 'normal' as 'low' | 'normal' | 'high' | 'urgent',
-        expires_at: ''
+        expires_at: '',
+        pageTitle: '',
+        pageSlug: '',
+        pageContent: ''
     });
 
     useEffect(() => {
@@ -38,33 +49,77 @@ export default function AdminAnnouncementsPage() {
                 router.push('/dashboard');
                 return;
             }
-            fetchAnnouncements();
+            fetchData();
         }
     }, [user, profile, loading, router]);
 
-    const fetchAnnouncements = async () => {
+    const fetchData = async () => {
         setIsLoadingData(true);
-        const { data, error } = await supabase
+
+        // Fetch announcements
+        const { data: announcementsData } = await supabase
             .from('announcements')
             .select('*')
             .order('created_at', { ascending: false });
 
-        if (!error && data) {
-            setAnnouncements(data);
+        if (announcementsData) {
+            setAnnouncements(announcementsData);
         }
+
+        // Fetch pages
+        const { data: pagesData } = await supabase
+            .from('announcement_pages')
+            .select('id, title, slug')
+            .order('created_at', { ascending: false });
+
+        if (pagesData) {
+            setPages(pagesData);
+        }
+
         setIsLoadingData(false);
+    };
+
+    const generateSlug = (title: string) => {
+        return title
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '');
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user || !formData.title.trim() || !formData.content.trim()) return;
 
+        let linkedPageId = null;
+
+        // Create linked page if requested
+        if (createLinkedPage && formData.pageTitle.trim() && formData.pageContent.trim()) {
+            const slug = formData.pageSlug || generateSlug(formData.pageTitle);
+
+            const { data: pageData, error: pageError } = await supabase
+                .from('announcement_pages')
+                .insert([{
+                    created_by: user.id,
+                    title: formData.pageTitle,
+                    slug: slug,
+                    content: formData.pageContent,
+                    is_published: true
+                }])
+                .select()
+                .single();
+
+            if (!pageError && pageData) {
+                linkedPageId = pageData.id;
+            }
+        }
+
         const announcementData = {
             created_by: user.id,
             title: formData.title,
             content: formData.content,
             priority: formData.priority,
-            expires_at: formData.expires_at || null
+            expires_at: formData.expires_at || null,
+            linked_page_id: linkedPageId
         };
 
         if (editingAnnouncement) {
@@ -77,7 +132,7 @@ export default function AdminAnnouncementsPage() {
             if (!error) {
                 setEditingAnnouncement(null);
                 resetForm();
-                fetchAnnouncements();
+                fetchData();
             }
         } else {
             // Create new
@@ -88,7 +143,7 @@ export default function AdminAnnouncementsPage() {
             if (!error) {
                 resetForm();
                 setShowAddModal(false);
-                fetchAnnouncements();
+                fetchData();
             }
         }
     };
@@ -98,8 +153,12 @@ export default function AdminAnnouncementsPage() {
             title: '',
             content: '',
             priority: 'normal',
-            expires_at: ''
+            expires_at: '',
+            pageTitle: '',
+            pageSlug: '',
+            pageContent: ''
         });
+        setCreateLinkedPage(false);
     };
 
     const handleEdit = (announcement: Announcement) => {
@@ -108,7 +167,10 @@ export default function AdminAnnouncementsPage() {
             title: announcement.title,
             content: announcement.content,
             priority: announcement.priority,
-            expires_at: announcement.expires_at ? announcement.expires_at.split('T')[0] : ''
+            expires_at: announcement.expires_at ? announcement.expires_at.split('T')[0] : '',
+            pageTitle: '',
+            pageSlug: '',
+            pageContent: ''
         });
         setShowAddModal(true);
     };
@@ -122,7 +184,7 @@ export default function AdminAnnouncementsPage() {
             .eq('id', id);
 
         if (!error) {
-            fetchAnnouncements();
+            fetchData();
         }
     };
 
@@ -196,6 +258,12 @@ export default function AdminAnnouncementsPage() {
                                                     <div className="flex items-center gap-1">
                                                         <Clock className="w-3 h-3" />
                                                         <span>Expires {new Date(announcement.expires_at).toLocaleDateString()}</span>
+                                                    </div>
+                                                )}
+                                                {announcement.linked_page_id && (
+                                                    <div className="flex items-center gap-1">
+                                                        <FileText className="w-3 h-3" />
+                                                        <span>Has linked page</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -274,6 +342,60 @@ export default function AdminAnnouncementsPage() {
                                                 />
                                             </div>
                                         </div>
+
+                                        {/* Create Linked Page Option */}
+                                        <div className="border-t border-white/10 pt-4">
+                                            <label className="flex items-center gap-2 text-white cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={createLinkedPage}
+                                                    onChange={(e) => setCreateLinkedPage(e.target.checked)}
+                                                    className="w-4 h-4 rounded bg-slate-800/50 border-white/10"
+                                                />
+                                                <span>Create a detailed page for this announcement</span>
+                                            </label>
+                                        </div>
+
+                                        {createLinkedPage && (
+                                            <div className="space-y-4 bg-slate-900/50 p-4 rounded-lg">
+                                                <div>
+                                                    <label className="block text-slate-400 text-sm mb-2">Page Title</label>
+                                                    <input
+                                                        type="text"
+                                                        value={formData.pageTitle}
+                                                        onChange={(e) => setFormData({
+                                                            ...formData,
+                                                            pageTitle: e.target.value,
+                                                            pageSlug: generateSlug(e.target.value)
+                                                        })}
+                                                        className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500"
+                                                        placeholder="Page title"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-slate-400 text-sm mb-2">Page URL Slug</label>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-slate-500">/announcements/</span>
+                                                        <input
+                                                            type="text"
+                                                            value={formData.pageSlug}
+                                                            onChange={(e) => setFormData({ ...formData, pageSlug: e.target.value })}
+                                                            className="flex-1 bg-slate-800/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500"
+                                                            placeholder="page-url-slug"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-slate-400 text-sm mb-2">Page Content</label>
+                                                    <textarea
+                                                        value={formData.pageContent}
+                                                        onChange={(e) => setFormData({ ...formData, pageContent: e.target.value })}
+                                                        className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-3 text-white h-48 resize-none focus:outline-none focus:border-blue-500"
+                                                        placeholder="Detailed page content (plain text for now)"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="flex gap-4 mt-6">
                                         <button
