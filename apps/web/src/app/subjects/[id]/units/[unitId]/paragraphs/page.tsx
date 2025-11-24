@@ -88,19 +88,36 @@ export default function ParagraphsPage() {
 
     const handleAddParagraph = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user || !newParagraphTitle.trim()) return;
 
-        const { error } = await supabase
+        console.log('Creating paragraph:', newParagraphTitle);
+
+        if (!user) {
+            console.error('No user found');
+            alert('You must be logged in to create a paragraph');
+            return;
+        }
+
+        if (!newParagraphTitle.trim()) {
+            alert('Please enter a paragraph title');
+            return;
+        }
+
+        const { data, error } = await supabase
             .from('paragraphs')
             .insert([
                 {
                     unit_id: unitId,
-                    title: newParagraphTitle,
+                    title: newParagraphTitle.trim(),
                     order_index: paragraphs.length
                 }
-            ]);
+            ])
+            .select();
 
-        if (!error) {
+        if (error) {
+            console.error('Error creating paragraph:', error);
+            alert(`Failed to create paragraph: ${error.message}`);
+        } else {
+            console.log('Paragraph created successfully:', data);
             setNewParagraphTitle('');
             setShowAddModal(false);
             fetchUnitAndParagraphs();
