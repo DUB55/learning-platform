@@ -368,22 +368,84 @@ export interface Database {
                     reason?: string | null
                 }
             }
-            push_notifications?: boolean
-            study_reminders?: boolean
-            created_at?: string
-            updated_at?: string
+            user_settings: {
+                Row: {
+                    id: string
+                    user_id: string
+                    theme: 'light' | 'dark'
+                    email_notifications: boolean
+                    push_notifications: boolean
+                    study_reminders: boolean
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    theme?: 'light' | 'dark'
+                    email_notifications?: boolean
+                    push_notifications?: boolean
+                    study_reminders?: boolean
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    theme?: 'light' | 'dark'
+                    email_notifications?: boolean
+                    push_notifications?: boolean
+                    study_reminders?: boolean
+                    created_at?: string
+                    updated_at?: string
+                }
+            }
+            ai_chats: {
+                Row: {
+                    id: string
+                    user_id: string
+                    title: string
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    title?: string
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    title?: string
+                    created_at?: string
+                    updated_at?: string
+                }
+            }
+            ai_messages: {
+                Row: {
+                    id: string
+                    chat_id: string
+                    role: 'user' | 'assistant' | 'system'
+                    content: string
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    chat_id: string
+                    role: 'user' | 'assistant' | 'system'
+                    content: string
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    chat_id?: string
+                    role?: 'user' | 'assistant' | 'system'
+                    content?: string
+                    created_at?: string
+                }
+            }
         }
-        Update: {
-            id?: string
-            user_id?: string
-            theme?: 'light' | 'dark'
-            email_notifications?: boolean
-            push_notifications?: boolean
-            study_reminders?: boolean
-            created_at?: string
-            updated_at?: string
-        }
-    }
-}
     }
 }
