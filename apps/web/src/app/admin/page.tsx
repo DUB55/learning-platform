@@ -106,9 +106,18 @@ export default function AdminPage() {
             <main className="flex-1 overflow-y-auto relative p-8">
                 <div className="max-w-6xl mx-auto">
                     <header className="mb-10">
-                        <div className="flex items-center gap-3 mb-2">
-                            <ShieldAlert className="w-8 h-8 text-red-500" />
-                            <h1 className="text-3xl font-serif font-bold text-white">Admin Dashboard</h1>
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                                <ShieldAlert className="w-8 h-8 text-red-500" />
+                                <h1 className="text-3xl font-serif font-bold text-white">Admin Dashboard</h1>
+                            </div>
+                            <button
+                                onClick={() => router.push('/admin/permissions')}
+                                className="glass-button px-4 py-2 rounded-xl flex items-center gap-2"
+                            >
+                                <ShieldAlert className="w-4 h-4" />
+                                <span>Permissions</span>
+                            </button>
                         </div>
                         <p className="text-slate-400">Manage global subjects and system settings</p>
                     </header>
@@ -167,8 +176,8 @@ export default function AdminPage() {
                                 <div key={subject.id} className="glass-card p-4 group relative">
                                     <div className="flex justify-between items-start mb-2">
                                         <div className={`px-2 py-1 rounded text-xs font-medium ${subject.is_public
-                                                ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                                                : 'bg-slate-700/50 text-slate-400 border border-slate-600/30'
+                                            ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                                            : 'bg-slate-700/50 text-slate-400 border border-slate-600/30'
                                             }`}>
                                             {subject.is_public ? 'Global' : 'Personal'}
                                         </div>
