@@ -510,6 +510,67 @@ export interface Database {
                     created_at?: string
                 }
             }
+            study_plans: {
+                Row: {
+                    id: string
+                    user_id: string
+                    title: string
+                    goal: string | null
+                    start_date: string
+                    end_date: string | null
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    title: string
+                    goal?: string | null
+                    start_date?: string
+                    end_date?: string | null
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    title?: string
+                    goal?: string | null
+                    start_date?: string
+                    end_date?: string | null
+                    created_at?: string
+                }
+            }
+            study_plan_events: {
+                Row: {
+                    id: string
+                    plan_id: string
+                    title: string
+                    start_time: string
+                    end_time: string
+                    description: string | null
+                    is_completed: boolean
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    plan_id: string
+                    title: string
+                    start_time: string
+                    end_time: string
+                    description?: string | null
+                    is_completed?: boolean
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    plan_id?: string
+                    title?: string
+                    start_time?: string
+                    end_time?: string
+                    description?: string | null
+                    is_completed?: boolean
+                    created_at?: string
+                }
+            }
         }
     }
 }
