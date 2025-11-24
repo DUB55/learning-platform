@@ -4,16 +4,66 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
 import { useTasks } from '@/hooks/useTasks';
-import { ChevronLeft, ChevronRight, Plus, Clock, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Clock, CheckCircle2, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+
+type CalendarEvent = {
+    id: string;
+    title: string;
+    description: string | null;
+    start_date: string;
+    color: string;
+};
 
 export default function CalendarPage() {
     const { user } = useAuth();
     const { tasks, isLoading: loading } = useTasks(user);
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [events, setEvents] = useState<CalendarEvent[]>([]);
+    const [showEventModal, setShowEventModal] = useState(false);
+    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [eventTitle, setEventTitle] = useState('');
+    const [eventDescription, setEventDescription] = useState('');
+    const [eventColor, setEventColor] = useState('blue');
 
     const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
     const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
+
+    useEffect(() => {
+        if (user) {
+            fetchEvents();
+        }
+    }, [user, currentDate]);
+
+    const fetchEvents = async () => {
+        const { data } = await supabase
+            .from('calendar_events')
+            .select('*')
+            .gte('start_date', new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString())
+            .lte('start_date', new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).toISOString());
+        setEvents(data || []);
+    };
+
+    const handleCreateEvent = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedDate || !eventTitle.trim()) return;
+
+        const { error } = await supabase.from('calendar_events').insert({
+            user_id: user?.id,
+            title: eventTitle,
+            description: eventDescription,
+            start_date: selectedDate.toISOString(),
+            color: eventColor
+        });
+
+        if (!error) {
+            setShowEventModal(false);
+            setEventTitle('');
+            setEventDescription('');
+            setSelectedDate(null);
+            fetchEvents();
+        }
+    };
 
     const prevMonth = () => {
         setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
