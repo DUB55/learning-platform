@@ -3,13 +3,16 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { BookOpen, Plus, MoreHorizontal, Clock, Calendar } from 'lucide-react';
 
 import Sidebar from '@/components/Sidebar';
+import SubjectMenu from '@/components/SubjectMenu';
 
 export default function SubjectsPage() {
     const { user } = useAuth();
+    const router = useRouter();
     const [subjects, setSubjects] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
@@ -58,6 +61,21 @@ export default function SubjectsPage() {
             fetchSubjects();
         } catch (error) {
             console.error('Error adding subject:', error);
+        }
+    };
+
+    const handleDeleteSubject = async (id: string) => {
+        try {
+            const { error } = await supabase
+                .from('subjects')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+
+            setSubjects(subjects.filter(s => s.id !== id));
+        } catch (error) {
+            console.error('Error deleting subject:', error);
         }
     };
 
