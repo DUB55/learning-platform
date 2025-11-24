@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Plus, MoreVertical, FileText, Calendar, Eye } from 'lucide-react';
+import { ArrowLeft, Plus, MoreVertical, FileText, Calendar, Eye, BookOpen } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 
 export default function DocumentsPage() {
@@ -19,6 +19,7 @@ export default function DocumentsPage() {
     const [documents, setDocuments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showAddLearningSetModal, setShowAddLearningSetModal] = useState(false);
     const [newDocumentTitle, setNewDocumentTitle] = useState('');
 
     useEffect(() => {
@@ -118,15 +119,24 @@ export default function DocumentsPage() {
                                 <h1 className="text-3xl font-serif font-bold text-white mb-2">
                                     {paragraph?.title}
                                 </h1>
-                                <p className="text-slate-400">Documents in this paragraph</p>
+                                <p className="text-slate-400">Documents and learning sets</p>
                             </div>
-                            <button
-                                onClick={() => setShowAddModal(true)}
-                                className="glass-button px-4 py-2 rounded-xl flex items-center gap-2"
-                            >
-                                <Plus className="w-5 h-5" />
-                                <span>Add Document</span>
-                            </button>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowAddModal(true)}
+                                    className="glass-button px-4 py-2 rounded-xl flex items-center gap-2"
+                                >
+                                    <Plus className="w-5 h-5" />
+                                    <span>Add Document</span>
+                                </button>
+                                <button
+                                    onClick={() => setShowAddLearningSetModal(true)}
+                                    className="glass-button px-4 py-2 rounded-xl flex items-center gap-2"
+                                >
+                                    <BookOpen className="w-5 h-5" />
+                                    <span>Add Learning Set</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -203,6 +213,24 @@ export default function DocumentsPage() {
                                         </button>
                                     </div>
                                 </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Add Learning Set Modal (Placeholder) */}
+                    {showAddLearningSetModal && (
+                        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                            <div className="glass-card p-8 w-full max-w-md relative">
+                                <h2 className="text-2xl font-bold text-white mb-6">Add Learning Set</h2>
+                                <p className="text-slate-400 mb-6">
+                                    Learning sets feature is coming soon! This will allow you to create flashcards and study materials.
+                                </p>
+                                <button
+                                    onClick={() => setShowAddLearningSetModal(false)}
+                                    className="w-full glass-button rounded-lg py-3"
+                                >
+                                    Close
+                                </button>
                             </div>
                         </div>
                     )}
