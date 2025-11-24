@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Plus, MoreVertical, FileText, Calendar, Eye, BookOpen } from 'lucide-react';
+import { ArrowLeft, Plus, MoreVertical, FileText, Calendar, Eye, BookOpen, Globe, Lock, Edit2, Trash2 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
+import ResourceContextMenu from '@/components/ResourceContextMenu';
 
 export default function DocumentsPage() {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const router = useRouter();
     const params = useParams();
     const subjectId = params.id as string;
@@ -21,6 +22,8 @@ export default function DocumentsPage() {
     const [showAddModal, setShowAddModal] = useState(false);
     const [showAddLearningSetModal, setShowAddLearningSetModal] = useState(false);
     const [newDocumentTitle, setNewDocumentTitle] = useState('');
+    const [resourceMenu, setResourceMenu] = useState<{ x: number; y: number; documentId: string } | null>(null);
+    const [editingDocument, setEditingDocument] = useState<{ id: string; title: string } | null>(null);
 
     useEffect(() => {
         if (user && paragraphId) {
@@ -78,16 +81,93 @@ export default function DocumentsPage() {
         }
     };
 
-    const handleDeleteDocument = async (documentId: string) => {
-        if (confirm('Delete this document?')) {
-            const { error } = await supabase
-                .from('documents')
-                .delete()
-                .eq('id', documentId);
+    const handleToggleGlobal = async (documentId: string) => {
+        const document = documents.find(d => d.id === documentId);
+        if (!document) return;
 
-            if (!error) {
-                setDocuments(documents.filter(d => d.id !== documentId));
+        const { error } = await supabase
+            .from('documents')
+            .update({ is_global: !document.is_global })
+            .eq('id', documentId);
+
+        if (!error) {
+            fetchParagraphAndDocuments();
+        }
+    };
+
+    const handleRenameDocument = (documentId: string) => {
+        const document = documents.find(d => d.id === documentId);
+        if (document) {
+            setEditingDocument({ id: document.id, title: document.title });
+        }
+    };
+
+    const handleSaveRename = async () => {
+        if (!editingDocument) return;
+
+        const { error } = await supabase
+            .from('documents')
+            .update({ title: editingDocument.title })
+            .eq('id', editingDocument.id);
+
+        if (!error) {
+            setEditingDocument(null);
+            fetchParagraphAndDocuments();
+        }
+    };
+
+    const handleResourceContextMenu = (e: React.MouseEvent, documentId: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setResourceMenu({
+            x: e.clientX,
+            y: e.clientY,
+            documentId
+        });
+    };
+
+    const getResourceMenuItems = (documentId: string) => {
+        const document = documents.find(d => d.id === documentId);
+        if (!document) return [];
+
+        const items = [
+            {
+                icon: <Edit2 className="w-4 h-4" />,
+                label: 'Rename',
+                onClick: () => handleRenameDocument(documentId)
             }
+        ];
+
+        // Only admins can toggle global status
+        if (profile?.is_admin) {
+            items.unshift({
+                icon: document.is_global ? <Lock className="w-4 h-4" /> : <Globe className="w-4 h-4" />,
+                label: document.is_global ? 'Make Private' : 'Make Global',
+                onClick: () => handleToggleGlobal(documentId)
+            });
+        }
+
+        items.push({
+            icon: <Trash2 className="w-4 h-4" />,
+            label: 'Delete',
+            onClick: () => handleDeleteDocument(documentId),
+            danger: true,
+            divider: true
+        });
+
+        return items;
+    };
+
+    const handleDeleteDocument = async (documentId: string) => {
+        if (!confirm('Delete this document?')) return;
+
+        const { error } = await supabase
+            .from('documents')
+            .delete()
+            .eq('id', documentId);
+
+        if (!error) {
+            setDocuments(documents.filter(d => d.id !== documentId));
         }
     };
 
@@ -150,19 +230,38 @@ export default function DocumentsPage() {
                                     // TODO: Navigate to document editor/viewer
                                     console.log('View document:', document.id);
                                 }}
+                                onContextMenu={(e) => handleResourceContextMenu(e, document.id)}
                             >
                                 <div className="flex justify-between items-start mb-6">
-                                    <div>
-                                        <h3 className="text-lg font-bold text-white mb-1">{document.title}</h3>
-                                        <p className="text-slate-400 text-sm capitalize">{document.type} document</p>
-                                    </div>
-                                    <div onClick={(e) => e.stopPropagation()}>
-                                        <button
-                                            onClick={() => handleDeleteDocument(document.id)}
-                                            className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                                        >
-                                            <MoreVertical className="w-5 h-5" />
-                                        </button>
+                                    <div className="flex-1">
+                                        {editingDocument && editingDocument.id === document.id ? (
+                                            <input
+                                                type="text"
+                                                value={editingDocument.title}
+                                                onChange={(e) => setEditingDocument({ ...editingDocument, title: e.target.value })}
+                                                onBlur={handleSaveRename}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') handleSaveRename();
+                                                    if (e.key === 'Escape') setEditingDocument(null);
+                                                }}
+                                                onClick={(e) => e.stopPropagation()}
+                                                autoFocus
+                                                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-3 py-1 text-white text-lg font-bold focus:outline-none focus:border-blue-500"
+                                            />
+                                        ) : (
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <h3 className="text-lg font-bold text-white">{document.title}</h3>
+                                                    {document.is_global && (
+                                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center gap-1">
+                                                            <Globe className="w-2.5 h-2.5" />
+                                                            Global
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-slate-400 text-sm capitalize">{document.type} document</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -233,6 +332,18 @@ export default function DocumentsPage() {
                                 </button>
                             </div>
                         </div>
+                    )}
+
+                    {/* Resource Context Menu */}
+                    {resourceMenu && (
+                        <ResourceContextMenu
+                            items={getResourceMenuItems(resourceMenu.documentId)}
+                            position={{ x: resourceMenu.x, y: resourceMenu.y }}
+                            onClose={() => setResourceMenu(null)}
+                            resourceType="document"
+                            isGlobal={documents.find(d => d.id === resourceMenu.documentId)?.is_global || false}
+                            isAdmin={profile?.is_admin || false}
+                        />
                     )}
                 </div>
             </main>
