@@ -25,6 +25,8 @@ export default function CalendarPage() {
     const [eventTitle, setEventTitle] = useState('');
     const [eventDescription, setEventDescription] = useState('');
     const [eventColor, setEventColor] = useState('blue');
+    const [eventStartTime, setEventStartTime] = useState('09:00');
+    const [eventEndTime, setEventEndTime] = useState('10:00');
 
     const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
     const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
@@ -48,11 +50,16 @@ export default function CalendarPage() {
         e.preventDefault();
         if (!selectedDate || !eventTitle.trim()) return;
 
+        // Combine date with start time
+        const [startHours, startMinutes] = eventStartTime.split(':').map(Number);
+        const eventDate = new Date(selectedDate);
+        eventDate.setHours(startHours, startMinutes, 0, 0);
+
         const { error } = await supabase.from('calendar_events').insert({
             user_id: user?.id,
             title: eventTitle,
             description: eventDescription,
-            start_date: selectedDate.toISOString(),
+            start_date: eventDate.toISOString(),
             color: eventColor
         });
 
@@ -60,6 +67,8 @@ export default function CalendarPage() {
             setShowEventModal(false);
             setEventTitle('');
             setEventDescription('');
+            setEventStartTime('09:00');
+            setEventEndTime('10:00');
             setSelectedDate(null);
             fetchEvents();
         }
@@ -201,6 +210,26 @@ export default function CalendarPage() {
                                     placeholder="Description (optional)"
                                     className="w-full bg-slate-800/50 border border-white/10 rounded-xl px-4 py-2 text-white h-20 resize-none focus:outline-none focus:border-blue-500"
                                 />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs text-slate-400 mb-1">Start Time</label>
+                                        <input
+                                            type="time"
+                                            value={eventStartTime}
+                                            onChange={(e) => setEventStartTime(e.target.value)}
+                                            className="w-full bg-slate-800/50 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs text-slate-400 mb-1">End Time</label>
+                                        <input
+                                            type="time"
+                                            value={eventEndTime}
+                                            onChange={(e) => setEventEndTime(e.target.value)}
+                                            className="w-full bg-slate-800/50 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+                                        />
+                                    </div>
+                                </div>
                                 <div className="flex gap-2">
                                     <button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl transition-colors">
                                         Create Event
