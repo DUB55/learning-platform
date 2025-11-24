@@ -136,8 +136,20 @@ class Dub5AIService {
     /**
      * Generates a study plan JSON
      */
-    async generateStudyPlan(context: string): Promise<any> {
-        const prompt = `Create a study plan based on this request: "${context}". Return ONLY a raw JSON object with a "title" and an "events" array (each having title, start (ISO string), duration (minutes)).`;
+    async generateStudyPlan(goal: string, schedule: string): Promise<any> {
+        const now = new Date().toISOString();
+        const prompt = `Create a study plan for the goal: "${goal}" with this schedule availability: "${schedule}". 
+        Current date is ${now}.
+        Return ONLY a raw JSON object with:
+        1. "title": string (a catchy title for the plan)
+        2. "events": array of objects, each having:
+           - "title": string (event title)
+           - "start_time": string (ISO 8601 timestamp for the event start)
+           - "end_time": string (ISO 8601 timestamp for the event end)
+           - "description": string (what to study)
+        
+        Ensure the dates are valid and in the future relative to ${now}.
+        `;
 
         try {
             const result = await this.streamRequest(prompt, {
