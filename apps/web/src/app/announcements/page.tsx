@@ -36,6 +36,21 @@ export default function AnnouncementsPage() {
     useEffect(() => {
         if (user) {
             fetchAnnouncements();
+
+            // Subscribe to real-time updates
+            const channel = supabase
+                .channel('announcements-list-changes')
+                .on('postgres_changes',
+                    { event: '*', schema: 'public', table: 'announcements' },
+                    () => {
+                        fetchAnnouncements();
+                    }
+                )
+                .subscribe();
+
+            return () => {
+                supabase.removeChannel(channel);
+            };
         }
     }, [user]);
 
