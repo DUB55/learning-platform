@@ -67,6 +67,27 @@ export default function Sidebar() {
                     />
                     <SidebarItem
                         icon={<Zap />}
+                        label="Study Modes"
+                        href="/study"
+                        active={isActive('/study')}
+                    />
+                    <SidebarItem
+                        icon={<Sparkles className="text-purple-400" />}
+                        label="Dub5 AI"
+                        href="/ai-chat"
+                        active={isActive('/ai-chat')}
+                    />
+                    <SidebarItem
+                        icon={<CalendarIcon className="text-blue-400" />}
+                        label="Study Plans"
+                        href="/dashboard/study-plans"
+                        active={isActive('/dashboard/study-plans')}
+                    />
+                    <SidebarItem
+                        icon={<Library />}
+                        label="Library"
+                        href="/library"
+                        active={isActive('/library')}
                     />
                     {profile?.is_admin && (
                         <SidebarItem
