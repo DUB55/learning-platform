@@ -57,7 +57,7 @@ export default function AdminLeersetsPage() {
                 .insert({
                     name: newLeersetName,
                     subject_id: selectedSubject || null,
-                    created_by: user!.id,
+                    user_id: user!.id,
                 })
                 .select()
                 .single();

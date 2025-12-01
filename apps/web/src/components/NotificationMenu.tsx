@@ -93,12 +93,23 @@ export default function NotificationMenu({ userId }: NotificationMenuProps) {
                 .select('announcement_id')
                 .eq('user_id', userId);
 
-            const readIds = new Set(readsData?.map(r => r.announcement_id) || []);
+            const serverReadIds = new Set(readsData?.map(r => r.announcement_id) || []);
+
+            // Get local read IDs
+            let localReadIds = new Set<string>();
+            try {
+                const stored = localStorage.getItem(`read_announcements_${userId}`);
+                if (stored) {
+                    localReadIds = new Set(JSON.parse(stored));
+                }
+            } catch (e) {
+                console.error('Error reading from localStorage', e);
+            }
 
             setAnnouncements(
                 announcementsData.map(a => ({
                     ...a,
-                    is_read: readIds.has(a.id)
+                    is_read: serverReadIds.has(a.id) || localReadIds.has(a.id)
                 }))
             );
         }
@@ -106,25 +117,46 @@ export default function NotificationMenu({ userId }: NotificationMenuProps) {
         setLoading(false);
     };
 
-    const markAsRead = async (announcementId: string) => {
-        await supabase.rpc('mark_announcement_read', {
-            announcement_uuid: announcementId,
-            user_uuid: userId
-        });
+    useEffect(() => {
+        if (isOpen && announcements.length > 0 && unreadCount > 0) {
+            markAllAsRead();
+        }
+    }, [isOpen, announcements, unreadCount]);
 
-        // Update local state
-        setAnnouncements(announcements.map(a =>
-            a.id === announcementId ? { ...a, is_read: true } : a
-        ));
-        fetchUnreadCount();
-    };
+    const markAllAsRead = async () => {
+        const unreadAnnouncements = announcements.filter(a => !a.is_read);
+        if (unreadAnnouncements.length === 0) return;
 
-    const handleAnnouncementClick = async (announcement: Announcement) => {
-        // Mark as read
-        if (!announcement.is_read) {
-            await markAsRead(announcement.id);
+        // Optimistically update UI
+        setAnnouncements(prev => prev.map(a => ({ ...a, is_read: true })));
+        setUnreadCount(0);
+
+        // Save to localStorage
+        try {
+            const allReadIds = announcements.map(a => a.id);
+            const stored = localStorage.getItem(`read_announcements_${userId}`);
+            let currentIds = stored ? JSON.parse(stored) : [];
+            const newIds = [...new Set([...currentIds, ...allReadIds])];
+            localStorage.setItem(`read_announcements_${userId}`, JSON.stringify(newIds));
+        } catch (e) {
+            console.error('Error saving to localStorage', e);
         }
 
+        // Mark all as read in parallel for max speed
+        try {
+            await Promise.all(unreadAnnouncements.map(a =>
+                supabase.rpc('mark_announcement_read', {
+                    announcement_uuid: a.id,
+                    user_uuid: userId
+                })
+            ));
+        } catch (error) {
+            console.error('Error marking announcements as read:', error);
+            // Revert on error would be complex, assuming success for speed
+        }
+    };
+
+    const handleAnnouncementClick = (announcement: Announcement) => {
         // Navigate to linked page if exists
         if (announcement.linked_page_id) {
             router.push(`/announcements/${announcement.linked_page_id}`);

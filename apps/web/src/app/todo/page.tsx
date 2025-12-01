@@ -15,23 +15,27 @@ export default function TodoPage() {
     const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; taskId: string } | null>(null);
     const [editingTask, setEditingTask] = useState<{ id: string; title: string } | null>(null);
+    const [editingCategory, setEditingCategory] = useState<{ id: string; type: string } | null>(null);
+    const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
 
     const handleAddTask = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user || !newTaskTitle.trim()) return;
 
         const tempId = Math.random().toString();
+        const maxPosition = tasks.length > 0 ? Math.max(...tasks.map((t: any) => t.position || 0)) : 0;
+
         const newTask = {
             id: tempId,
             user_id: user.id,
             title: newTaskTitle,
             is_completed: false,
             type: 'assignment',
+            position: maxPosition + 1,
             created_at: new Date().toISOString()
         };
 
         try {
-            // Optimistic update: Update local cache immediately
             await mutate([...tasks, newTask], false);
             setNewTaskTitle('');
 
@@ -42,26 +46,23 @@ export default function TodoPage() {
                         user_id: user.id,
                         title: newTaskTitle,
                         is_completed: false,
-                        type: 'assignment'
+                        type: 'assignment',
+                        position: maxPosition + 1
                     }
                 ] as any)
                 .select()
                 .single();
 
             if (error) throw error;
-
-            // Revalidate to get the real ID and data from server
             await mutate();
         } catch (error) {
             console.error('Error adding task:', error);
-            // Revert to previous state on error
             await mutate();
         }
     };
 
     const toggleTaskCompletion = async (taskId: string, currentStatus: boolean) => {
         try {
-            // Optimistic update
             const updatedTasks = tasks.map((t: any) =>
                 t.id === taskId ? { ...t, is_completed: !currentStatus } : t
             );
@@ -73,17 +74,15 @@ export default function TodoPage() {
                 .eq('id', taskId);
 
             if (error) throw error;
-
-            await mutate(); // Revalidate
+            await mutate();
         } catch (error) {
             console.error('Error updating task:', error);
-            await mutate(); // Revert on error
+            await mutate();
         }
     };
 
     const deleteTask = async (taskId: string) => {
         try {
-            // Optimistic update
             const updatedTasks = tasks.filter((t: any) => t.id !== taskId);
             await mutate(updatedTasks, false);
 
@@ -93,19 +92,70 @@ export default function TodoPage() {
                 .eq('id', taskId);
 
             if (error) throw error;
-
-            await mutate(); // Revalidate
+            await mutate();
         } catch (error) {
             console.error('Error deleting task:', error);
+            await mutate();
+        }
+    };
+
+    const handleDragStart = (e: React.DragEvent, taskId: string) => {
+        setDraggedTaskId(taskId);
+        e.dataTransfer.effectAllowed = 'move';
+        // Make the drag image transparent or custom if needed
+    };
+
+    const handleDragOver = (e: React.DragEvent, targetTaskId: string) => {
+        e.preventDefault();
+        if (!draggedTaskId || draggedTaskId === targetTaskId) return;
+
+        const draggedIndex = tasks.findIndex((t: any) => t.id === draggedTaskId);
+        const targetIndex = tasks.findIndex((t: any) => t.id === targetTaskId);
+
+        if (draggedIndex === -1 || targetIndex === -1) return;
+
+        const newTasks = [...tasks];
+        const [draggedItem] = newTasks.splice(draggedIndex, 1);
+        newTasks.splice(targetIndex, 0, draggedItem);
+
+        // Update positions locally
+        const updatedTasks = newTasks.map((t, index) => ({ ...t, position: index }));
+        mutate(updatedTasks, false);
+    };
+
+    const handleDrop = async (e: React.DragEvent) => {
+        e.preventDefault();
+        setDraggedTaskId(null);
+
+        // Save new positions to server
+        try {
+            const updates = tasks.map((t: any, index: number) => ({
+                id: t.id,
+                position: index,
+                user_id: user!.id, // Required for RLS
+                title: t.title // Required for update
+            }));
+
+            // We can't batch update easily with upsert if we only want to update position
+            // So we'll update one by one for now or use a custom RPC if performance is an issue
+            // For a todo list, Promise.all is fine
+            await Promise.all(updates.map((t: any) =>
+                supabase.from('tasks').update({ position: t.position }).eq('id', t.id)
+            ));
+
+        } catch (error) {
+            console.error('Error saving order:', error);
             await mutate(); // Revert on error
         }
     };
 
-    const filteredTasks = tasks.filter((task: any) => {
-        if (filter === 'active') return !task.is_completed;
-        if (filter === 'completed') return task.is_completed;
-        return true;
-    });
+    const filteredTasks = tasks
+        .sort((a: any, b: any) => (a.position || 0) - (b.position || 0))
+        .filter((task: any) => {
+            if (filter === 'active') return !task.is_completed;
+            if (filter === 'completed') return task.is_completed;
+            return true;
+        });
 
     const handleContextMenu = (e: React.MouseEvent, taskId: string) => {
         e.preventDefault();
@@ -116,18 +166,28 @@ export default function TodoPage() {
         });
     };
 
-    const handleChangeCategory = async (taskId: string, newType: string) => {
+    const handleSaveCategory = async () => {
+        if (!editingCategory) return;
+
         try {
+            // Optimistic update
+            const updatedTasks = tasks.map((t: any) =>
+                t.id === editingCategory.id ? { ...t, type: editingCategory.type } : t
+            );
+            await mutate(updatedTasks, false);
+
             const { error } = await supabase
                 .from('tasks')
-                .update({ type: newType })
-                .eq('id', taskId);
+                .update({ type: editingCategory.type })
+                .eq('id', editingCategory.id);
 
             if (!error) {
+                setEditingCategory(null);
                 await mutate();
             }
         } catch (error) {
             console.error('Error changing category:', error);
+            await mutate();
         }
     };
 
@@ -168,23 +228,8 @@ export default function TodoPage() {
             },
             {
                 icon: <Tag className="w-4 h-4" />,
-                label: 'Assignment',
-                onClick: () => handleChangeCategory(taskId, 'assignment')
-            },
-            {
-                icon: <Tag className="w-4 h-4" />,
-                label: 'Test',
-                onClick: () => handleChangeCategory(taskId, 'test')
-            },
-            {
-                icon: <Tag className="w-4 h-4" />,
-                label: 'Review',
-                onClick: () => handleChangeCategory(taskId, 'review')
-            },
-            {
-                icon: <FolderOpen className="w-4 h-4" />,
-                label: 'Deadline',
-                onClick: () => handleChangeCategory(taskId, 'deadline')
+                label: 'Change Category',
+                onClick: () => setEditingCategory({ id: taskId, type: task.type || 'assignment' })
             },
             {
                 icon: <Trash2 className="w-4 h-4" />,
@@ -260,8 +305,12 @@ export default function TodoPage() {
                             filteredTasks.map((task: any) => (
                                 <div
                                     key={task.id}
-                                    className={`glass-card p-4 flex items-center gap-4 group transition-all ${task.is_completed ? 'opacity-50' : ''
-                                        }`}
+                                    draggable={!task.is_completed}
+                                    onDragStart={(e) => handleDragStart(e, task.id)}
+                                    onDragOver={(e) => handleDragOver(e, task.id)}
+                                    onDrop={handleDrop}
+                                    className={`glass-card p-4 flex items-center gap-4 group transition-all cursor-move ${task.is_completed ? 'opacity-50' : ''
+                                        } ${draggedTaskId === task.id ? 'opacity-0' : ''}`}
                                     onContextMenu={(e) => handleContextMenu(e, task.id)}
                                 >
                                     <button
@@ -300,11 +349,31 @@ export default function TodoPage() {
                                                     <span>{new Date(task.due_date).toLocaleDateString()}</span>
                                                 </div>
                                             )}
-                                            {task.type && (
-                                                <div className="flex items-center gap-1 capitalize">
-                                                    <Tag className="w-3 h-3" />
-                                                    <span>{task.type}</span>
+
+                                            {editingCategory && editingCategory.id === task.id ? (
+                                                <div className="flex items-center gap-1">
+                                                    <Tag className="w-3 h-3 text-blue-400" />
+                                                    <input
+                                                        type="text"
+                                                        value={editingCategory.type}
+                                                        onChange={(e) => setEditingCategory({ ...editingCategory, type: e.target.value })}
+                                                        onBlur={handleSaveCategory}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') handleSaveCategory();
+                                                            if (e.key === 'Escape') setEditingCategory(null);
+                                                        }}
+                                                        autoFocus
+                                                        className="bg-slate-800/50 border border-blue-500/50 rounded px-2 py-0.5 text-blue-400 text-xs focus:outline-none w-24"
+                                                    />
                                                 </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => setEditingCategory({ id: task.id, type: task.type || 'assignment' })}
+                                                    className="flex items-center gap-1 capitalize hover:text-blue-400 transition-colors"
+                                                >
+                                                    <Tag className="w-3 h-3" />
+                                                    <span>{task.type || 'assignment'}</span>
+                                                </button>
                                             )}
                                         </div>
                                     </div>

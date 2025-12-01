@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
-import { ArrowLeft, CheckCircle2, XCircle, AlertCircle, Clock, BookOpen } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, XCircle, AlertCircle, Clock, BookOpen, Trophy } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { xpService } from '@/lib/xpService';
 import { useToast } from '@/hooks/useToast';
 import Toast from '@/components/Toast';
 
@@ -76,7 +77,7 @@ export default function TakeTestPage() {
         setAnswers(prev => ({ ...prev, [questionId]: value }));
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (Object.keys(answers).length < questions.length) {
             if (!confirm('You haven\'t answered all questions. Are you sure you want to submit?')) {
                 return;
@@ -92,9 +93,37 @@ export default function TakeTestPage() {
             }
         });
 
-        setScore(Math.round((correctCount / questions.length) * 100));
+        const finalScore = Math.round((correctCount / questions.length) * 100);
+        setScore(finalScore);
         setSubmitted(true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        // Award XP and check achievements
+        if (user) {
+            try {
+                // Update daily streak
+                await xpService.updateStreak(user.id);
+
+                // Award XP based on score
+                const baseXP = 20;
+                const bonusXP = Math.round((finalScore / 100) * 30);
+                const totalXP = baseXP + bonusXP;
+
+                await xpService.awardXP(user.id, totalXP, 'test_completed', params.testId as string);
+
+                // Check for first test achievement
+                await xpService.unlockAchievement(user.id, 'first_test');
+
+                // Perfect score achievement
+                if (finalScore === 100) {
+                    await xpService.unlockAchievement(user.id, 'perfect_score');
+                }
+
+                showToast(`+${totalXP} XP earned!`, 'success');
+            } catch (error) {
+                console.error('Error awarding XP:', error);
+            }
+        }
     };
 
     if (loading) {
@@ -152,10 +181,10 @@ export default function TakeTestPage() {
                                 <div
                                     key={q.id}
                                     className={`glass-card p-6 transition-all ${submitted
-                                            ? isCorrect
-                                                ? 'border-green-500/30 bg-green-500/5'
-                                                : 'border-red-500/30 bg-red-500/5'
-                                            : ''
+                                        ? isCorrect
+                                            ? 'border-green-500/30 bg-green-500/5'
+                                            : 'border-red-500/30 bg-red-500/5'
+                                        : ''
                                         }`}
                                 >
                                     <div className="flex gap-4">
@@ -171,8 +200,8 @@ export default function TakeTestPage() {
                                                     <label
                                                         key={idx}
                                                         className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${answers[q.id] === opt
-                                                                ? 'bg-blue-600/20 border border-blue-500/50'
-                                                                : 'bg-slate-900/50 hover:bg-slate-900/80 border border-transparent'
+                                                            ? 'bg-blue-600/20 border border-blue-500/50'
+                                                            : 'bg-slate-900/50 hover:bg-slate-900/80 border border-transparent'
                                                             }`}
                                                     >
                                                         <input
@@ -237,7 +266,7 @@ export default function TakeTestPage() {
                                     </button>
                                 )
                             }
-                </div>
+                    </div>
 
                     {toasts.map((toast) => (
                         <Toast

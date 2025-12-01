@@ -193,6 +193,37 @@ class Dub5AIService {
             throw new Error('Failed to generate practice test');
         }
     }
+
+    /**
+     * Generates a PowerPoint presentation JSON
+     */
+    async generatePresentation(topic: string, context?: string): Promise<{ title: string; slides: any[] }> {
+        const contextText = context ? `Context: ${context.slice(0, 3000)}` : '';
+        const prompt = `Create a PowerPoint presentation about "${topic}". ${contextText}
+        Return ONLY a raw JSON object with:
+        1. "title": string (presentation title)
+        2. "slides": array of objects, each having:
+           - "title": string (slide title)
+           - "subtitle": string (optional subtitle)
+           - "content": array of strings (bullet points)
+           - "type": "title" | "content" | "section"
+        
+        Create 5-8 slides with a good flow: title slide, content slides, and a conclusion.
+        `;
+
+        try {
+            const result = await this.streamRequest(prompt, {
+                task: 'presentation',
+                params: { format: 'json' }
+            });
+
+            const cleanResult = result.replace(/```json/g, '').replace(/```/g, '').trim();
+            return JSON.parse(cleanResult);
+        } catch (error) {
+            console.error('Failed to generate presentation:', error);
+            throw new Error('Failed to generate presentation');
+        }
+    }
 }
 
 export const dub5ai = new Dub5AIService();

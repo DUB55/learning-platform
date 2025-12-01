@@ -71,6 +71,9 @@ export default function CalendarPage() {
             setEventEndTime('10:00');
             setSelectedDate(null);
             fetchEvents();
+        } else {
+            console.error('Error creating event:', error);
+            alert('Failed to create event');
         }
     };
 
@@ -223,21 +226,47 @@ export default function CalendarPage() {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-xs text-slate-400 mb-1">Start Time</label>
-                                        <input
-                                            type="time"
-                                            value={eventStartTime}
-                                            onChange={(e) => setEventStartTime(e.target.value)}
-                                            className="w-full bg-slate-800/50 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500"
-                                        />
+                                        <div className="relative">
+                                            <select
+                                                value={eventStartTime}
+                                                onChange={(e) => setEventStartTime(e.target.value)}
+                                                className="w-full bg-slate-800/50 border border-white/10 rounded-xl px-4 py-2 text-white appearance-none focus:outline-none focus:border-blue-500 cursor-pointer"
+                                            >
+                                                {Array.from({ length: 24 * 4 }).map((_, i) => {
+                                                    const h = Math.floor(i / 4);
+                                                    const m = (i % 4) * 15;
+                                                    const time = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                                                    return (
+                                                        <option key={time} value={time} className="bg-slate-800 text-white">
+                                                            {time}
+                                                        </option>
+                                                    );
+                                                })}
+                                            </select>
+                                            <Clock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                                        </div>
                                     </div>
                                     <div>
                                         <label className="block text-xs text-slate-400 mb-1">End Time</label>
-                                        <input
-                                            type="time"
-                                            value={eventEndTime}
-                                            onChange={(e) => setEventEndTime(e.target.value)}
-                                            className="w-full bg-slate-800/50 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500"
-                                        />
+                                        <div className="relative">
+                                            <select
+                                                value={eventEndTime}
+                                                onChange={(e) => setEventEndTime(e.target.value)}
+                                                className="w-full bg-slate-800/50 border border-white/10 rounded-xl px-4 py-2 text-white appearance-none focus:outline-none focus:border-blue-500 cursor-pointer"
+                                            >
+                                                {Array.from({ length: 24 * 4 }).map((_, i) => {
+                                                    const h = Math.floor(i / 4);
+                                                    const m = (i % 4) * 15;
+                                                    const time = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                                                    return (
+                                                        <option key={time} value={time} className="bg-slate-800 text-white">
+                                                            {time}
+                                                        </option>
+                                                    );
+                                                })}
+                                            </select>
+                                            <Clock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="flex gap-2">

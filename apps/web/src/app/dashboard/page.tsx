@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import ProfileMenu from '@/components/ProfileMenu';
 import NotificationMenu from '@/components/NotificationMenu';
+import ResourceContextMenu from '@/components/ResourceContextMenu';
+import { Edit2, Trash2 } from 'lucide-react';
 
 export default function Dashboard() {
     const { user, profile, loading } = useAuth();
@@ -30,6 +32,7 @@ export default function Dashboard() {
         totalTasks: 0
     });
     const [isLoadingData, setIsLoadingData] = useState(true);
+    const [resourceMenu, setResourceMenu] = useState<{ x: number; y: number; resource: any } | null>(null);
 
     useEffect(() => {
         if (!loading && !user) {
@@ -91,24 +94,79 @@ export default function Dashboard() {
                 .select('duration_seconds, created_at')
                 .returns<{ duration_seconds: number, created_at: string }[]>();
 
-            // Calculate stats
-            if (sessionsData) {
-                const totalSeconds = sessionsData.reduce((acc, curr) => acc + curr.duration_seconds, 0);
-                // Simple streak calculation (consecutive days with sessions) - simplified for now
-                const uniqueDays = new Set(sessionsData.map(s => new Date(s.created_at).toDateString())).size;
+            // Fetch streak data from gamification
+            const { data: streakData } = await supabase
+                .from('daily_streaks')
+                .select('current_streak')
+                .eq('user_id', user!.id)
+                .single();
 
-                setStats(prev => ({
-                    ...prev,
-                    totalStudyTime: Math.round(totalSeconds / 3600), // hours
-                    streak: uniqueDays
-                }));
+            // Count completed tasks
+            const { count: completedCount } = await supabase
+                .from('tasks')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', user!.id)
+                .eq('completed', true);
+
+            // Count total tasks
+            const { count: totalCount } = await supabase
+                .from('tasks')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', user!.id);
+
+            // Calculate stats
+            let totalSeconds = 0;
+            if (sessionsData) {
+                totalSeconds = sessionsData.reduce((acc, curr) => acc + curr.duration_seconds, 0);
             }
+
+            setStats({
+                streak: streakData?.current_streak || 0,
+                totalStudyTime: Math.round(totalSeconds / 3600),
+                completedTasks: completedCount || 0,
+                totalTasks: totalCount || 0
+            });
 
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
         } finally {
             setIsLoadingData(false);
         }
+    };
+
+    const handleMenuClick = (e: React.MouseEvent, subject: any) => {
+        e.preventDefault();
+        setResourceMenu({ x: e.clientX, y: e.clientY, resource: subject });
+    };
+
+    const handleDeleteSubject = async (subject: any) => {
+        if (!confirm('Are you sure you want to delete this subject?')) return;
+
+        const { error } = await supabase
+            .from('subjects')
+            .delete()
+            .eq('id', subject.id);
+
+        if (!error) {
+            fetchDashboardData();
+        }
+        setResourceMenu(null);
+    };
+
+    const getMenuItems = (resource: any) => {
+        return [
+            {
+                icon: <Edit2 className="w-4 h-4" />,
+                label: 'Edit',
+                onClick: () => router.push(`/subjects/${resource.id}/edit`)
+            },
+            {
+                icon: <Trash2 className="w-4 h-4" />,
+                label: 'Delete',
+                onClick: () => handleDeleteSubject(resource),
+                danger: true
+            }
+        ];
     };
 
     if (loading || isLoadingData) {
@@ -175,23 +233,23 @@ export default function Dashboard() {
                         />
                         <StatCard
                             title="Total Study Time"
-                            value={`${stats.totalStudyTime} hours`}
+                            value={`${stats.totalStudyTime}h`}
                             icon={<Clock className="w-5 h-5 text-blue-400" />}
                             progress={Math.min(stats.totalStudyTime * 2, 100)}
                             color="blue"
                         />
                         <StatCard
                             title="Tasks Completed"
-                            value="0 completed"
+                            value={`${stats.completedTasks}/${stats.totalTasks}`}
                             icon={<Target className="w-5 h-5 text-purple-400" />}
-                            progress={0}
+                            progress={stats.totalTasks > 0 ? (stats.completedTasks / stats.totalTasks) * 100 : 0}
                             color="purple"
                         />
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Subjects */}
-                        <div className="lg:col-span-2 space-y-6">
+                        {/* Subjects Section */}
+                        <div className="lg:col-span-2">
                             <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-xl font-bold text-white">Your Subjects</h2>
                                 <button
@@ -224,15 +282,16 @@ export default function Dashboard() {
                                             streak="0 days"
                                             color={subject.color || 'blue'}
                                             onClick={() => router.push(`/subjects/${subject.id}/units`)}
+                                            onMenu={(e: any) => handleMenuClick(e, subject)}
                                         />
                                     ))}
                                 </div>
                             )}
                         </div>
 
-                        {/* Upcoming Events */}
+                        {/* Upcoming Events Section */}
                         <div className="space-y-6">
-                            <h2 className="text-xl font-bold text-white mb-6">Upcoming Events</h2>
+                            <h2 className="text-xl font-bold text-white">Upcoming Events</h2>
                             <div className="space-y-4">
                                 {upcomingEvents.length === 0 ? (
                                     <div className="glass-card p-6 text-center">
@@ -261,6 +320,17 @@ export default function Dashboard() {
                         </div>
                     </div>
                 </div>
+
+                {resourceMenu && (
+                    <ResourceContextMenu
+                        items={getMenuItems(resourceMenu.resource)}
+                        position={resourceMenu}
+                        onClose={() => setResourceMenu(null)}
+                        resourceType="subject"
+                        isGlobal={resourceMenu.resource.is_global}
+                        isAdmin={profile?.is_admin || false}
+                    />
+                )}
             </main>
         </div>
     );
@@ -295,13 +365,13 @@ function StatCard({ title, value, icon, progress, color }: { title: string, valu
     );
 }
 
-function SubjectCard({ title, chapters, progress, time, streak, color, onClick }: any) {
+function SubjectCard({ title, chapters, progress, time, streak, color, onClick, onMenu }: any) {
     const colors = {
         cyan: 'border-cyan-500/50',
         orange: 'border-orange-500/50',
         emerald: 'border-emerald-500/50',
         purple: 'border-purple-500/50',
-        blue: 'border-blue-500/50', // Added blue
+        blue: 'border-blue-500/50',
     };
 
     const barColors = {
@@ -309,12 +379,12 @@ function SubjectCard({ title, chapters, progress, time, streak, color, onClick }
         orange: 'bg-orange-500',
         emerald: 'bg-emerald-500',
         purple: 'bg-purple-500',
-        blue: 'bg-blue-500', // Added blue
+        blue: 'bg-blue-500',
     };
 
     return (
         <div
-            className={`glass-card p-6 border-l-4 ${colors[color] || colors.blue} hover:bg-white/5 transition-all duration-300 group cursor-pointer`}
+            className={`glass-card p-6 border-l-4 ${colors[color] || colors.blue} hover:bg-white/5 transition-all duration-300 group cursor-pointer relative`}
             onClick={onClick}
         >
             <div className="flex justify-between items-start mb-6">
@@ -322,7 +392,13 @@ function SubjectCard({ title, chapters, progress, time, streak, color, onClick }
                     <h3 className="text-lg font-bold text-white mb-1">{title}</h3>
                     <p className="text-slate-400 text-sm">{chapters}</p>
                 </div>
-                <button className="text-slate-500 hover:text-white transition-colors">
+                <button
+                    className="text-slate-500 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onMenu(e);
+                    }}
+                >
                     <MoreHorizontal className="w-5 h-5" />
                 </button>
             </div>
@@ -359,7 +435,8 @@ function UpcomingCard({ title, subject, date, time, type }: any) {
         test: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
         review: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
         deadline: 'bg-red-500/10 text-red-400 border-red-500/20',
-        assignment: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', // Added assignment
+        assignment: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+        event: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
     };
 
     return (
@@ -369,7 +446,7 @@ function UpcomingCard({ title, subject, date, time, type }: any) {
                 <p className="text-slate-400 text-sm">{subject}</p>
             </div>
             <div className="text-right">
-                <div className={`text-xs px-2 py-1 rounded-full border ${types[type] || types.assignment} inline-block mb-1`}>
+                <div className={`text-xs px-2 py-1 rounded-full border ${types[type] || types.event} inline-block mb-1`}>
                     {type}
                 </div>
                 <div className="text-slate-500 text-xs flex items-center justify-end gap-1">

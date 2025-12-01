@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { dub5ai, AIMessage } from '@/lib/dub5ai';
 import { useToast } from '@/hooks/useToast';
 import Toast from '@/components/Toast';
+import { prepareContextWithSummary } from '@/lib/aiChatService';
 
 interface Message {
     id: string;
@@ -115,11 +116,22 @@ export default function AIChatPage() {
 
             let fullContent = '';
 
-            // Get AI response with streaming
-            const contextMessages: AIMessage[] = messages.map(m => ({
-                role: m.role,
-                content: m.content
-            }));
+            // Prepare context with summary for long conversations
+            let contextMessages: AIMessage[];
+            if (chatId && messages.length > 10) {
+                // For long chats, inject summary context
+                const messagesWithSummary = await prepareContextWithSummary(chatId, messages);
+                contextMessages = messagesWithSummary.map(m => ({
+                    role: m.role,
+                    content: m.content
+                }));
+            } else {
+                // For short chats, use all messages
+                contextMessages = messages.map(m => ({
+                    role: m.role,
+                    content: m.content
+                }));
+            }
             contextMessages.push({ role: 'user', content: userContent });
 
             await dub5ai.chat(contextMessages, (chunk) => {
@@ -172,9 +184,9 @@ export default function AIChatPage() {
             />
 
             {/* Chat Area */}
-            <main className="flex-1 flex flex-col relative">
+            <main className="flex-1 flex flex-col h-full relative bg-gradient-to-b from-slate-900 to-[#0f172a]">
                 {/* Header */}
-                <div className="h-16 border-b border-white/10 flex items-center px-6 bg-slate-900/50 backdrop-blur-sm z-10">
+                <div className="h-16 border-b border-white/5 flex items-center px-6 bg-slate-900/80 backdrop-blur-md z-10 sticky top-0">
                     <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
                             <Sparkles className="w-5 h-5 text-white" />
@@ -187,80 +199,83 @@ export default function AIChatPage() {
                 </div>
 
                 {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth">
+                <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 scroll-smooth">
                     {messages.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-50">
-                            <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center mb-6">
-                                <Bot className="w-10 h-10 text-blue-400" />
+                        <div className="h-full flex flex-col items-center justify-center text-center p-8">
+                            <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-white/5 flex items-center justify-center mb-6 shadow-xl">
+                                <Bot className="w-12 h-12 text-blue-400" />
                             </div>
-                            <h2 className="text-2xl font-bold text-white mb-2">How can I help you learn?</h2>
-                            <p className="text-slate-400 max-w-md">
+                            <h2 className="text-2xl font-bold text-white mb-3">How can I help you learn?</h2>
+                            <p className="text-slate-400 max-w-md leading-relaxed">
                                 Ask me to explain complex topics, generate practice tests, create study plans, or summarize your notes.
                             </p>
                         </div>
                     ) : (
-                        messages.map((msg) => (
-                            <div
-                                key={msg.id}
-                                className={`flex gap-4 max-w-3xl mx-auto ${msg.role === 'assistant' ? 'bg-white/5 p-6 rounded-2xl' : ''
-                                    }`}
-                            >
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${msg.role === 'assistant'
-                                    ? 'bg-gradient-to-br from-blue-500 to-purple-600'
-                                    : 'bg-slate-700'
-                                    }`}>
-                                    {msg.role === 'assistant' ? (
-                                        <Bot className="w-5 h-5 text-white" />
-                                    ) : (
-                                        <User className="w-5 h-5 text-white" />
-                                    )}
-                                </div>
-                                <div className="flex-1 space-y-2">
-                                    <p className="text-sm font-medium text-slate-400">
-                                        {msg.role === 'assistant' ? 'Dub5 AI' : 'You'}
-                                    </p>
-                                    <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
-                                        {msg.content}
+                        <div className="max-w-3xl mx-auto space-y-6 pb-4">
+                            {messages.map((msg) => (
+                                <div
+                                    key={msg.id}
+                                    className={`flex gap-4 ${msg.role === 'assistant' ? 'bg-white/5 p-6 rounded-2xl border border-white/5 shadow-sm' : 'pl-4'
+                                        }`}
+                                >
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg ${msg.role === 'assistant'
+                                        ? 'bg-gradient-to-br from-blue-500 to-purple-600'
+                                        : 'bg-slate-700'
+                                        }`}>
+                                        {msg.role === 'assistant' ? (
+                                            <Bot className="w-5 h-5 text-white" />
+                                        ) : (
+                                            <User className="w-5 h-5 text-white" />
+                                        )}
+                                    </div>
+                                    <div className="flex-1 space-y-2">
+                                        <p className="text-sm font-medium text-slate-400 flex items-center gap-2">
+                                            {msg.role === 'assistant' ? 'Dub5 AI' : 'You'}
+                                            <span className="text-xs opacity-50">{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                        </p>
+                                        <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
+                                            {msg.content}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))
-                    )}
-
-                    {isTyping && (
-                        <div className="flex gap-4 max-w-3xl mx-auto bg-white/5 p-6 rounded-2xl animate-pulse">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                                <Bot className="w-5 h-5 text-white" />
-                            </div>
-                            <div className="flex-1 space-y-2">
-                                <p className="text-sm font-medium text-slate-400">Dub5 AI</p>
-                                <div className="flex gap-1 items-center h-6">
-                                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                            ))}
+                            {isTyping && (
+                                <div className="flex gap-4 bg-white/5 p-6 rounded-2xl border border-white/5 animate-pulse">
+                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                                        <Bot className="w-5 h-5 text-white" />
+                                    </div>
+                                    <div className="flex-1 space-y-2">
+                                        <p className="text-sm font-medium text-slate-400">Dub5 AI</p>
+                                        <div className="flex gap-1 items-center h-6">
+                                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
+                            <div ref={messagesEndRef} />
                         </div>
                     )}
-                    <div ref={messagesEndRef} />
                 </div>
 
                 {/* Input Area */}
-                <div className="p-6 bg-slate-900/50 backdrop-blur-sm border-t border-white/10">
+                <div className="p-6 bg-slate-900/80 backdrop-blur-md border-t border-white/10 z-20">
                     <div className="max-w-3xl mx-auto relative">
-                        <form onSubmit={handleSendMessage}>
+                        <form onSubmit={handleSendMessage} className="relative group">
+                            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
                             <input
                                 type="text"
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 placeholder="Message Dub5 AI..."
-                                className="w-full bg-slate-800/50 border border-white/10 rounded-xl py-4 pl-6 pr-14 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-lg"
+                                className="w-full bg-slate-800/80 border border-white/10 rounded-xl py-4 pl-6 pr-14 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-lg relative z-10"
                                 disabled={isTyping}
                             />
                             <button
                                 type="submit"
                                 disabled={!input.trim() || isTyping}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50 disabled:hover:bg-blue-600"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50 disabled:hover:bg-blue-600 z-20 shadow-lg"
                             >
                                 {isTyping ? (
                                     <StopCircle className="w-5 h-5 animate-pulse" />
@@ -269,7 +284,7 @@ export default function AIChatPage() {
                                 )}
                             </button>
                         </form>
-                        <p className="text-center text-[10px] text-slate-600 mt-3">
+                        <p className="text-center text-[10px] text-slate-500 mt-3 font-medium">
                             Dub5 AI can make mistakes. Consider checking important information.
                         </p>
                     </div>

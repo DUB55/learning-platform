@@ -10,13 +10,23 @@
         "dev": "turbo run dev",
         "build": "turbo run build",
         "lint": "turbo run lint",
-        "clean": "turbo run clean"
+        "clean": "turbo run clean",
+        "web:dev": "npm run dev --workspace apps/web",
+        "web:build": "npm run build --workspace apps/web",
+        "web:start": "npm start --workspace apps/web",
+        "web:lint": "npm run lint --workspace apps/web",
+        "web:type-check": "npm run type-check --workspace apps/web",
+        "install:pptx": "npm install --workspace apps/web pptxgenjs",
+        "setup": "npm install && npm run install:pptx"
     },
     "devDependencies": {
         "turbo": "^1.10.0",
         "typescript": "^5.2.0"
     },
     "dependencies": {
-        "swr": "^2.3.6"
+        "@types/nprogress": "^0.2.3",
+        "nprogress": "^0.2.0",
+        "swr": "^2.3.6",
+        "zod": "^4.1.13"
     }
 }

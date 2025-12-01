@@ -1,170 +1,264 @@
-# Leerplatform - AI-Powered Learning Platform
+# LearnHub - AI-Powered Learning Platform
 
-Complete learning platform with AI integration, spaced repetition, and comprehensive study tools.
+A comprehensive learning management platform with AI-powered features, gamification, and real-time collaboration tools.
 
-## Features
+## 🚀 Features
 
-- **Spaced Repetition System (SRS)** - SM-2 algorithm for optimal learning
-- **AI Integration** - DUB5 AI for summaries, flashcard generation, tutoring, and planning
-- **Subject Management** - Organize content by subjects, chapters, and paragraphs
-- **Admin Tools** - Bulk import, content management, real-time updates
-- **Study Modes** - Flashcards, writing mode, MCQ, test mode
-- **Planner & Calendar** - Study planning with AI assistance
-- **Real-time Sync** - Supabase Realtime for instant updates
+### Core Learning Features
+- **Subject Management** - Organize courses into subjects, units, and chapters
+- **Learning Sets** - Create and study with flashcard-based learning sets
+- **Document System** - Upload and manage study materials
+- **Calendar Integration** - Schedule and track learning activities
+- **Task Management** - Organize assignments and study tasks
 
-## Tech Stack
+### AI-Powered Tools
+- **AI Chat Assistant** - Real-time streaming chat with Dub5 AI
+- **Practice Test Generator** - AI-generated quizzes from study materials
+- **Study Plan Generator** - Personalized study schedules
+- **AI PowerPoint Generator** - Create presentations from topics
+- **AI Learning Set Generation** - Extract flashcards from text
 
-- **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS
-- **Backend**: Node.js, Express, TypeScript
+### Gamification System
+- **XP & Leveling** - Earn experience points for activities
+- **Achievements** - 10+ unlockable achievements
+- **Daily Streaks** - Track consecutive study days
+- **Leaderboard Ready** - Foundation for competitive features
+- **Profile Stats** - Comprehensive statistics dashboard
+
+### Admin Features
+- **User Management** - Admin permissions and overrides
+- **Git Sync** - Connect to GitHub for content management
+- **Announcements** - System-wide notifications
+- **Resource Sharing** - Centralized file and link management
+
+## 🛠 Tech Stack
+
+- **Framework**: Next.js 14 (App Router)
+- **Language**: TypeScript
 - **Database**: Supabase (PostgreSQL)
-- **AI**: DUB5 AI (https://chatbot-beta-weld.vercel.app/api/chatbot)
-- **Hosting**: Vercel (frontend & API)
-- **Auth**: Supabase Auth (Email/Password + Google OAuth)
+- **Authentication**: Supabase Auth
+- **Styling**: Tailwind CSS
+- **AI Integration**: Dub5 AI API
+- **Icons**: Lucide React
+- **Presentations**: pptxgenjs
 
-## Setup Instructions
+## 📦 Installation
 
 ### Prerequisites
-
-- Node.js 18+
-- GitHub account
+- Node.js 18+ and npm
 - Supabase account
-- Vercel account
-- Google Cloud account (for OAuth)
+- Git
 
-### 1. Repository Setup
+### Setup Steps
 
+1. **Clone the repository**
 ```bash
-git clone https://github.com/YOUR_USERNAME/leren-platform.git
-cd leren-platform
+git clone <repository-url>
+cd learning-platform
+```
+
+2. **Install dependencies**
+```bash
 npm install
 ```
 
-### 2. Supabase Setup
+3. **Install workspace-specific packages**
+```bash
+npm install --workspace apps/web pptxgenjs
+```
 
-1. Create project at https://supabase.com/dashboard/new
-2. Go to Project Settings → API
-3. Copy:
-   - Project URL
-   - Anon/Public key
-   - Service role key (keep secret!)
-4. Run the migration SQL from `scripts/migrate.sql` in SQL Editor
-5. Enable Realtime for tables: leersets, leersetitems, srscards
-
-### 3. Google OAuth Setup
-
-1. Create project at https://console.cloud.google.com
-2. Configure OAuth consent screen
-3. Create OAuth 2.0 Client ID (Web application)
-4. Add authorized redirect URI: `https://YOUR_PROJECT_REF.supabase.co/auth/v1/callback`
-5. Copy Client ID and Client Secret
-6. In Supabase: Authentication → Providers → Google → Enable and paste credentials
-
-### 4. Environment Variables
+4. **Configure environment variables**
 
 Create `apps/web/.env.local`:
-
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-Create `apps/api/.env`:
+5. **Set up database**
 
-```env
-SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-PORT=3001
-```
+Execute the SQL schemas in Supabase SQL Editor in this order:
+- `phase1_schema.sql` - Core tables
+- `phase3_schema.sql` - Learning content
+- `phase5_admin_permissions_schema.sql` - Admin system
+- `phase6_resource_management_schema.sql` - Resources
+- `phase7_announcements_schema.sql` - Announcements
+- `phase8_document_system_schema.sql` - Documents
+- `phase9_ai_chat_schema.sql` - AI Chat
+- `phase9_practice_test_schema.sql` - Practice Tests
+- `phase9_study_plan_schema.sql` - Study Plans
+- `phase9_gamification_schema.sql` - XP & Achievements
 
-### 5. Development
-
+6. **Run development server**
 ```bash
-# Start frontend
-cd apps/web
-npm run dev
-
-# Start API (separate terminal)
-cd apps/api
-npm run dev
+npm run dev --workspace apps/web
 ```
 
-### 6. Vercel Deployment
+7. **Open browser**
+Navigate to [http://localhost:3000](http://localhost:3000)
 
-1. Import GitHub repo to Vercel
-2. Set root directory: `apps/web`
-3. Add environment variables (same as .env.local)
-4. **IMPORTANT**: Settings → Environment Variables → Disable "Automatically expose System Environment Variables"
-5. Deploy!
-
-## Usage
-
-### Admin Features
-
-- Create subjects, chapters, and paragraphs
-- Import leersets via text paste (format: "term definition" per line)
-- Generate flashcards using AI from any text
-- Manage all content with real-time updates
-
-### Student Features
-
-- Study with SRS flashcards (adaptive scheduling)
-- Chat with AI tutor for help
-- View due cards and study progress
-- Plan study schedule with AI assistance
-- Track confidence levels per subject
-
-## Architecture
+## 📁 Project Structure
 
 ```
-leren-platform/
+learning-platform/
 ├── apps/
-│   ├── web/          # Next.js frontend
-│   └── api/          # Express backend
-├── packages/
-│   └── shared/       # Shared types/utils
-└── scripts/
-    └── migrate.sql   # Database schema
+│   └── web/                    # Next.js application
+│       ├── src/
+│       │   ├── app/            # App router pages
+│       │   ├── components/     # React components
+│       │   ├── contexts/       # React contexts
+│       │   ├── hooks/          # Custom hooks
+│       │   └── lib/            # Utilities & services
+│       └── public/             # Static assets
+├── supabase/
+│   └── schema.sql              # Database schema
+└── packages/                   # Shared packages (if any)
 ```
 
-## API Endpoints
+## 🎮 Gamification System
 
-- `POST /api/leersets/import-text` - Import leerset items
-- `GET /api/srs/due` - Get due flashcards
-- `POST /api/srs/review` - Submit review result
-- `POST /api/ai/summarize` - Generate summary
-- `POST /api/ai/generate-flashcards` - Generate flashcards from context
-- `POST /api/ai/planner/generate` - Generate study plan
+### XP Awards
+- **Test Completion**: 20 base XP + up to 30 bonus (based on score)
+- **Daily Activity**: Streak tracking
+- **Achievement Unlocks**: Varies by achievement
 
-## DUB5 AI Integration
+### Level Calculation
+```
+Level = floor(√(Total_XP / 100)) + 1
+```
 
-All AI functionality uses DUB5 AI endpoint: `https://chatbot-beta-weld.vercel.app/api/chatbot`
+### Achievements
+- 🎯 First Test (50 XP)
+- 🏆 Test Master - 10 tests (200 XP)
+- 💯 Perfect Score (100 XP)
+- 🔥 3-Day Streak (75 XP)
+- ⚡ 7-Day Streak (150 XP)
+- 🌟 30-Day Streak (500 XP)
+- And more...
 
-- Streaming chat for tutoring
-- One-shot tasks: summarize, generate, translate, extract
-- Progressive rendering in UI
-- Abort/retry support
+## 🔐 Security
 
-## Security
+### Row Level Security (RLS)
+All tables use Supabase RLS policies to ensure:
+- Users only access their own data
+- Admins have appropriate elevated permissions
+- Public resources are properly scoped
 
-- RLS policies on all Supabase tables
-- Service role key never exposed to client
-- CORS protection
-- Input validation
-- Rate limiting (recommended in production)
+### Authentication
+- Email/password authentication via Supabase
+- Secure session management
+- Protected routes with middleware
 
-## Contributing
+## 🎨 UI/UX Features
 
-1. Fork the repository
-2. Create feature branch
-3. Commit changes
-4. Push to branch
-5. Open Pull Request
+### Design System
+- **Glass morphism** effects
+- **Gradient accents** for visual hierarchy
+- **Smooth animations** and transitions
+- **Dark theme** optimized
+- **Responsive design** (mobile-ready)
 
-## License
+### Components
+- Toast notifications for feedback
+- Loading states on all async operations
+- Error boundaries for graceful failures
+- Skeleton loaders for better perceived performance
 
-MIT
+## 📊 Database Schema
 
-## Support
+### Key Tables
+- `users` & `profiles` - User data
+- `subjects`, `units`, `chapters` - Content hierarchy
+- `learning_sets`, `flashcard_items` - Flashcards
+- `ai_chats`, `ai_messages` - AI conversations
+- `practice_tests`, `practice_test_questions` - Tests
+- `study_plans`, `study_plan_events` - Study schedules
+- `user_xp`, `achievements`, `user_achievements` - Gamification
+- `daily_streaks`, `xp_transactions` - Activity tracking
 
-For issues or questions, please open a GitHub issue.
+## 🧪 Testing
+
+### Manual Testing Checklist
+See `complete_testing_guide.md` for comprehensive testing instructions.
+
+### Key Flows to Test
+1. User registration and login
+2. Create subject → unit → chapter → learning set
+3. Generate and take a practice test
+4. Create a study plan
+5. Chat with AI assistant
+6. Check profile for XP and achievements
+
+## 📝 Development Guidelines
+
+### Code Style
+- Use TypeScript for type safety
+- Follow React best practices
+- Use functional components with hooks
+- Keep components focused and reusable
+
+### File Organization
+- Group related files together
+- Use index files for clean imports
+- Keep utilities in `lib/`
+- Store types in `database.types.ts`
+
+## 🚧 Known Issues & Limitations
+
+### Pending Actions
+- [ ] Install pptxgenjs library
+- [ ] Execute all database schemas in production
+- [ ] Configure production environment variables
+
+### Future Enhancements
+See `ui_improvements.md` for detailed recommendations:
+- Notification system
+- Mobile app version
+- Offline support
+- Advanced analytics
+- Social features
+
+## 🤝 Contributing
+
+### Development Workflow
+1. Create a feature branch
+2. Make changes
+3. Test thoroughly
+4. Submit pull request
+
+### Commit Messages
+Use conventional commits:
+- `feat:` New feature
+- `fix:` Bug fix
+- `docs:` Documentation
+- `style:` Formatting
+- `refactor:` Code restructuring
+- `test:` Tests
+- `chore:` Maintenance
+
+## 📖 Documentation
+
+### Key Resources
+- `walkthrough.md` - Phase 9 implementation details
+- `diagnostic_report.md` - Code health and status
+- `ui_improvements.md` - UI/UX enhancement guide
+- `task.md` - Development checklist
+- `deferred_commands.md` - Pending installations
+
+## 🔗 Links
+
+- **Supabase Dashboard**: [https://app.supabase.com](https://app.supabase.com)
+- **Dub5 AI API**: [https://chatbot-beta-weld.vercel.app/api/chatbot](https://chatbot-beta-weld.vercel.app/api/chatbot)
+
+## 📄 License
+
+[Your License Here]
+
+## 👥 Authors
+
+[Your Name/Team]
+
+---
+
+**Version**: 1.0.0 (Phase 9 Complete)
+**Last Updated**: 2025-11-25

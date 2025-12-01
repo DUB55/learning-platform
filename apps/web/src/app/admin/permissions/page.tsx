@@ -102,6 +102,50 @@ export default function AdminPermissionsPage() {
         return category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ');
     };
 
+    const getEnumOptions = (settingKey: string) => {
+        const enumMaps: Record<string, { value: string; label: string }[]> = {
+            'ui.font_family': [
+                { value: 'inter', label: 'Inter (Default)' },
+                { value: 'outfit', label: 'Outfit' },
+                { value: 'roboto', label: 'Roboto' },
+                { value: 'opensans', label: 'Open Sans' }
+            ],
+            'ui.sidebar_default_state': [
+                { value: 'expanded', label: 'Expanded' },
+                { value: 'collapsed', label: 'Collapsed' }
+            ],
+            'ui.theme_color': [
+                { value: 'blue', label: 'Blue' },
+                { value: 'purple', label: 'Purple' },
+                { value: 'pink', label: 'Pink' },
+                { value: 'green', label: 'Green' },
+                { value: 'orange', label: 'Orange' }
+            ],
+            'ui.icon_style': [
+                { value: 'colored', label: 'Colored' },
+                { value: 'monochrome', label: 'Monochrome' }
+            ],
+            'calendar.default_view': [
+                { value: 'month', label: 'Month View' },
+                { value: 'week', label: 'Week View' },
+                { value: 'day', label: 'Day View' },
+                { value: 'list', label: 'List View' }
+            ],
+            'tasks.default_priority': [
+                { value: 'low', label: 'Low' },
+                { value: 'medium', label: 'Medium' },
+                { value: 'high', label: 'High' },
+                { value: 'urgent', label: 'Urgent' }
+            ],
+            'dashboard.widget_layout': [
+                { value: 'grid', label: 'Grid Layout' },
+                { value: 'list', label: 'List Layout' },
+                { value: 'compact', label: 'Compact Layout' }
+            ]
+        };
+        return enumMaps[settingKey] || [{ value: '', label: 'Unknown' }];
+    };
+
     const getSettingCount = (category: string, subcategory?: string) => {
         return settings.filter(s =>
             s.category === category &&
@@ -257,6 +301,18 @@ export default function AdminPermissionsPage() {
                                                                     className="w-48 bg-slate-800/50 border border-white/10 rounded px-3 py-2 text-white text-sm"
                                                                 />
                                                             )}
+
+                                                            {setting.setting_type === 'enum' && (
+                                                                <select
+                                                                    value={modifiedSettings[setting.setting_key] ?? setting.default_value}
+                                                                    onChange={(e) => handleSettingChange(setting.setting_key, e.target.value)}
+                                                                    className="w-48 bg-slate-800/50 border border-white/10 rounded px-3 py-2 text-white text-sm"
+                                                                >
+                                                                    {getEnumOptions(setting.setting_key).map(opt => (
+                                                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                                                    ))}
+                                                                </select>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -310,6 +366,19 @@ export default function AdminPermissionsPage() {
                                                                                 onChange={(e) => handleSettingChange(setting.setting_key, e.target.value)}
                                                                                 className="w-48 bg-slate-800/50 border border-white/10 rounded px-3 py-2 text-white text-sm"
                                                                             />
+                                                                        )}
+
+                                                                        {setting.setting_type === 'enum' && setting.setting_key === 'ui.font_family' && (
+                                                                            <select
+                                                                                value={modifiedSettings[setting.setting_key] ?? setting.default_value}
+                                                                                onChange={(e) => handleSettingChange(setting.setting_key, e.target.value)}
+                                                                                className="w-48 bg-slate-800/50 border border-white/10 rounded px-3 py-2 text-white text-sm"
+                                                                            >
+                                                                                <option value="inter">Inter (Default)</option>
+                                                                                <option value="outfit">Outfit</option>
+                                                                                <option value="roboto">Roboto</option>
+                                                                                <option value="opensans">Open Sans</option>
+                                                                            </select>
                                                                         )}
                                                                     </div>
                                                                 </div>

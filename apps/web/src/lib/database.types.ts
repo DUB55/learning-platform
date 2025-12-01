@@ -368,38 +368,6 @@ export interface Database {
                     reason?: string | null
                 }
             }
-            user_settings: {
-                Row: {
-                    id: string
-                    user_id: string
-                    theme: 'light' | 'dark'
-                    email_notifications: boolean
-                    push_notifications: boolean
-                    study_reminders: boolean
-                    created_at: string
-                    updated_at: string
-                }
-                Insert: {
-                    id?: string
-                    user_id: string
-                    theme?: 'light' | 'dark'
-                    email_notifications?: boolean
-                    push_notifications?: boolean
-                    study_reminders?: boolean
-                    created_at?: string
-                    updated_at?: string
-                }
-                Update: {
-                    id?: string
-                    user_id?: string
-                    theme?: 'light' | 'dark'
-                    email_notifications?: boolean
-                    push_notifications?: boolean
-                    study_reminders?: boolean
-                    created_at?: string
-                    updated_at?: string
-                }
-            }
             ai_chats: {
                 Row: {
                     id: string
@@ -568,6 +536,145 @@ export interface Database {
                     end_time?: string
                     description?: string | null
                     is_completed?: boolean
+                    created_at?: string
+                }
+            }
+            user_xp: {
+                Row: {
+                    id: string
+                    user_id: string
+                    total_xp: number
+                    level: number
+                    current_streak: number
+                    longest_streak: number
+                    last_activity_date: string | null
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    total_xp?: number
+                    level?: number
+                    current_streak?: number
+                    longest_streak?: number
+                    last_activity_date?: string | null
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    total_xp?: number
+                    level?: number
+                    current_streak?: number
+                    longest_streak?: number
+                    last_activity_date?: string | null
+                    created_at?: string
+                    updated_at?: string
+                }
+            }
+            achievements: {
+                Row: {
+                    id: string
+                    key: string
+                    name: string
+                    description: string
+                    icon: string
+                    xp_reward: number
+                    category: string
+                    requirement_type: string
+                    requirement_value: number | null
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    key: string
+                    name: string
+                    description: string
+                    icon: string
+                    xp_reward?: number
+                    category: string
+                    requirement_type: string
+                    requirement_value?: number | null
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    key?: string
+                    name?: string
+                    description?: string
+                    icon?: string
+                    xp_reward?: number
+                    category?: string
+                    requirement_type?: string
+                    requirement_value?: number | null
+                    created_at?: string
+                }
+            }
+            user_achievements: {
+                Row: {
+                    id: string
+                    user_id: string
+                    achievement_id: string
+                    unlocked_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    achievement_id: string
+                    unlocked_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    achievement_id?: string
+                    unlocked_at?: string
+                }
+            }
+            daily_streaks: {
+                Row: {
+                    id: string
+                    user_id: string
+                    activity_date: string
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    activity_date: string
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    activity_date?: string
+                    created_at?: string
+                }
+            }
+            xp_transactions: {
+                Row: {
+                    id: string
+                    user_id: string
+                    amount: number
+                    reason: string
+                    reference_id: string | null
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    amount: number
+                    reason: string
+                    reference_id?: string | null
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    amount?: number
+                    reason?: string
+                    reference_id?: string | null
                     created_at?: string
                 }
             }

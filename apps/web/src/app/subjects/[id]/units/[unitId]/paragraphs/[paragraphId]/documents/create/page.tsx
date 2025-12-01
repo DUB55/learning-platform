@@ -10,6 +10,7 @@ import {
     List, ListOrdered, Save, Palette, Trash2, GripVertical, Eye
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { documentSchema } from '@/lib/validation';
 
 interface DocumentElement {
     id: string;
@@ -42,7 +43,7 @@ export default function CreateDocumentPage() {
 
     // Permissions (check from database in production)
     const [permissions, setPermissions] = useState({
-        allow_html: false,
+        allow_html: true, // Changed to true for admin
         allow_youtube: true,
         allow_images: true,
         allow_rich_text: true,
@@ -152,21 +153,38 @@ export default function CreateDocumentPage() {
     };
 
     const handleSave = async () => {
-        if (!user || !title.trim()) {
-            alert('Please enter a title');
-            return;
-        }
-
-        setIsSaving(true);
-
         try {
+            // Validate input
+            const validationResult = documentSchema.safeParse({
+                title,
+                content: '', // Content is handled separately or is empty for now
+                type: documentType,
+                elements: elements
+            });
+
+            if (!validationResult.success) {
+                const errorMessage = validationResult.error.errors[0].message;
+                alert(errorMessage);
+                return;
+            }
+
+            if (!user) {
+                alert('You must be logged in to create a document');
+                return;
+            }
+
+            setIsSaving(true);
+
+            const dbDocumentType = documentType === 'text' ? 'rich_text' : documentType;
+
             const { data, error } = await supabase
                 .from('documents')
                 .insert([{
                     paragraph_id: paragraphId,
+                    user_id: user.id,
                     title: title,
-                    content: '',
-                    document_type: documentType,
+                    content: {},
+                    document_type: dbDocumentType,
                     elements: elements,
                     type: documentType
                 }])
@@ -176,9 +194,10 @@ export default function CreateDocumentPage() {
             if (error) throw error;
 
             router.push(`/subjects/${params.id}/units/${params.unitId}/paragraphs/${paragraphId}/documents/${data.id}`);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating document:', error);
-            alert('Failed to create document');
+            alert(`Failed to create document: ${error.message || JSON.stringify(error)}`);
+        } finally {
             setIsSaving(false);
         }
     };
@@ -367,7 +386,7 @@ export default function CreateDocumentPage() {
                                                     placeholder="<div>Your HTML here...</div>"
                                                     className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-3 text-white min-h-[100px] resize-none focus:outline-none focus:border-blue-500 font-mono text-sm"
                                                 />
-                                                <p className="text-xs text-amber-400 mt-2">⚠️ HTML will run in a secure sandbox</p>
+                                                <p className="text-xs text-green-400 mt-2">✓ HTML will render directly without restrictions</p>
                                             </div>
                                         )}
 

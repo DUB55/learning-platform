@@ -101,113 +101,111 @@ export default function ViewDocumentPage() {
             <Sidebar />
 
             <main className="flex-1 overflow-y-auto relative p-8">
-                <div className="max-w-4xl mx-auto">
-                    <button
-                        onClick={() => router.back()}
-                        className="flex items-center gap-2 text-slate-400 hover:text-white mb-6 transition-colors"
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                        <span>Back</span>
-                    </button>
+                <div className={`mx-auto ${document?.elements?.some(e => e.type === 'html') ? 'relative z-10 pointer-events-none' : 'max-w-4xl'}`}>
+                    <div className={document?.elements?.some(e => e.type === 'html') ? 'pointer-events-auto inline-block' : ''}>
+                        <button
+                            onClick={() => router.back()}
+                            className="flex items-center gap-2 text-slate-400 hover:text-white mb-6 transition-colors"
+                        >
+                            <ArrowLeft className="w-4 h-4" />
+                            <span>Back</span>
+                        </button>
 
-                    <div className="flex items-center justify-between mb-10">
-                        <h1 className="text-3xl font-serif font-bold text-white">{document.title}</h1>
+                        <div className="flex items-center justify-between mb-10">
+                            <h1 className="text-3xl font-serif font-bold text-white">{document.title}</h1>
 
-                        {user?.id === document.user_id && (
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => router.push(`${documentId}/edit`)}
-                                    className="p-3 glass-button rounded-xl"
-                                >
-                                    <Edit2 className="w-4 h-4" />
-                                </button>
-                                <button
-                                    onClick={handleDelete}
-                                    className="p-3 text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                            {user?.id === document.user_id && (
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => router.push(`${documentId}/edit`)}
+                                        className="p-3 glass-button rounded-xl"
+                                    >
+                                        <Edit2 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={handleDelete}
+                                        className="p-3 text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
 
-                    {/* Document Content */}
-                    <div className="space-y-6">
-                        {document.elements && document.elements.length > 0 ? (
-                            document.elements
-                                .sort((a, b) => a.order - b.order)
-                                .map((element) => (
-                                    <div key={element.id}>
-                                        {element.type === 'text' && (
-                                            <div
-                                                className="glass-card p-6"
-                                                style={{
-                                                    color: element.styling?.color,
-                                                    fontSize: element.styling?.fontSize,
-                                                    fontFamily: element.styling?.fontFamily,
-                                                    textAlign: element.styling?.alignment,
-                                                    fontWeight: element.styling?.bold ? 'bold' : 'normal',
-                                                    fontStyle: element.styling?.italic ? 'italic' : 'normal',
-                                                    textDecoration: element.styling?.underline ? 'underline' : 'none'
-                                                }}
-                                            >
-                                                {element.content}
-                                            </div>
-                                        )}
-
-                                        {element.type === 'youtube' && element.content && (
-                                            <div className="glass-card p-4">
-                                                <iframe
-                                                    src={getYouTubeEmbedUrl(element.content)}
-                                                    className="w-full aspect-video rounded-lg"
-                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                    allowFullScreen
-                                                />
-                                            </div>
-                                        )}
-
-                                        {element.type === 'image' && element.content && (
-                                            <div className="glass-card p-4">
-                                                <img
-                                                    src={element.content}
-                                                    alt="Document image"
-                                                    className="max-w-full h-auto rounded-lg"
-                                                />
-                                            </div>
-                                        )}
-
-                                        {element.type === 'html' && element.content && (
-                                            <div className="glass-card p-6">
-                                                <div className="flex items-center gap-2 text-amber-400 text-sm mb-4">
-                                                    <AlertTriangle className="w-4 h-4" />
-                                                    <span>HTML content (sandboxed for security)</span>
+                        {/* Document Content */}
+                        <div className="space-y-6">
+                            {document.elements && document.elements.length > 0 ? (
+                                document.elements
+                                    .sort((a, b) => a.order - b.order)
+                                    .map((element) => (
+                                        <div key={element.id}>
+                                            {element.type === 'text' && (
+                                                <div
+                                                    className="glass-card p-6"
+                                                    style={{
+                                                        color: element.styling?.color,
+                                                        fontSize: element.styling?.fontSize,
+                                                        fontFamily: element.styling?.fontFamily,
+                                                        textAlign: element.styling?.alignment,
+                                                        fontWeight: element.styling?.bold ? 'bold' : 'normal',
+                                                        fontStyle: element.styling?.italic ? 'italic' : 'normal',
+                                                        textDecoration: element.styling?.underline ? 'underline' : 'none'
+                                                    }}
+                                                >
+                                                    {element.content}
                                                 </div>
-                                                <iframe
-                                                    srcDoc={element.content}
-                                                    sandbox="allow-scripts"
-                                                    className="w-full min-h-[200px] bg-white rounded-lg"
-                                                />
-                                            </div>
-                                        )}
+                                            )}
 
-                                        {element.type === 'table' && (
-                                            <div className="glass-card p-6 overflow-x-auto">
-                                                <div className="grid grid-cols-3 gap-2">
-                                                    {Array(9).fill(null).map((_, i) => (
-                                                        <div key={i} className="bg-slate-800/50 border border-white/10 rounded px-3 py-2 text-white text-sm">
-                                                            Cell {i + 1}
-                                                        </div>
-                                                    ))}
+                                            {element.type === 'youtube' && element.content && (
+                                                <div className="glass-card p-4">
+                                                    <iframe
+                                                        src={getYouTubeEmbedUrl(element.content)}
+                                                        className="w-full aspect-video rounded-lg"
+                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                        allowFullScreen
+                                                    />
                                                 </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))
-                        ) : (
-                            <div className="glass-card p-12 text-center">
-                                <p className="text-slate-400">This document is empty</p>
-                            </div>
-                        )}
+                                            )}
+
+                                            {element.type === 'image' && element.content && (
+                                                <div className="glass-card p-4">
+                                                    <img
+                                                        src={element.content}
+                                                        alt="Document image"
+                                                        className="max-w-full h-auto rounded-lg"
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {element.type === 'html' && element.content && (
+                                                <div className="absolute inset-0 z-0">
+                                                    <iframe
+                                                        srcDoc={element.content}
+                                                        sandbox="allow-scripts allow-same-origin allow-forms"
+                                                        className="w-full h-full bg-white"
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {element.type === 'table' && (
+                                                <div className="glass-card p-6 overflow-x-auto">
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        {Array(9).fill(null).map((_, i) => (
+                                                            <div key={i} className="bg-slate-800/50 border border-white/10 rounded px-3 py-2 text-white text-sm">
+                                                                Cell {i + 1}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))
+                            ) : (
+                                <div className="glass-card p-12 text-center">
+                                    <p className="text-slate-400">This document is empty</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </main>

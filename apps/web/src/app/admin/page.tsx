@@ -4,11 +4,74 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
-import { Plus, Globe, Trash2, ShieldAlert } from 'lucide-react';
+import { Plus, Globe, Trash2, ShieldAlert, Database, Sparkles } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { Database } from '@/lib/database.types';
 
-type Subject = Database['public']['Tables']['subjects']['Row'];
+type Subject = {
+    id: string;
+    user_id: string;
+    title: string;
+    color: string;
+    is_public: boolean;
+    created_at: string;
+};
+
+function LoadingIndicatorToggle() {
+    const [enabled, setEnabled] = useState(true);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchSetting();
+    }, []);
+
+    const fetchSetting = async () => {
+        try {
+            const { data } = await supabase
+                .from('admin_permission_settings')
+                .select('default_value')
+                .eq('setting_key', 'ui.show_loading_indicator')
+                .single();
+
+            if (data) {
+                setEnabled(data.default_value === 'true');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const toggleSetting = async () => {
+        const newValue = !enabled;
+        setEnabled(newValue); // Optimistic update
+
+        try {
+            const { error } = await supabase
+                .from('admin_permission_settings')
+                .upsert({
+                    setting_key: 'ui.show_loading_indicator',
+                    default_value: String(newValue),
+                    description: 'Controls visibility of the global loading indicator'
+                });
+
+            if (error) throw error;
+        } catch (error) {
+            console.error('Error updating setting:', error);
+            setEnabled(!newValue); // Revert on error
+            alert('Failed to update setting');
+        }
+    };
+
+    if (loading) return <div className="w-10 h-6 bg-slate-700 rounded-full animate-pulse" />;
+
+    return (
+        <button
+            onClick={toggleSetting}
+            className={`w-12 h-6 rounded-full transition-colors relative ${enabled ? 'bg-blue-600' : 'bg-slate-700'}`}
+        >
+            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${enabled ? 'left-7' : 'left-1'}`} />
+        </button>
+    );
+}
 
 export default function AdminPage() {
     const { user, profile, loading } = useAuth();
@@ -137,6 +200,21 @@ export default function AdminPage() {
                         </div>
                         <p className="text-slate-400">Manage global subjects and system settings</p>
                     </header>
+
+                    {/* System Settings */}
+                    <div className="glass-card p-6 mb-10">
+                        <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+                            <Sparkles className="w-5 h-5 text-purple-400" />
+                            System Settings
+                        </h3>
+                        <div className="flex items-center justify-between p-4 bg-slate-800/30 rounded-xl border border-white/5">
+                            <div>
+                                <h4 className="text-white font-medium mb-1">Global Loading Indicator</h4>
+                                <p className="text-sm text-slate-400">Show a progress bar at the top of the screen during page navigation</p>
+                            </div>
+                            <LoadingIndicatorToggle />
+                        </div>
+                    </div>
 
                     {/* Add Global Subject */}
                     <div className="glass-card p-6 mb-10">

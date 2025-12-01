@@ -352,7 +352,7 @@ export default function EnhancedDocumentsPage() {
                                         ) : (
                                             <h3 className="text-white font-bold">{doc.title}</h3>
                                         )}
-                                        <p className="text-slate-400 text-sm mt-2 capitalize">{doc.document_type}</p>
+
                                     </div>
                                 ))}
                             </div>

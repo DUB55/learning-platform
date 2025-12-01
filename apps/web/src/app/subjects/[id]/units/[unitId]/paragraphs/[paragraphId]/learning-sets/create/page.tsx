@@ -7,6 +7,7 @@ import Sidebar from '@/components/Sidebar';
 import { Plus, ArrowLeft, Upload, X, Trash2, Sparkles } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { dub5ai } from '@/lib/dub5ai';
+import { learningSetSchema } from '@/lib/validation';
 
 interface TermDefinitionPair {
     id: string;
@@ -141,21 +142,27 @@ export default function CreateLearningSetPage() {
     };
 
     const handleCreate = async () => {
-        if (!user || !title.trim()) {
-            alert('Please enter a title');
-            return;
-        }
-
-        const validPairs = pairs.filter(p => p.term.trim() && p.definition.trim());
-
-        if (validPairs.length === 0) {
-            alert('Please add at least one term-definition pair');
-            return;
-        }
-
-        setIsCreating(true);
-
         try {
+            // Validate input
+            const validationResult = learningSetSchema.safeParse({
+                title,
+                description,
+                pairs: pairs
+            });
+
+            if (!validationResult.success) {
+                const errorMessage = validationResult.error.errors[0].message;
+                alert(errorMessage);
+                return;
+            }
+
+            if (!user) {
+                alert('You must be logged in');
+                return;
+            }
+
+            setIsCreating(true);
+
             // Create learning set
             const { data: setData, error: setError } = await supabase
                 .from('learning_sets')
@@ -171,183 +178,156 @@ export default function CreateLearningSetPage() {
             if (setError) throw setError;
 
             // Create items
-            const items = validPairs.map((pair, index) => ({
-                learning_set_id: setData.id,
-                term: pair.term,
-                definition: pair.definition,
-                order_index: index
-            }));
+            const items = pairs
+                .filter(p => p.term.trim() && p.definition.trim())
+                .map((pair, index) => ({
+                    learning_set_id: setData.id,
+                    term: pair.term,
+                    definition: pair.definition,
+                    order_index: index
+                }));
 
+            // Use the correct table name 'leerset_items' as per user feedback
             const { error: itemsError } = await supabase
-                .from('learning_set_items')
+                .from('leerset_items')
                 .insert(items);
 
             if (itemsError) throw itemsError;
 
-            // Navigate to the learning set view
-            router.push(`/subjects/${params.id}/units/${params.unitId}/paragraphs/${paragraphId}/learning-sets/${setData.id}`);
+            router.push(`/subjects/${params.id}/units/${params.unitId}/paragraphs/${params.paragraphId}/learning-sets/${setData.id}`);
         } catch (error) {
             console.error('Error creating learning set:', error);
             alert('Failed to create learning set');
+        } finally {
             setIsCreating(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
+        <div className="flex min-h-screen bg-slate-950 text-white">
             <Sidebar />
-
-            <main className="flex-1 overflow-y-auto relative p-8">
-                <div className="max-w-4xl mx-auto">
-                    <button
-                        onClick={() => router.back()}
-                        className="flex items-center gap-2 text-slate-400 hover:text-white mb-6 transition-colors"
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                        <span>Back</span>
+            <div className="flex-1 flex flex-col p-8">
+                <div className="flex items-center justify-between mb-8">
+                    <button onClick={() => router.back()} className="text-slate-400 hover:text-white transition-colors flex items-center gap-2">
+                        <ArrowLeft size={20} /> Back
                     </button>
+                    <h1 className="text-3xl font-bold text-white">Create New Learning Set</h1>
+                    <div className="w-20"></div> {/* Spacer */}
+                </div>
 
-                    <div className="mb-10">
-                        <h1 className="text-3xl font-serif font-bold text-white mb-2">Create Learning Set</h1>
-                        <p className="text-slate-400">Add terms and definitions for your study set</p>
+                <div className="bg-slate-900 p-6 rounded-lg shadow-lg max-w-3xl mx-auto w-full">
+                    <div className="mb-6">
+                        <label htmlFor="title" className="block text-sm font-medium text-slate-300 mb-2">Title</label>
+                        <input
+                            type="text"
+                            id="title"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500"
+                            placeholder="e.g., Key Terms from Chapter 1"
+                        />
                     </div>
 
-                    {/* Title and Description */}
-                    <div className="glass-card p-6 mb-6">
-                        <div className="mb-4">
-                            <label className="block text-slate-400 text-sm mb-2">Title</label>
-                            <input
-                                type="text"
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                placeholder="Enter learning set title"
-                                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-slate-400 text-sm mb-2">Description (Optional)</label>
-                            <textarea
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                placeholder="Enter description"
-                                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-3 text-white h-20 resize-none focus:outline-none focus:border-blue-500"
-                            />
-                        </div>
+                    <div className="mb-6">
+                        <label htmlFor="description" className="block text-sm font-medium text-slate-300 mb-2">Description (Optional)</label>
+                        <textarea
+                            id="description"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            rows={3}
+                            className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-3 text-white resize-none focus:outline-none focus:border-blue-500"
+                            placeholder="A brief description of this learning set"
+                        ></textarea>
                     </div>
 
-                    {/* Import & AI Buttons */}
-                    <div className="flex justify-end gap-3 mb-4">
+                    <div className="flex justify-end gap-4 mb-6">
                         <button
                             onClick={() => setShowAIModal(true)}
-                            className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 hover:from-blue-600/30 hover:to-purple-600/30 border border-blue-500/30 text-blue-300 px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
+                            className="glass-button flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
                         >
-                            <Sparkles className="w-4 h-4" />
-                            <span>Generate with AI</span>
+                            <Sparkles size={18} /> Generate with AI
                         </button>
                         <button
                             onClick={() => setShowImportModal(true)}
-                            className="glass-button px-4 py-2 rounded-lg flex items-center gap-2"
+                            className="glass-button flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
                         >
-                            <Upload className="w-4 h-4" />
-                            <span>Import</span>
+                            <Upload size={18} /> Import
                         </button>
                     </div>
 
-                    {/* Term-Definition Pairs */}
-                    <div className="space-y-3 mb-6">
+                    <h2 className="text-xl font-semibold text-white mb-4">Terms & Definitions</h2>
+                    <div className="space-y-4 mb-6">
                         {pairs.map((pair, index) => (
-                            <div key={pair.id} className="glass-card p-4">
-                                <div className="flex items-center gap-4">
-                                    <span className="text-slate-500 font-mono text-sm w-8">{index + 1}</span>
-                                    <input
-                                        type="text"
-                                        value={pair.term}
-                                        onChange={(e) => updatePair(pair.id, 'term', e.target.value)}
-                                        placeholder="Term"
-                                        className="flex-1 bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
-                                    />
-                                    <span className="text-slate-600">–</span>
-                                    <input
-                                        type="text"
-                                        value={pair.definition}
-                                        onChange={(e) => updatePair(pair.id, 'definition', e.target.value)}
-                                        placeholder="Definition"
-                                        className="flex-1 bg-slate-800/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
-                                    />
-                                    {pairs.length > 1 && (
-                                        <button
-                                            onClick={() => removePair(pair.id)}
-                                            className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    )}
-                                </div>
+                            <div key={pair.id} className="flex gap-4 items-center">
+                                <input
+                                    type="text"
+                                    value={pair.term}
+                                    onChange={(e) => updatePair(pair.id, 'term', e.target.value)}
+                                    className="flex-1 bg-slate-800/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500"
+                                    placeholder="Term"
+                                />
+                                <input
+                                    type="text"
+                                    value={pair.definition}
+                                    onChange={(e) => updatePair(pair.id, 'definition', e.target.value)}
+                                    className="flex-1 bg-slate-800/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500"
+                                    placeholder="Definition"
+                                />
+                                <button
+                                    onClick={() => removePair(pair.id)}
+                                    className="p-2 rounded-full text-slate-400 hover:text-red-500 hover:bg-white/5 transition-colors"
+                                    disabled={pairs.length === 1}
+                                >
+                                    <Trash2 size={20} />
+                                </button>
                             </div>
                         ))}
                     </div>
 
-                    {/* Add Pair Button */}
                     <button
                         onClick={addPair}
-                        className="w-full glass-card p-4 hover:bg-white/5 transition-colors flex items-center justify-center gap-2 mb-8"
+                        className="flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors mb-8"
                     >
-                        <Plus className="w-5 h-5 text-blue-400" />
-                        <span className="text-blue-400 font-medium">Add Pair</span>
+                        <Plus size={20} /> Add another pair
                     </button>
 
-                    {/* Create Button */}
-                    <div className="flex gap-4">
+                    <div className="flex justify-end gap-4">
                         <button
                             onClick={() => router.back()}
-                            className="flex-1 px-6 py-3 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                            className="px-6 py-3 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleCreate}
-                            disabled={isCreating || !title.trim()}
-                            className="flex-1 glass-button rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="glass-button px-6 py-3 rounded-lg"
+                            disabled={isCreating}
                         >
                             {isCreating ? 'Creating...' : 'Create Learning Set'}
                         </button>
                     </div>
                 </div>
-            </main>
+            </div>
 
             {/* AI Generation Modal */}
             {showAIModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="glass-card p-8 w-full max-w-2xl">
-                        <div className="flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                                    <Sparkles className="w-5 h-5 text-white" />
-                                </div>
-                                <div>
-                                    <h2 className="text-2xl font-bold text-white">Generate with Dub5 AI</h2>
-                                    <p className="text-xs text-slate-400">Powered by advanced learning models</p>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => setShowAIModal(false)}
-                                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                            >
-                                <X className="w-5 h-5 text-slate-400" />
+                <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+                    <div className="bg-slate-900 p-8 rounded-lg shadow-xl w-full max-w-md border border-white/10">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-2xl font-bold text-white">Generate with AI</h2>
+                            <button onClick={() => setShowAIModal(false)} className="text-slate-400 hover:text-white">
+                                <X size={24} />
                             </button>
                         </div>
-
-                        <p className="text-slate-400 mb-6">
-                            Paste your notes, article, or any text below. Dub5 AI will automatically extract key terms and definitions for you.
+                        <p className="text-slate-300 mb-4">
+                            Paste text from your paragraph or any relevant content. AI will extract key terms and definitions.
                         </p>
-
                         <textarea
                             value={aiContext}
                             onChange={(e) => setAiContext(e.target.value)}
-                            placeholder="Paste your context here..."
-                            className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-3 text-white h-48 resize-none focus:outline-none focus:border-blue-500 mb-6 text-sm"
+                            placeholder="Paste text here for AI to analyze..."
+                            className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-3 text-white h-48 resize-none focus:outline-none focus:border-blue-500 mb-6 font-mono text-sm"
                         />
-
                         <div className="flex gap-4">
                             <button
                                 onClick={() => setShowAIModal(false)}
@@ -357,20 +337,10 @@ export default function CreateLearningSetPage() {
                             </button>
                             <button
                                 onClick={handleAIGenerate}
-                                disabled={isGeneratingAI || !aiContext.trim()}
-                                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-medium py-3 rounded-lg transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex-1 glass-button rounded-lg"
+                                disabled={isGeneratingAI}
                             >
-                                {isGeneratingAI ? (
-                                    <>
-                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        <span>Generating...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Sparkles className="w-4 h-4" />
-                                        <span>Generate Learning Set</span>
-                                    </>
-                                )}
+                                {isGeneratingAI ? 'Generating...' : 'Generate'}
                             </button>
                         </div>
                     </div>
@@ -379,27 +349,24 @@ export default function CreateLearningSetPage() {
 
             {/* Import Modal */}
             {showImportModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="glass-card p-8 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-2xl font-bold text-white">Import Term-Definition Pairs</h2>
-                            <button
-                                onClick={() => setShowImportModal(false)}
-                                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                            >
-                                <X className="w-5 h-5 text-slate-400" />
+                <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+                    <div className="bg-slate-900 p-8 rounded-lg shadow-xl w-full max-w-2xl border border-white/10">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-2xl font-bold text-white">Import Terms & Definitions</h2>
+                            <button onClick={() => setShowImportModal(false)} className="text-slate-400 hover:text-white">
+                                <X size={24} />
                             </button>
                         </div>
 
-                        <p className="text-slate-400 mb-6">
-                            Paste your terms and definitions. Choose how they're separated:
-                        </p>
+                        <div className="mb-6">
+                            <p className="text-slate-300 mb-4">
+                                Paste your terms and definitions below. Choose your separators.
+                            </p>
 
-                        {/* Separator Options */}
-                        <div className="grid grid-cols-2 gap-6 mb-6">
-                            <div>
-                                <label className="block text-slate-400 text-sm mb-3">Between Term and Definition</label>
-                                <div className="space-y-2">
+                            {/* Term Separator */}
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-slate-300 mb-2">Term and Definition Separator</label>
+                                <div className="flex flex-wrap gap-4">
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input
                                             type="radio"
@@ -445,9 +412,10 @@ export default function CreateLearningSetPage() {
                                 </div>
                             </div>
 
+                            {/* Pair Separator */}
                             <div>
-                                <label className="block text-slate-400 text-sm mb-3">Between Pairs</label>
-                                <div className="space-y-2">
+                                <label className="block text-sm font-medium text-slate-300 mb-2">Each Pair Separator</label>
+                                <div className="flex flex-wrap gap-4">
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input
                                             type="radio"

@@ -99,7 +99,6 @@ export default function AdminAnnouncementsPage() {
             const { data: pageData, error: pageError } = await supabase
                 .from('announcement_pages')
                 .insert([{
-                    created_by: user.id,
                     title: formData.pageTitle,
                     slug: slug,
                     content: formData.pageContent,
@@ -114,7 +113,6 @@ export default function AdminAnnouncementsPage() {
         }
 
         const announcementData = {
-            created_by: user.id,
             title: formData.title,
             content: formData.content,
             priority: formData.priority,

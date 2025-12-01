@@ -78,7 +78,7 @@ export default function AdminSyncPage() {
                         <div className="glass-card p-6">
                             <h3 className="text-lg font-medium text-white mb-4">Quick Actions</h3>
                             <a
-                                href="https://github.com/Mohammed-88/learning-platform"
+                                href="https://github.com/DUB55/learning-platform"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="glass-button w-full px-4 py-3 rounded-xl flex items-center justify-center gap-2 text-white hover:bg-white/10 transition-colors"
