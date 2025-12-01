@@ -38,7 +38,7 @@ export default function AdminLeersetsPage() {
     };
 
     const fetchLeersets = async () => {
-        let query = supabase.from('leersets').select('*, subject:subjects(name, color), items:leersetitems(count)');
+        let query = (supabase.from('leersets') as any).select('*, subject:subjects(name, color), items:leersetitems(count)');
 
         if (selectedSubject) {
             query = query.eq('subject_id', selectedSubject);
@@ -52,8 +52,8 @@ export default function AdminLeersetsPage() {
         if (!newLeersetName.trim()) return;
 
         try {
-            const { data, error } = await supabase
-                .from('leersets')
+            const { data, error } = await (supabase
+                .from('leersets') as any)
                 .insert({
                     name: newLeersetName,
                     subject_id: selectedSubject || null,
@@ -139,7 +139,7 @@ export default function AdminLeersetsPage() {
         if (!confirm('Weet je zeker dat je deze leerset wilt verwijderen?')) return;
 
         try {
-            const { error } = await supabase.from('leersets').delete().eq('id', id);
+            const { error } = await (supabase.from('leersets') as any).delete().eq('id', id);
             if (error) throw error;
             fetchLeersets();
         } catch (error) {
