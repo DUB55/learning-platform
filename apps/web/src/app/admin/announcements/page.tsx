@@ -104,7 +104,7 @@ export default function AdminAnnouncementsPage() {
                     slug: slug,
                     content: formData.pageContent,
                     is_published: true
-                }])
+                }] as any)
                 .select()
                 .single();
 
@@ -131,19 +131,6 @@ export default function AdminAnnouncementsPage() {
 
             if (!error) {
                 setEditingAnnouncement(null);
-                resetForm();
-                fetchData();
-            }
-        } else {
-            // Create new
-            const { error } = await supabase
-                .from('announcements')
-                .insert([announcementData]);
-
-            if (!error) {
-                resetForm();
-                setShowAddModal(false);
-                fetchData();
             }
         }
     };

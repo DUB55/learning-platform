@@ -57,7 +57,6 @@ export default function CalendarPage() {
 
         const { error } = await supabase.from('calendar_events').insert({
             user_id: user?.id,
-            created_by: user?.id,
             title: eventTitle,
             description: eventDescription,
             start_date: eventDate.toISOString(),
