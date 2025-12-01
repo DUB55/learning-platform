@@ -106,7 +106,7 @@ export default function AdminAnnouncementsPage() {
                     is_published: true
                 }] as any)
                 .select()
-                .single();
+                .single() as any;
 
             if (!pageError && pageData) {
                 linkedPageId = pageData.id;
@@ -126,7 +126,7 @@ export default function AdminAnnouncementsPage() {
             // Update existing
             const { error } = await supabase
                 .from('announcements')
-                .update(announcementData)
+                .update(announcementData as any)
                 .eq('id', editingAnnouncement.id);
 
             if (!error) {
