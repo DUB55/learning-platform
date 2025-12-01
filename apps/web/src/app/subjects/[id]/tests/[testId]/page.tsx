@@ -252,30 +252,31 @@ export default function TakeTestPage() {
                                             )}
                                         </div>
                                     </div>
-                                    );
-                            })}
                                 </div>
-
-                        {
-                                !submitted && (
-                                    <button
-                                        onClick={handleSubmit}
-                                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-medium py-4 rounded-xl transition-all shadow-lg shadow-blue-500/25"
-                                    >
-                                        Submit Test
-                                    </button>
-                                )
-                            }
+                            );
+                        })}
                     </div>
 
-                    {toasts.map((toast) => (
-                        <Toast
-                            key={toast.id}
-                            message={toast.message}
-                            type={toast.type}
-                            onClose={() => hideToast(toast.id)}
-                        />
-                    ))}
+                    {
+                        !submitted && (
+                            <button
+                                onClick={handleSubmit}
+                                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-medium py-4 rounded-xl transition-all shadow-lg shadow-blue-500/25"
+                            >
+                                Submit Test
+                            </button>
+                        )
+                    }
+                </div>
+
+                {toasts.map((toast) => (
+                    <Toast
+                        key={toast.id}
+                        message={toast.message}
+                        type={toast.type}
+                        onClose={() => hideToast(toast.id)}
+                    />
+                ))}
             </main>
         </div>
     );
