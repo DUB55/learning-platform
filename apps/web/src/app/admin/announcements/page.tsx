@@ -96,17 +96,17 @@ export default function AdminAnnouncementsPage() {
         if (createLinkedPage && formData.pageTitle.trim() && formData.pageContent.trim()) {
             const slug = formData.pageSlug || generateSlug(formData.pageTitle);
 
-            const { data: pageData, error: pageError } = await supabase
-                .from('announcement_pages')
+            const { data: pageData, error: pageError } = await (supabase
+                .from('announcement_pages') as any)
                 .insert([{
                     created_by: user.id,
                     title: formData.pageTitle,
                     slug: slug,
                     content: formData.pageContent,
                     is_published: true
-                }] as any)
+                }])
                 .select()
-                .single() as any;
+                .single();
 
             if (!pageError && pageData) {
                 linkedPageId = pageData.id;
@@ -117,21 +117,6 @@ export default function AdminAnnouncementsPage() {
             created_by: user.id,
             title: formData.title,
             content: formData.content,
-            priority: formData.priority,
-            expires_at: formData.expires_at || null,
-            linked_page_id: linkedPageId
-        };
-
-        if (editingAnnouncement) {
-            // Update existing
-            const { error } = await supabase
-                .from('announcements')
-                .update(announcementData as any)
-                .eq('id', editingAnnouncement.id);
-
-            if (!error) {
-                setEditingAnnouncement(null);
-            }
         }
     };
 
