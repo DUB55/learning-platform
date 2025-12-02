@@ -68,7 +68,7 @@ export default function AnnouncementsPage() {
             .order('created_at', { ascending: false });
 
         if (announcementsData) {
-            // Fetch read status
+            // Fetch read status FIRST, then set announcements ONCE
             const { data: readsData } = await supabase
                 .from('announcement_reads')
                 .select('announcement_id')
@@ -77,15 +77,21 @@ export default function AnnouncementsPage() {
             const readIds = new Set((readsData as any)?.map((r: any) => r.announcement_id) || []);
 
             setAnnouncements(
-                announcementsData.map(a => ({
-                    ...(a as any),
-                    is_read: readIds.has((a as any).id)
-                }))
+                announcementsData
+                    .filter(a => a.priority !== null)  // Fix priority null error
+                    .map(a => ({
+                        ...a,
+                        priority: a.priority!,  // Non-null assertion after filter
+                        is_read: readIds.has((a as any).id)
+                    }))
             );
         }
 
         setIsLoadingData(false);
     };
+
+        setIsLoadingData(false);
+
 
     const markAsRead = async (announcementId: string) => {
         if (!user) return;
