@@ -89,6 +89,22 @@ export default function AdminPage() {
                 router.push('/dashboard');
                 return;
             }
+            fetchSubjects();
+        }
+    }, [user, profile, loading, router]);
+
+    const fetchSubjects = async () => {
+        try {
+            const { data, error } = await (supabase
+                .from('subjects') as any)
+                .select('*')
+                .eq('is_public', true);
+
+            if (error) throw error;
+            if (data) setSubjects(data);
+        } catch (error) {
+            console.error('Error fetching subjects:', error);
+        } finally {
             setIsLoadingData(false);
         }
     };

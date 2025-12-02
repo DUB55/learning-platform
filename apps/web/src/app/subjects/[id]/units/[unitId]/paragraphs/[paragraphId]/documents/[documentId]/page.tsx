@@ -178,11 +178,11 @@ export default function ViewDocumentPage() {
                                             )}
 
                                             {element.type === 'html' && element.content && (
-                                                <div className="absolute inset-0 z-0">
+                                                <div className="w-full min-h-[800px] bg-white rounded-lg overflow-hidden shadow-lg">
                                                     <iframe
                                                         srcDoc={element.content}
                                                         sandbox="allow-scripts allow-same-origin allow-forms"
-                                                        className="w-full h-full bg-white"
+                                                        className="w-full h-[800px] border-0"
                                                     />
                                                 </div>
                                             )}
