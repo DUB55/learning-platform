@@ -16,8 +16,8 @@ export function useAdminSetting<T = string>(settingKey: string, defaultValue: T)
         // Fetch initial value
         const fetchSetting = async () => {
             try {
-                const { data } = await supabase
-                    .from('admin_permission_settings')
+                const { data } = await (supabase
+                    .from('admin_permission_settings') as any)
                     .select('default_value, setting_type')
                     .eq('setting_key', settingKey)
                     .single();
@@ -88,8 +88,8 @@ export function useAdminSettings(settingKeys: string[]): Record<string, any> {
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const { data } = await supabase
-                    .from('admin_permission_settings')
+                const { data } = await (supabase
+                    .from('admin_permission_settings') as any)
                     .select('setting_key, default_value, setting_type')
                     .in('setting_key', settingKeys);
 

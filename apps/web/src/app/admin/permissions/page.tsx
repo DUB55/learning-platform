@@ -43,8 +43,8 @@ export default function AdminPermissionsPage() {
     const fetchSettings = async () => {
         setIsLoadingData(true);
 
-        const { data, error } = await supabase
-            .from('admin_permission_settings')
+        const { data, error } = await (supabase
+            .from('admin_permission_settings') as any)
             .select('*')
             .order('category')
             .order('order_index');
@@ -71,8 +71,8 @@ export default function AdminPermissionsPage() {
         try {
             // Update each modified setting
             for (const [key, value] of Object.entries(modifiedSettings)) {
-                await supabase
-                    .from('admin_permission_settings')
+                await (supabase
+                    .from('admin_permission_settings') as any)
                     .update({ default_value: value })
                     .eq('setting_key', key);
             }

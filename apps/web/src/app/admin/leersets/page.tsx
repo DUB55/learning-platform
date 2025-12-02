@@ -323,7 +323,7 @@ export default function AdminLeersetsPage() {
                                     Annuleren
                                 </button>
                                 <button
-                                    onClick={() => importLeersetText(leersets[0]?.id)} // You'd need to pass the actual leerset ID
+                                    onClick={() => importLeersetText((leersets[0] as any)?.id)} // You'd need to pass the actual leerset ID
                                     disabled={importing || !importText.trim()}
                                     className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                                 >

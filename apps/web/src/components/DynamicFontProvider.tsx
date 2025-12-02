@@ -19,8 +19,8 @@ export default function DynamicFontProvider() {
 
         // Initial fetch
         const fetchFontSetting = async () => {
-            const { data } = await supabase
-                .from('admin_permission_settings')
+            const { data } = await (supabase
+                .from('admin_permission_settings') as any)
                 .select('default_value')
                 .eq('setting_key', 'ui.font_family')
                 .single();

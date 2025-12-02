@@ -26,8 +26,8 @@ function LoadingIndicatorToggle() {
 
     const fetchSetting = async () => {
         try {
-            const { data } = await supabase
-                .from('admin_permission_settings')
+            const { data } = await (supabase
+                .from('admin_permission_settings') as any)
                 .select('default_value')
                 .eq('setting_key', 'ui.show_loading_indicator')
                 .single();
@@ -45,8 +45,8 @@ function LoadingIndicatorToggle() {
         setEnabled(newValue); // Optimistic update
 
         try {
-            const { error } = await supabase
-                .from('admin_permission_settings')
+            const { error } = await (supabase
+                .from('admin_permission_settings') as any)
                 .upsert({
                     setting_key: 'ui.show_loading_indicator',
                     default_value: String(newValue),

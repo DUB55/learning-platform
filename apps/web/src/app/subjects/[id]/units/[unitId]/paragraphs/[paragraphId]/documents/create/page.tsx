@@ -77,8 +77,8 @@ export default function CreateDocumentPage() {
         }
 
         // Fetch permission settings from database
-        const { data: settings } = await supabase
-            .from('admin_permission_settings')
+        const { data: settings } = await (supabase
+            .from('admin_permission_settings') as any)
             .select('setting_key, default_value')
             .in('setting_key', [
                 'documents.allow_html',
