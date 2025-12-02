@@ -90,7 +90,7 @@ export default function AnnouncementsPage() {
     const markAsRead = async (announcementId: string) => {
         if (!user) return;
 
-        await supabase.rpc('mark_announcement_read', {
+        await (supabase.rpc('mark_announcement_read') as any)({
             announcement_uuid: announcementId,
             user_uuid: user.id
         });
