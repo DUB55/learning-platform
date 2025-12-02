@@ -89,22 +89,6 @@ export default function AdminPage() {
                 router.push('/dashboard');
                 return;
             }
-            fetchSubjects();
-        }
-    }, [user, profile, loading, router]);
-
-    const fetchSubjects = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('subjects')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            if (data) setSubjects(data);
-        } catch (error) {
-            console.error('Error fetching subjects:', error);
-        } finally {
             setIsLoadingData(false);
         }
     };
@@ -114,8 +98,8 @@ export default function AdminPage() {
         if (!user || !newSubjectTitle.trim()) return;
 
         try {
-            const { data, error } = await supabase
-                .from('subjects')
+            const { data, error } = await (supabase
+                .from('subjects') as any)
                 .insert([
                     {
                         user_id: user.id,
@@ -141,8 +125,8 @@ export default function AdminPage() {
         if (!confirm('Are you sure you want to delete this subject? This will delete all related chapters and tasks.')) return;
 
         try {
-            const { error } = await supabase
-                .from('subjects')
+            const { error } = await (supabase
+                .from('subjects') as any)
                 .delete()
                 .eq('id', id);
 
