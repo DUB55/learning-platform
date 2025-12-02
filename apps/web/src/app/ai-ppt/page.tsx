@@ -54,13 +54,14 @@ export default function AIPPTGeneratorPage() {
         try {
             const { error } = await supabase
                 .from('saved_powerpoints')
-                .insert<SavedPowerpointInsert>([
+                .insert([
                     {
                         user_id: user.id,
                         title: String(generatedPPT.title),
                         slides: generatedPPT.slides,
-    },
-  ]);
+                    },
+                ]);
+
 
 
             if (error) throw error;
