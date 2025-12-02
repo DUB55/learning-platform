@@ -10,6 +10,13 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/useToast';
 import Toast from '@/components/Toast';
 
+type SavedPowerpointInsert = {
+  user_id: string;
+  title: string;
+  slides: any; // or a more specific type if you know it, e.g. string or object
+};
+
+
 export default function AIPPTGeneratorPage() {
     const { user } = useAuth();
     const router = useRouter();
@@ -47,11 +54,14 @@ export default function AIPPTGeneratorPage() {
         try {
             const { error } = await supabase
                 .from('saved_powerpoints')
-                .insert([{
-                    user_id: user.id,
-                    title: generatedPPT.title,
-                    slides: generatedPPT.slides
-                }]);
+                .insert<SavedPowerpointInsert>([
+                    {
+                        user_id: user.id,
+                        title: String(generatedPPT.title),
+                        slides: generatedPPT.slides,
+    },
+  ]);
+
 
             if (error) throw error;
 
