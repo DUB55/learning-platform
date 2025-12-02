@@ -66,7 +66,7 @@ export default function AIPPTGeneratorPage() {
             if (error) throw error;
 
             showToast('PowerPoint saved successfully!', 'success');
-            fetchSavedPowerpoints();
+            // fetchSavedPowerpoints();
         } catch (err: any) {
             console.error('Save error:', err);
             showError('Failed to save PowerPoint.');
