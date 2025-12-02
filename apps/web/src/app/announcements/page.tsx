@@ -79,7 +79,7 @@ export default function AnnouncementsPage() {
             setAnnouncements(
                 announcementsData.map(a => ({
                     ...(a as any),
-                    is_read: readIds.has(a.id)
+                    is_read: readIds.has((a as any).id)
                 }))
             );
         }
