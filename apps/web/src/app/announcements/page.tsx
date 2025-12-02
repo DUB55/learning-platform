@@ -74,7 +74,7 @@ export default function AnnouncementsPage() {
                 .select('announcement_id')
                 .eq('user_id', user!.id);
 
-            const readIds = new Set(readsData?.map(r => r.announcement_id) || []);
+            const readIds = new Set((readsData as any)?.map((r: any) => r.announcement_id) || []);
 
             setAnnouncements(
                 announcementsData.map(a => ({
