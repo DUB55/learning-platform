@@ -33,7 +33,7 @@ export default function AdminLeersetsPage() {
     }, [selectedSubject]);
 
     const fetchSubjects = async () => {
-        const { data } = await supabase.from('subjects').select('*').order('name');
+        const { data } = await (supabase.from('subjects') as any).select('*').order('name');
         setSubjects(data || []);
     };
 

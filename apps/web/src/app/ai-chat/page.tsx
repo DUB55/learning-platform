@@ -47,8 +47,7 @@ export default function AIChatPage() {
     }, [currentChatId]);
 
     const loadMessages = async (chatId: string) => {
-        const { data } = await supabase
-            .from('ai_messages')
+        const { data } = await (supabase.from('ai_messages') as any)
             .select('*')
             .eq('chat_id', chatId)
             .order('created_at', { ascending: true });
@@ -75,8 +74,7 @@ export default function AIChatPage() {
 
             // Create new chat if none exists
             if (!chatId) {
-                const { data: newChat, error: chatError } = await supabase
-                    .from('ai_chats')
+                const { data: newChat, error: chatError } = await (supabase.from('ai_chats') as any)
                     .insert([{
                         user_id: user.id,
                         title: userContent.slice(0, 30) + (userContent.length > 30 ? '...' : '')
@@ -90,8 +88,7 @@ export default function AIChatPage() {
             }
 
             // Save user message
-            const { data: userMsg, error: msgError } = await supabase
-                .from('ai_messages')
+            const { data: userMsg, error: msgError } = await (supabase.from('ai_messages') as any)
                 .insert([{
                     chat_id: chatId,
                     role: 'user',
@@ -144,8 +141,7 @@ export default function AIChatPage() {
             });
 
             // Save AI message to DB
-            const { data: aiMsg, error: aiError } = await supabase
-                .from('ai_messages')
+            const { data: aiMsg, error: aiError } = await (supabase.from('ai_messages') as any)
                 .insert([{
                     chat_id: chatId,
                     role: 'assistant',

@@ -19,8 +19,7 @@ export default function StudyPage() {
 
     const fetchSubjects = async () => {
         try {
-            const { data } = await supabase
-                .from('subjects')
+            const { data } = await (supabase.from('subjects') as any)
                 .select('*, chapters(count)')
                 .order('created_at', { ascending: false });
 

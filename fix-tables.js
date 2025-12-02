@@ -7,7 +7,14 @@
 const fs = require('fs');
 const path = require('path');
 
-const TABLES_TO_FIX = ['subjects'];
+const TABLES_TO_FIX = [
+    'subjects',
+    'ai_chats',
+    'ai_messages',
+    'calendar_events',
+    'user_badges',
+    'user_xp_logs'
+];
 
 function fixFile(filePath) {
     let content = fs.readFileSync(filePath, 'utf8');

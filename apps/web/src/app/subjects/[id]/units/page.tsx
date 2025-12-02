@@ -47,8 +47,7 @@ export default function UnitsPage() {
         setLoading(true);
 
         // Fetch subject details
-        const { data: subjectData } = await supabase
-            .from('subjects')
+        const { data: subjectData } = await (supabase.from('subjects') as any)
             .select('*')
             .eq('id', subjectId)
             .single();

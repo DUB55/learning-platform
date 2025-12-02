@@ -38,8 +38,7 @@ export default function CalendarPage() {
     }, [user, currentDate]);
 
     const fetchEvents = async () => {
-        const { data } = await supabase
-            .from('calendar_events')
+        const { data } = await (supabase.from('calendar_events') as any)
             .select('*')
             .gte('start_date', new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString())
             .lte('start_date', new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).toISOString());
@@ -55,7 +54,7 @@ export default function CalendarPage() {
         const eventDate = new Date(selectedDate);
         eventDate.setHours(startHours, startMinutes, 0, 0);
 
-        const { error } = await supabase.from('calendar_events').insert({
+        const { error } = await (supabase.from('calendar_events') as any).insert({
             user_id: user?.id,
             title: eventTitle,
             description: eventDescription,

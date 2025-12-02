@@ -45,8 +45,7 @@ export default function SubjectsPage() {
         if (!user) return;
 
         // Fetch subjects with unit counts
-        const { data: subjectsData, error: subjectsError } = await supabase
-            .from('subjects')
+        const { data: subjectsData, error: subjectsError } = await (supabase.from('subjects') as any)
             .select('*')
             .order('created_at', { ascending: false });
 
@@ -79,8 +78,7 @@ export default function SubjectsPage() {
         e.preventDefault();
         if (!user || !newSubjectTitle.trim()) return;
 
-        const { error } = await supabase
-            .from('subjects')
+        const { error } = await (supabase.from('subjects') as any)
             .insert([
                 {
                     user_id: user.id,
@@ -100,8 +98,7 @@ export default function SubjectsPage() {
         const subject = subjects.find(s => s.id === subjectId);
         if (!subject) return;
 
-        const { error } = await supabase
-            .from('subjects')
+        const { error } = await (supabase.from('subjects') as any)
             .update({ is_global: !subject.is_global })
             .eq('id', subjectId);
 
@@ -120,8 +117,7 @@ export default function SubjectsPage() {
     const handleSaveRename = async () => {
         if (!editingSubject) return;
 
-        const { error } = await supabase
-            .from('subjects')
+        const { error } = await (supabase.from('subjects') as any)
             .update({ title: editingSubject.title })
             .eq('id', editingSubject.id);
 
@@ -176,8 +172,7 @@ export default function SubjectsPage() {
     const handleDeleteSubject = async (subjectId: string) => {
         if (!confirm('Are you sure you want to delete this subject?')) return;
 
-        const { error } = await supabase
-            .from('subjects')
+        const { error } = await (supabase.from('subjects') as any)
             .delete()
             .eq('id', subjectId);
 

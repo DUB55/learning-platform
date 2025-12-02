@@ -49,8 +49,7 @@ export default function Dashboard() {
     const fetchDashboardData = async () => {
         try {
             // Fetch subjects (limit to 6 for dashboard)
-            const { data: subjectsData } = await supabase
-                .from('subjects')
+            const { data: subjectsData } = await (supabase.from('subjects') as any)
                 .select('*')
                 .order('created_at', { ascending: false })
                 .limit(6);
@@ -71,8 +70,7 @@ export default function Dashboard() {
 
             // Fetch upcoming calendar events (next 5)
             const today = new Date().toISOString();
-            const { data: eventsData } = await supabase
-                .from('calendar_events')
+            const { data: eventsData } = await (supabase.from('calendar_events') as any)
                 .select('*')
                 .gte('start_date', today)
                 .order('start_date', { ascending: true })
@@ -142,8 +140,7 @@ export default function Dashboard() {
     const handleDeleteSubject = async (subject: any) => {
         if (!confirm('Are you sure you want to delete this subject?')) return;
 
-        const { error } = await supabase
-            .from('subjects')
+        const { error } = await (supabase.from('subjects') as any)
             .delete()
             .eq('id', subject.id);
 

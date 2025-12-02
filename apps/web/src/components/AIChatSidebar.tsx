@@ -41,8 +41,7 @@ export default function AIChatSidebar({ currentChatId, onSelectChat, onNewChat }
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const { data } = await supabase
-            .from('ai_chats')
+        const { data } = await (supabase.from('ai_chats') as any)
             .select('*')
             .eq('user_id', user.id)
             .order('created_at', { ascending: false });
@@ -55,7 +54,7 @@ export default function AIChatSidebar({ currentChatId, onSelectChat, onNewChat }
         e.stopPropagation();
         if (!confirm('Delete this chat?')) return;
 
-        await supabase.from('ai_chats').delete().eq('id', chatId);
+        await (supabase.from('ai_chats') as any).delete().eq('id', chatId);
         if (currentChatId === chatId) {
             onNewChat();
         }
