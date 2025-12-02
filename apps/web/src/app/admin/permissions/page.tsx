@@ -52,7 +52,7 @@ export default function AdminPermissionsPage() {
         if (!error && data) {
             setSettings(data);
             // Expand all categories by default
-            const categories = new Set(data.map(s => s.category));
+            const categories = new Set(data.map((s: any) => s.category));
             setExpandedCategories(categories);
         }
 
