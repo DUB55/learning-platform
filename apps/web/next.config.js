@@ -25,8 +25,6 @@ const nextConfig = {
         }
         return config;
 
-
-        /** @type {import('next').NextConfig} */
         const nextConfig = {
             typescript: {
                 ignoreBuildErrors: true,  // 👈 Skip ALL TS errors
