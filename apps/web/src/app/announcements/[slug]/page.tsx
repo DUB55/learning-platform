@@ -12,7 +12,7 @@ interface AnnouncementPage {
     title: string;
     content: string;
     slug: string;
-    created_at: string;
+    created_at: string | null;
 }
 
 export default function AnnouncementPageView() {
@@ -103,11 +103,11 @@ export default function AnnouncementPageView() {
                             </h1>
                             <div className="flex items-center gap-2 text-sm text-slate-400">
                                 <Clock className="w-4 h-4" />
-                                <span>{new Date(page.created_at).toLocaleDateString('en-US', {
+                                <span>{page.created_at ? new Date(page.created_at).toLocaleDateString('en-US', {
                                     year: 'numeric',
                                     month: 'long',
                                     day: 'numeric'
-                                })}</span>
+                                }) : 'N/A'}</span>
                             </div>
                         </header>
 
