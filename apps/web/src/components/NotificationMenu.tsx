@@ -11,7 +11,7 @@ interface Announcement {
     content: string;
     priority: 'low' | 'normal' | 'high' | 'urgent';
     linked_page_id: string | null;
-    created_at: string;
+    created_at: string | null;
     is_read: boolean;
 }
 
@@ -107,10 +107,13 @@ export default function NotificationMenu({ userId }: NotificationMenuProps) {
             }
 
             setAnnouncements(
-                announcementsData.map(a => ({
-                    ...a,
-                    is_read: serverReadIds.has(a.id) || localReadIds.has(a.id)
-                }))
+                announcementsData
+                    .filter(a => a.priority !== null)  // Filter out null priorities
+                    .map(a => ({
+                        ...a,
+                        priority: a.priority as 'low' | 'normal' | 'high' | 'urgent',  // Type cast to literal union
+                        is_read: serverReadIds.has(a.id) || localReadIds.has(a.id)
+                    }))
             );
         }
 
@@ -248,7 +251,7 @@ export default function NotificationMenu({ userId }: NotificationMenuProps) {
                                             </p>
                                             <div className="flex items-center justify-between mt-2">
                                                 <span className="text-slate-500 text-xs">
-                                                    {new Date(announcement.created_at).toLocaleDateString()}
+                                                    {announcement.created_at ? new Date(announcement.created_at).toLocaleDateString() : 'N/A'}
                                                 </span>
                                                 {announcement.linked_page_id && (
                                                     <span className="flex items-center gap-1 text-blue-400 text-xs">

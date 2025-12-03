@@ -14,7 +14,7 @@ interface Announcement {
     priority: 'low' | 'normal' | 'high' | 'urgent';
     linked_page_id: string | null;
     expires_at: string | null;
-    created_at: string;
+    created_at: string | null;
 }
 
 interface AnnouncementPage {
@@ -63,7 +63,14 @@ export default function AdminAnnouncementsPage() {
             .order('created_at', { ascending: false });
 
         if (announcementsData) {
-            setAnnouncements(announcementsData);
+            setAnnouncements(
+                announcementsData
+                    .filter(a => a.priority !== null)  // Filter out null priorities
+                    .map(a => ({
+                        ...a,
+                        priority: a.priority as 'low' | 'normal' | 'high' | 'urgent'  // Type cast to literal union
+                    }))
+            );
         }
 
         // Fetch pages
@@ -224,7 +231,7 @@ export default function AdminAnnouncementsPage() {
                                             <div className="flex items-center gap-4 text-xs text-slate-500">
                                                 <div className="flex items-center gap-1">
                                                     <Clock className="w-3 h-3" />
-                                                    <span>Created {new Date(announcement.created_at).toLocaleDateString()}</span>
+                                                    <span>Created {announcement.created_at ? new Date(announcement.created_at).toLocaleDateString() : 'N/A'}</span>
                                                 </div>
                                                 {announcement.expires_at && (
                                                     <div className="flex items-center gap-1">

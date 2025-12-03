@@ -17,7 +17,7 @@ interface Announcement {
         slug: string;
         title: string;
     };
-    created_at: string;
+    created_at: string | null;
     is_read: boolean;
 }
 
@@ -81,7 +81,8 @@ export default function AnnouncementsPage() {
                     .filter(a => a.priority !== null)  // Fix priority null error
                     .map(a => ({
                         ...a,
-                        priority: a.priority!,  // Non-null assertion after filter
+                        priority: a.priority as 'low' | 'normal' | 'high' | 'urgent',  // Type cast to literal union
+                        linked_page: a.linked_page || undefined,  // Convert null to undefined
                         is_read: readIds.has((a as any).id)
                     }))
             );
@@ -90,7 +91,7 @@ export default function AnnouncementsPage() {
         setIsLoadingData(false);
     };
 
-        setIsLoadingData(false);
+    setIsLoadingData(false);
 
 
     const markAsRead = async (announcementId: string) => {
@@ -189,7 +190,7 @@ export default function AnnouncementsPage() {
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-1 text-xs text-slate-500">
                                                     <Clock className="w-3 h-3" />
-                                                    <span>{new Date(announcement.created_at).toLocaleDateString()}</span>
+                                                    <span>{announcement.created_at ? new Date(announcement.created_at).toLocaleDateString() : 'N/A'}</span>
                                                 </div>
                                                 {announcement.linked_page_id && announcement.linked_page && (
                                                     <div className="flex items-center gap-1 text-blue-400 text-sm">
