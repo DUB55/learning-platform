@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning Platform UI Reference</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;700&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                    },
+                    colors: {
+                        glass: {
+                            100: 'rgba(255, 255, 255, 0.1)',
+                            200: 'rgba(255, 255, 255, 0.2)',
+                            300: 'rgba(255, 255, 255, 0.3)',
+                            400: 'rgba(255, 255, 255, 0.4)',
+                            border: 'rgba(255, 255, 255, 0.2)',
+                        },
+                        dark: {
+                            bg: '#0a0a0a',
+                            card: '#171717',
+                            border: '#262626',
+                        }
+                    },
+                    animation: {
+                        blob: 'blob 7s infinite',
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'slide-up': 'slideUp 0.5s ease-out forwards',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --foreground-rgb: 255, 255, 255;
+            --background-start-rgb: 10, 10, 10;
+            --background-end-rgb: 0, 0, 0;
+        }
+
+        body {
+            color: rgb(var(--foreground-rgb));
+            background: #0f172a;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .glass {
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .glass-card {
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border-radius: 1rem;
+        }
+
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #60a5fa, #c084fc, #f472b6);
+        }
+
+        /* Celebration Animations */
+        @keyframes float-up {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes bounce-slow {
+
+            0%,
+            100% {
+                transform: translateY(0) scale(1);
+            }
+
+            50% {
+                transform: translateY(-30px) scale(1.1);
+            }
+        }
+
+        @keyframes slide-up {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fade-in-up {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes gradient {
+
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        .balloon {
+            position: absolute;
+            font-size: 3rem;
+            animation: float-up linear infinite;
+            pointer-events: none;
+        }
+
+        .animate-bounce-slow {
+            animation: bounce-slow 2s ease-in-out infinite;
+        }
+
+        .animate-slide-up {
+            animation: slide-up 0.8s ease-out;
+        }
+
+        .animate-fade-in-up {
+            animation: fade-in-up 0.6s ease-out;
+        }
+
+        .animate-gradient {
+            background-size: 200% 200%;
+            animation: gradient 3s ease infinite;
+        }
+
+        .animation-delay-200 {
+            animation-delay: 0.2s;
+            opacity: 0;
+            animation-fill-mode: forwards;
+        }
+
+        .animation-delay-400 {
+            animation-delay: 0.4s;
+            opacity: 0;
+            animation-fill-mode: forwards;
+        }
+
+        .animation-delay-600 {
+            animation-delay: 0.6s;
+            opacity: 0;
+            animation-fill-mode: forwards;
+        }
+    </style>
+</head>
+
+<body class="bg-[#0f172a] text-white">
+
+    <!-- View Switcher -->
+    <div
+        class="fixed top-4 right-4 z-[100] flex gap-2 bg-black/50 backdrop-blur-md p-2 rounded-lg border border-white/10">
+        <button onclick="switchView('landing')"
+            class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md text-sm font-medium transition-colors">Landing
+            Page</button>
+        <button onclick="switchView('dashboard')"
+            class="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-md text-sm font-medium transition-colors">Dashboard</button>
+        <button onclick="toggleCelebration()"
+            class="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-md text-sm font-medium transition-colors">Test
+            Celebration</button>
+    </div>
+
+    <!-- LANDING PAGE VIEW -->
+    <div id="landing-view" class="min-h-screen relative overflow-hidden">
+        <!-- Background Elements -->
+        <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
+        <div class="absolute inset-0 bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]"
+            style="background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%239C92AC\' fill-opacity=\'0.05\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');">
+        </div>
+
+        <!-- Navigation -->
+        <nav class="fixed top-0 w-full z-50 border-b border-white/10 bg-black/20 backdrop-blur-md">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                            <i data-lucide="book-open" class="w-5 h-5 text-white"></i>
+                        </div>
+                        <span class="text-xl font-serif font-bold text-white tracking-tight">Leerplatform</span>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <a href="#"
+                            class="text-sm font-medium text-slate-300 hover:text-white transition-colors">Inloggen</a>
+                        <a href="#"
+                            class="px-4 py-2 bg-white text-black text-sm font-medium rounded-lg hover:bg-slate-100 transition-colors">Start
+                            nu</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Hero Section -->
+        <div class="relative pt-32 pb-20 sm:pt-40 sm:pb-24">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <div
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-8 animate-fade-in">
+                    <span class="flex h-2 w-2 rounded-full bg-blue-500"></span>
+                    <span class="text-sm text-slate-300">De toekomst van leren is hier</span>
+                </div>
+
+                <h1 class="text-5xl md:text-7xl font-serif font-bold text-white mb-8 tracking-tight animate-slide-up">
+                    Leer slimmer met <br />
+                    <span
+                        class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
+                        AI-Powered Education
+                    </span>
+                </h1>
+
+                <p class="text-xl text-slate-400 mb-10 max-w-2xl mx-auto animate-slide-up"
+                    style="animation-delay: 0.1s">
+                    Transformeer je studieroutine met gepersonaliseerde AI-begeleiding, slimme planning en boeiende
+                    leermodi.
+                </p>
+
+                <div class="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up"
+                    style="animation-delay: 0.2s">
+                    <a href="#"
+                        class="group px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl transition-all shadow-lg hover:shadow-blue-500/25 flex items-center justify-center gap-2">
+                        Start nu gratis
+                        <i data-lucide="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
+                    </a>
+                    <button
+                        class="px-8 py-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 font-medium rounded-xl backdrop-blur-sm transition-colors">
+                        Meer informatie
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features Grid -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-5xl font-serif font-bold text-white mb-6">
+                    Alles wat je nodig hebt om te <span class="text-purple-400">excelleren</span>
+                </h2>
+                <p class="text-slate-400 max-w-2xl mx-auto">
+                    Krachtige functies ontworpen om jouw leerervaring naar een hoger niveau te tillen.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Feature 1 -->
+                <div class="glass-card p-8 hover:bg-white/5 transition-colors group animate-slide-up">
+                    <div
+                        class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 border border-white/10">
+                        <i data-lucide="brain" class="w-6 h-6 text-blue-400"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">AI-Powered Learning</h3>
+                    <p class="text-slate-400 leading-relaxed">Krijg gepersonaliseerde hulp van je AI-tutor, 24/7
+                        beschikbaar voor al je vragen.</p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="glass-card p-8 hover:bg-white/5 transition-colors group animate-slide-up"
+                    style="animation-delay: 0.1s">
+                    <div
+                        class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 border border-white/10">
+                        <i data-lucide="calendar" class="w-6 h-6 text-purple-400"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Smart Scheduling</h3>
+                    <p class="text-slate-400 leading-relaxed">Organiseer je studiesessies met intelligente
+                        agenda-integratie en planning.</p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="glass-card p-8 hover:bg-white/5 transition-colors group animate-slide-up"
+                    style="animation-delay: 0.2s">
+                    <div
+                        class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 border border-white/10">
+                        <i data-lucide="bar-chart-3" class="w-6 h-6 text-pink-400"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Progress Tracking</h3>
+                    <p class="text-slate-400 leading-relaxed">Monitor je leertraject met gedetailleerde analyses en
+                        inzichten.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DASHBOARD VIEW (Hidden by default) -->
+    <div id="dashboard-view" class="hidden min-h-screen bg-[#0f172a] flex overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-slate-900/50 backdrop-blur-xl border-r border-white/5 flex flex-col min-h-screen">
+            <!-- Header -->
+            <div class="p-4 flex-shrink-0">
+                <div class="flex items-center gap-3 mb-2 px-2">
+                    <div
+                        class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20 flex-shrink-0">
+                        <i data-lucide="book-open" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <span class="text-lg font-serif font-bold text-white tracking-tight">LearnHub</span>
+                </div>
+            </div>
+
+            <!-- Nav -->
+            <div class="flex-1 py-2 space-y-1 px-4">
+                <a href="#"
+                    class="flex items-center gap-3 w-full pl-[30px] py-3 rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-500/25">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                    <span class="font-medium">Dashboard</span>
+                </a>
+                <a href="#"
+                    class="flex items-center gap-3 w-full pl-[30px] py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
+                    <i data-lucide="book-open" class="w-5 h-5 text-green-400"></i>
+                    <span class="font-medium">Subjects</span>
+                </a>
+                <a href="#"
+                    class="flex items-center gap-3 w-full pl-[30px] py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
+                    <i data-lucide="calendar" class="w-5 h-5 text-cyan-400"></i>
+                    <span class="font-medium">Calendar</span>
+                </a>
+                <a href="#"
+                    class="flex items-center gap-3 w-full pl-[30px] py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
+                    <i data-lucide="check-square" class="w-5 h-5 text-pink-400"></i>
+                    <span class="font-medium">Tasks</span>
+                </a>
+                <a href="#"
+                    class="flex items-center gap-3 w-full pl-[30px] py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
+                    <i data-lucide="sparkles" class="w-5 h-5 text-purple-400"></i>
+                    <span class="font-medium">DUB5 AI</span>
+                </a>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-white/5 space-y-4">
+                <div
+                    class="bg-gradient-to-br from-purple-600/10 to-pink-600/10 border border-purple-500/20 rounded-xl p-3">
+                    <div class="flex items-center gap-3 mb-2">
+                        <i data-lucide="trophy" class="w-4 h-4 text-purple-400"></i>
+                        <div class="flex justify-between items-center w-full">
+                            <span class="text-sm font-medium text-white">Level 5</span>
+                            <span class="text-xs text-purple-300">2,450 XP</span>
+                        </div>
+                    </div>
+                    <div class="relative w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                        <div class="absolute top-0 left-0 h-full bg-gradient-to-r from-purple-600 to-pink-600"
+                            style="width: 65%"></div>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-1">550 XP to next</p>
+                </div>
+
+                <button
+                    class="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors">
+                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                    <span class="font-medium">Sign Out</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto p-8">
+            <header class="flex justify-between items-center mb-8">
+                <div>
+                    <h1 class="text-3xl font-bold text-white mb-2">Welcome back, Mohammed! 👋</h1>
+                    <p class="text-slate-400">Here's what's happening with your learning today.</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button
+                        class="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors relative">
+                        <i data-lucide="bell" class="w-6 h-6"></i>
+                        <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+                    </button>
+                    <div
+                        class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                        M
+                    </div>
+                </div>
+            </header>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="glass-card p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-blue-500/10 rounded-lg">
+                            <i data-lucide="book-open" class="w-6 h-6 text-blue-400"></i>
+                        </div>
+                        <span
+                            class="text-xs font-medium text-green-400 bg-green-400/10 px-2 py-1 rounded-full">+12%</span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white mb-1">12</h3>
+                    <p class="text-sm text-slate-400">Active Subjects</p>
+                </div>
+                <div class="glass-card p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-purple-500/10 rounded-lg">
+                            <i data-lucide="clock" class="w-6 h-6 text-purple-400"></i>
+                        </div>
+                        <span
+                            class="text-xs font-medium text-green-400 bg-green-400/10 px-2 py-1 rounded-full">+2.5h</span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white mb-1">24.5h</h3>
+                    <p class="text-sm text-slate-400">Study Time</p>
+                </div>
+                <div class="glass-card p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-pink-500/10 rounded-lg">
+                            <i data-lucide="check-circle-2" class="w-6 h-6 text-pink-400"></i>
+                        </div>
+                        <span
+                            class="text-xs font-medium text-green-400 bg-green-400/10 px-2 py-1 rounded-full">+5</span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white mb-1">45</h3>
+                    <p class="text-sm text-slate-400">Tasks Completed</p>
+                </div>
+                <div class="glass-card p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-yellow-500/10 rounded-lg">
+                            <i data-lucide="flame" class="w-6 h-6 text-yellow-400"></i>
+                        </div>
+                        <span class="text-xs font-medium text-yellow-400 bg-yellow-400/10 px-2 py-1 rounded-full">On
+                            Fire!</span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white mb-1">7 Days</h3>
+                    <p class="text-sm text-slate-400">Current Streak</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- CELEBRATION OVERLAY (Hidden by default) -->
+    <div id="celebration-overlay"
+        class="hidden fixed inset-0 z-[200] bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center overflow-hidden">
+        <!-- Animated background gradient -->
+        <div class="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 animate-pulse">
+        </div>
+
+        <!-- Floating balloons (Static for demo) -->
+        <div class="balloon" style="left: 10%; animation-delay: 0s; animation-duration: 4s;">🎈</div>
+        <div class="balloon" style="left: 30%; animation-delay: 1s; animation-duration: 5s;">🎉</div>
+        <div class="balloon" style="left: 50%; animation-delay: 0.5s; animation-duration: 3.5s;">🎊</div>
+        <div class="balloon" style="left: 70%; animation-delay: 1.5s; animation-duration: 4.5s;">🎈</div>
+        <div class="balloon" style="left: 90%; animation-delay: 0.2s; animation-duration: 4s;">🎉</div>
+
+        <!-- Main content -->
+        <div class="relative z-10 text-center space-y-8">
+            <div class="space-y-8 animate-slide-up">
+                <div class="flex justify-center gap-4 text-6xl animate-bounce">
+                    <i data-lucide="party-popper" class="w-16 h-16 text-yellow-400"></i>
+                    <i data-lucide="sparkles" class="w-16 h-16 text-pink-400"></i>
+                    <i data-lucide="rocket" class="w-16 h-16 text-blue-400"></i>
+                </div>
+
+                <div class="space-y-4">
+                    <h1
+                        class="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 animate-gradient">
+                        IT'S FINALLY HERE! 🎉
+                    </h1>
+                    <p class="text-2xl md:text-4xl font-bold text-white">
+                        The Learning Platform is COMPLETE!
+                    </p>
+                </div>
+
+                <div class="max-w-2xl mx-auto space-y-4 px-4">
+                    <div class="glass-card p-6 animate-fade-in-up animation-delay-200">
+                        <p class="text-xl text-slate-200">
+                            🚀 <strong>All features built</strong> - From AI assistance to announcements
+                        </p>
+                    </div>
+                    <div class="glass-card p-6 animate-fade-in-up animation-delay-400">
+                        <p class="text-xl text-slate-200">
+                            ✨ <strong>TypeScript errors defeated</strong> - Zero compilation errors!
+                        </p>
+                    </div>
+                    <div class="glass-card p-6 animate-fade-in-up animation-delay-600">
+                        <p class="text-xl text-slate-200">
+                            🎯 <strong>Deployed on Vercel</strong> - Live and ready to go!
+                        </p>
+                    </div>
+                </div>
+
+                <div class="text-lg text-slate-300 animate-fade-in animation-delay-800">
+                    <p>Welcome to your amazing learning platform! 🎓</p>
+                </div>
+
+                <button onclick="toggleCelebration()"
+                    class="mt-8 px-8 py-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors">
+                    Close Celebration
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        function switchView(view) {
+            document.getElementById('landing-view').classList.add('hidden');
+            document.getElementById('dashboard-view').classList.add('hidden');
+
+            if (view === 'landing') {
+                document.getElementById('landing-view').classList.remove('hidden');
+            } else {
+                document.getElementById('dashboard-view').classList.remove('hidden');
+            }
+        }
+
+        function toggleCelebration() {
+            const overlay = document.getElementById('celebration-overlay');
+            overlay.classList.toggle('hidden');
+        }
+    </script>
+</body>
+
+</html>

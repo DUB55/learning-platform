@@ -4,7 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
-import { Plus, Globe, Trash2, ShieldAlert, Database, Sparkles } from 'lucide-react';
+import {
+    Plus, Globe, Trash2, ShieldAlert, Sparkles, Code, Users,
+    ChevronDown, ChevronRight, Settings, Image, Megaphone,
+    BookOpen, Eye, LayoutGrid, ToggleLeft, ToggleRight, Lock
+} from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 type Subject = {
@@ -16,60 +20,87 @@ type Subject = {
     created_at: string;
 };
 
-function LoadingIndicatorToggle() {
-    const [enabled, setEnabled] = useState(true);
-    const [loading, setLoading] = useState(true);
+// Collapsible Section Component
+function CollapsibleSection({
+    title,
+    icon: Icon,
+    children,
+    defaultOpen = false,
+    iconColor = 'text-blue-400'
+}: {
+    title: string;
+    icon: any;
+    children: React.ReactNode;
+    defaultOpen?: boolean;
+    iconColor?: string;
+}) {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
 
-    useEffect(() => {
-        fetchSetting();
-    }, []);
+    return (
+        <div className="glass-card overflow-hidden mb-4">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors"
+            >
+                <div className="flex items-center gap-3">
+                    <Icon className={`w-5 h-5 ${iconColor}`} />
+                    <h3 className="text-lg font-medium text-white">{title}</h3>
+                </div>
+                {isOpen ? (
+                    <ChevronDown className="w-5 h-5 text-slate-400" />
+                ) : (
+                    <ChevronRight className="w-5 h-5 text-slate-400" />
+                )}
+            </button>
+            {isOpen && (
+                <div className="px-4 pb-4 border-t border-white/5">
+                    {children}
+                </div>
+            )}
+        </div>
+    );
+}
 
-    const fetchSetting = async () => {
-        try {
-            const { data } = await (supabase
-                .from('admin_permission_settings') as any)
-                .select('default_value')
-                .eq('setting_key', 'ui.show_loading_indicator')
-                .single();
-
-            if (data) {
-                setEnabled(data.default_value === 'true');
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const toggleSetting = async () => {
-        const newValue = !enabled;
-        setEnabled(newValue); // Optimistic update
-
-        try {
-            const { error } = await (supabase
-                .from('admin_permission_settings') as any)
-                .upsert({
-                    setting_key: 'ui.show_loading_indicator',
-                    default_value: String(newValue),
-                    description: 'Controls visibility of the global loading indicator'
-                });
-
-            if (error) throw error;
-        } catch (error) {
-            console.error('Error updating setting:', error);
-            setEnabled(!newValue); // Revert on error
-            alert('Failed to update setting');
-        }
-    };
-
-    if (loading) return <div className="w-10 h-6 bg-slate-700 rounded-full animate-pulse" />;
+// Toggle Switch Component
+function ToggleSwitch({
+    enabled,
+    onChange,
+    loading = false
+}: {
+    enabled: boolean;
+    onChange: () => void;
+    loading?: boolean;
+}) {
+    if (loading) return <div className="w-12 h-6 bg-slate-700 rounded-full animate-pulse" />;
 
     return (
         <button
-            onClick={toggleSetting}
+            onClick={onChange}
             className={`w-12 h-6 rounded-full transition-colors relative ${enabled ? 'bg-blue-600' : 'bg-slate-700'}`}
         >
             <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${enabled ? 'left-7' : 'left-1'}`} />
         </button>
+    );
+}
+
+// Setting Row Component
+function SettingRow({
+    title,
+    description,
+    children
+}: {
+    title: string;
+    description: string;
+    children: React.ReactNode;
+}) {
+    return (
+        <div className="flex items-center justify-between py-4 border-b border-white/5 last:border-0">
+            <div className="flex-1 mr-4">
+                <h4 className="text-white font-medium mb-0.5">{title}</h4>
+                <p className="text-sm text-slate-400">{description}</p>
+            </div>
+            {children}
+        </div>
     );
 }
 
@@ -83,6 +114,18 @@ export default function AdminPage() {
     const [newSubjectTitle, setNewSubjectTitle] = useState('');
     const [newSubjectColor, setNewSubjectColor] = useState('blue');
 
+    // Settings State
+    const [loadingIndicator, setLoadingIndicator] = useState(true);
+    const [loadingIndicatorLoading, setLoadingIndicatorLoading] = useState(true);
+
+    // Profile Picture Settings
+    const [profilePicColumns, setProfilePicColumns] = useState(5);
+    const [profilePicSeparateDefaults, setProfilePicSeparateDefaults] = useState(true);
+    const [profilePicSettingsLoading, setProfilePicSettingsLoading] = useState(true);
+
+    // Flashcard Settings
+    const [flashcardAnimation, setFlashcardAnimation] = useState<'flip' | 'fade'>('flip');
+
     useEffect(() => {
         if (!loading) {
             if (!user || !profile?.is_admin) {
@@ -90,8 +133,56 @@ export default function AdminPage() {
                 return;
             }
             fetchSubjects();
+            fetchSettings();
         }
     }, [user, profile, loading, router]);
+
+    const fetchSettings = async () => {
+        try {
+            // Fetch all settings
+            const { data } = await (supabase
+                .from('admin_permission_settings') as any)
+                .select('setting_key, default_value');
+
+            if (data) {
+                data.forEach((setting: any) => {
+                    switch (setting.setting_key) {
+                        case 'ui.show_loading_indicator':
+                            setLoadingIndicator(setting.default_value === 'true');
+                            break;
+                        case 'ui.profile_pic_columns':
+                            setProfilePicColumns(parseInt(setting.default_value) || 5);
+                            break;
+                        case 'ui.profile_pic_separate_defaults':
+                            setProfilePicSeparateDefaults(setting.default_value !== 'false');
+                            break;
+                        case 'ui.flashcard_animation':
+                            setFlashcardAnimation(setting.default_value as 'flip' | 'fade');
+                            break;
+                    }
+                });
+            }
+        } finally {
+            setLoadingIndicatorLoading(false);
+            setProfilePicSettingsLoading(false);
+        }
+    };
+
+    const updateSetting = async (key: string, value: string, description: string) => {
+        try {
+            const { error } = await (supabase
+                .from('admin_permission_settings') as any)
+                .upsert({
+                    setting_key: key,
+                    default_value: value,
+                    description: description
+                }, { onConflict: 'setting_key' });
+            if (error) throw error;
+        } catch (error) {
+            console.error('Error updating setting:', error);
+            alert('Failed to update setting');
+        }
+    };
 
     const fetchSubjects = async () => {
         try {
@@ -116,14 +207,12 @@ export default function AdminPage() {
         try {
             const { data, error } = await (supabase
                 .from('subjects') as any)
-                .insert([
-                    {
-                        user_id: user.id,
-                        title: newSubjectTitle,
-                        color: newSubjectColor,
-                        is_public: true // This makes it a global subject
-                    }
-                ])
+                .insert([{
+                    user_id: user.id,
+                    title: newSubjectTitle,
+                    color: newSubjectColor,
+                    is_public: true
+                }])
                 .select()
                 .single();
 
@@ -138,7 +227,7 @@ export default function AdminPage() {
     };
 
     const handleDeleteSubject = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this subject? This will delete all related chapters and tasks.')) return;
+        if (!confirm('Are you sure you want to delete this subject? This will delete all related content.')) return;
 
         try {
             const { error } = await (supabase
@@ -147,7 +236,6 @@ export default function AdminPage() {
                 .eq('id', id);
 
             if (error) throw error;
-
             setSubjects(subjects.filter(s => s.id !== id));
         } catch (error) {
             console.error('Error deleting subject:', error);
@@ -167,78 +255,166 @@ export default function AdminPage() {
             <Sidebar />
 
             <main className="flex-1 overflow-y-auto relative p-8">
-                <div className="max-w-6xl mx-auto">
-                    <header className="mb-10">
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-3">
-                                <ShieldAlert className="w-8 h-8 text-red-500" />
-                                <h1 className="text-3xl font-serif font-bold text-white">Admin Dashboard</h1>
-                            </div>
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => router.push('/admin/announcements')}
-                                    className="glass-button px-4 py-2 rounded-xl flex items-center gap-2"
-                                >
-                                    <Globe className="w-4 h-4" />
-                                    <span>Announcements</span>
-                                </button>
-                                <button
-                                    onClick={() => router.push('/admin/sync')}
-                                    className="glass-button px-4 py-2 rounded-xl flex items-center gap-2"
-                                >
-                                    <Database className="w-4 h-4" />
-                                    <span>Git Sync</span>
-                                </button>
-                                <button
-                                    onClick={() => router.push('/admin/permissions')}
-                                    className="glass-button px-4 py-2 rounded-xl flex items-center gap-2"
-                                >
-                                    <ShieldAlert className="w-4 h-4" />
-                                    <span>Permissions</span>
-                                </button>
-                            </div>
+                <div className="max-w-4xl mx-auto">
+                    {/* Header */}
+                    <header className="mb-8">
+                        <div className="flex items-center gap-3 mb-2">
+                            <ShieldAlert className="w-8 h-8 text-red-500" />
+                            <h1 className="text-3xl font-serif font-bold text-white">Admin Settings</h1>
                         </div>
-                        <p className="text-slate-400">Manage global subjects and system settings</p>
+                        <p className="text-slate-400">Manage platform settings and content</p>
                     </header>
 
-                    {/* System Settings */}
-                    <div className="glass-card p-6 mb-10">
-                        <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
-                            <Sparkles className="w-5 h-5 text-purple-400" />
-                            System Settings
-                        </h3>
-                        <div className="flex items-center justify-between p-4 bg-slate-800/30 rounded-xl border border-white/5">
-                            <div>
-                                <h4 className="text-white font-medium mb-1">Global Loading Indicator</h4>
-                                <p className="text-sm text-slate-400">Show a progress bar at the top of the screen during page navigation</p>
-                            </div>
-                            <LoadingIndicatorToggle />
-                        </div>
+                    {/* Quick Actions */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+                        <button
+                            onClick={() => router.push('/admin/bulk-creator')}
+                            className="glass-card p-4 flex flex-col items-center gap-2 hover:bg-white/5 transition-colors group"
+                        >
+                            <Code className="w-6 h-6 text-purple-400 group-hover:scale-110 transition-transform" />
+                            <span className="text-sm text-white">Bulk Creator</span>
+                        </button>
+                        <button
+                            onClick={() => router.push('/admin/profile-pictures')}
+                            className="glass-card p-4 flex flex-col items-center gap-2 hover:bg-white/5 transition-colors group"
+                        >
+                            <Image className="w-6 h-6 text-blue-400 group-hover:scale-110 transition-transform" />
+                            <span className="text-sm text-white">Profile Pics</span>
+                        </button>
+                        <button
+                            onClick={() => router.push('/admin/announcements')}
+                            className="glass-card p-4 flex flex-col items-center gap-2 hover:bg-white/5 transition-colors group"
+                        >
+                            <Megaphone className="w-6 h-6 text-orange-400 group-hover:scale-110 transition-transform" />
+                            <span className="text-sm text-white">Announcements</span>
+                        </button>
+                        <button
+                            onClick={() => router.push('/admin/permissions')}
+                            className="glass-card p-4 flex flex-col items-center gap-2 hover:bg-white/5 transition-colors group"
+                        >
+                            <Lock className="w-6 h-6 text-red-400 group-hover:scale-110 transition-transform" />
+                            <span className="text-sm text-white">Permissions</span>
+                        </button>
                     </div>
 
-                    {/* Add Global Subject */}
-                    <div className="glass-card p-6 mb-10">
-                        <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
-                            <Globe className="w-5 h-5 text-blue-400" />
-                            Add Global Subject
-                        </h3>
-                        <form onSubmit={handleAddGlobalSubject} className="flex gap-4 items-end">
-                            <div className="flex-1 space-y-1">
-                                <label className="text-xs text-slate-400">Subject Title</label>
+                    {/* UI Settings */}
+                    <CollapsibleSection title="Display Settings" icon={Eye} defaultOpen={true} iconColor="text-purple-400">
+                        <div className="pt-4">
+                            <SettingRow
+                                title="Loading Indicator"
+                                description="Show a progress bar at the top during page navigation"
+                            >
+                                <ToggleSwitch
+                                    enabled={loadingIndicator}
+                                    loading={loadingIndicatorLoading}
+                                    onChange={async () => {
+                                        const newValue = !loadingIndicator;
+                                        setLoadingIndicator(newValue);
+                                        await updateSetting(
+                                            'ui.show_loading_indicator',
+                                            String(newValue),
+                                            'Controls visibility of the global loading indicator'
+                                        );
+                                    }}
+                                />
+                            </SettingRow>
+
+                            <SettingRow
+                                title="Flashcard Animation"
+                                description="Choose between 3D Flip or Simple Fade animation"
+                            >
+                                <div className="flex bg-slate-800 rounded-lg p-1 border border-white/5">
+                                    <button
+                                        onClick={async () => {
+                                            setFlashcardAnimation('flip');
+                                            await updateSetting('ui.flashcard_animation', 'flip', 'Flashcard animation style');
+                                        }}
+                                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${flashcardAnimation === 'flip' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                                    >
+                                        Flip
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            setFlashcardAnimation('fade');
+                                            await updateSetting('ui.flashcard_animation', 'fade', 'Flashcard animation style');
+                                        }}
+                                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${flashcardAnimation === 'fade' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                                    >
+                                        Fade
+                                    </button>
+                                </div>
+                            </SettingRow>
+                        </div>
+                    </CollapsibleSection>
+
+                    {/* Profile Picture Settings */}
+                    <CollapsibleSection title="Profile Picture Settings" icon={Users} defaultOpen={true} iconColor="text-blue-400">
+                        <div className="pt-4">
+                            <SettingRow
+                                title="Grid Columns"
+                                description="Number of profile pictures per row (3-8). Lower = larger pictures"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        type="range"
+                                        min="3"
+                                        max="8"
+                                        value={profilePicColumns}
+                                        onChange={async (e) => {
+                                            const val = parseInt(e.target.value);
+                                            setProfilePicColumns(val);
+                                            await updateSetting(
+                                                'ui.profile_pic_columns',
+                                                String(val),
+                                                'Number of columns in profile picture grid'
+                                            );
+                                        }}
+                                        className="w-24 accent-blue-500"
+                                        disabled={profilePicSettingsLoading}
+                                    />
+                                    <span className="text-white font-mono bg-slate-800 px-2 py-1 rounded text-sm min-w-[2rem] text-center">
+                                        {profilePicColumns}
+                                    </span>
+                                </div>
+                            </SettingRow>
+
+                            <SettingRow
+                                title="Separate Default Options"
+                                description="Show Default and Google avatar as separate buttons above the gallery"
+                            >
+                                <ToggleSwitch
+                                    enabled={profilePicSeparateDefaults}
+                                    loading={profilePicSettingsLoading}
+                                    onChange={async () => {
+                                        const newValue = !profilePicSeparateDefaults;
+                                        setProfilePicSeparateDefaults(newValue);
+                                        await updateSetting(
+                                            'ui.profile_pic_separate_defaults',
+                                            String(newValue),
+                                            'Whether to show Default/Google options separately'
+                                        );
+                                    }}
+                                />
+                            </SettingRow>
+                        </div>
+                    </CollapsibleSection>
+
+                    {/* Global Subjects */}
+                    <CollapsibleSection title="Global Subjects" icon={BookOpen} defaultOpen={false} iconColor="text-green-400">
+                        <div className="pt-4">
+                            {/* Add Subject Form */}
+                            <form onSubmit={handleAddGlobalSubject} className="flex gap-3 mb-6">
                                 <input
                                     type="text"
                                     value={newSubjectTitle}
                                     onChange={(e) => setNewSubjectTitle(e.target.value)}
-                                    placeholder="e.g., Advanced Mathematics"
-                                    className="w-full bg-slate-800/50 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+                                    placeholder="Subject title..."
+                                    className="flex-1 bg-slate-800/50 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500"
                                 />
-                            </div>
-                            <div className="w-48 space-y-1">
-                                <label className="text-xs text-slate-400">Color Theme</label>
                                 <select
                                     value={newSubjectColor}
                                     onChange={(e) => setNewSubjectColor(e.target.value)}
-                                    className="w-full bg-slate-800/50 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+                                    className="bg-slate-800/50 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
                                 >
                                     <option value="blue">Blue</option>
                                     <option value="green">Green</option>
@@ -246,52 +422,50 @@ export default function AdminPage() {
                                     <option value="orange">Orange</option>
                                     <option value="pink">Pink</option>
                                 </select>
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={!newSubjectTitle.trim()}
-                                className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-xl transition-colors disabled:opacity-50 h-[42px]"
-                            >
-                                Add Global Subject
-                            </button>
-                        </form>
-                    </div>
+                                <button
+                                    type="submit"
+                                    disabled={!newSubjectTitle.trim()}
+                                    className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Add
+                                </button>
+                            </form>
 
-                    {/* All Subjects List */}
-                    <h3 className="text-xl font-medium text-white mb-6">All Subjects (Global & Personal)</h3>
-
-                    {isLoadingData ? (
-                        <div className="text-center py-10">
-                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {subjects.map((subject) => (
-                                <div key={subject.id} className="glass-card p-4 group relative">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div className={`px-2 py-1 rounded text-xs font-medium ${subject.is_public
-                                            ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                                            : 'bg-slate-700/50 text-slate-400 border border-slate-600/30'
-                                            }`}>
-                                            {subject.is_public ? 'Global' : 'Personal'}
-                                        </div>
-                                        <button
-                                            onClick={() => handleDeleteSubject(subject.id)}
-                                            className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                                            title="Delete Subject"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-
-                                    <h4 className="text-lg font-medium text-white mb-1">{subject.title}</h4>
-                                    <p className="text-xs text-slate-500">
-                                        Created {new Date(subject.created_at).toLocaleDateString()}
-                                    </p>
+                            {/* Subject List */}
+                            {isLoadingData ? (
+                                <div className="text-center py-6">
+                                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
                                 </div>
-                            ))}
+                            ) : subjects.length === 0 ? (
+                                <p className="text-slate-500 text-center py-6">No global subjects yet</p>
+                            ) : (
+                                <div className="space-y-2 max-h-80 overflow-y-auto">
+                                    {subjects.map((subject) => (
+                                        <div
+                                            key={subject.id}
+                                            className="flex items-center justify-between p-3 bg-slate-800/30 rounded-xl border border-white/5 hover:border-white/10 transition-colors"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-3 h-3 rounded-full bg-${subject.color}-500`} />
+                                                <span className="text-white font-medium">{subject.title}</span>
+                                                <span className="text-xs text-slate-500">
+                                                    {new Date(subject.created_at).toLocaleDateString()}
+                                                </span>
+                                            </div>
+                                            <button
+                                                onClick={() => handleDeleteSubject(subject.id)}
+                                                className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                title="Delete"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
-                    )}
+                    </CollapsibleSection>
                 </div>
             </main>
         </div>

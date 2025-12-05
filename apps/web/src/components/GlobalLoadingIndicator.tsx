@@ -15,6 +15,12 @@ export default function GlobalLoadingIndicator() {
     const [enabled, setEnabled] = useState(false);
 
     useEffect(() => {
+        // Load from local storage first for immediate effect
+        const cached = localStorage.getItem('ui.show_loading_indicator');
+        if (cached !== null) {
+            setEnabled(cached === 'true');
+        }
+
         // Fetch the global setting for loading indicator
         const fetchSetting = async () => {
             const { data } = await (supabase
@@ -24,7 +30,9 @@ export default function GlobalLoadingIndicator() {
                 .single();
 
             if (data) {
-                setEnabled(data.default_value === 'true');
+                const val = data.default_value === 'true';
+                setEnabled(val);
+                localStorage.setItem('ui.show_loading_indicator', String(val));
             }
         };
 
@@ -42,7 +50,9 @@ export default function GlobalLoadingIndicator() {
                     filter: "setting_key=eq.ui.show_loading_indicator"
                 },
                 (payload) => {
-                    setEnabled(payload.new.default_value === 'true');
+                    const val = payload.new.default_value === 'true';
+                    setEnabled(val);
+                    localStorage.setItem('ui.show_loading_indicator', String(val));
                 }
             )
             .subscribe();

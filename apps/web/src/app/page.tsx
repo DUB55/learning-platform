@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { ArrowRight, BookOpen, Brain, Zap, CheckCircle2, BarChart3, Calendar, Trophy } from 'lucide-react';
 
@@ -37,18 +39,17 @@ export default function Home() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-8 animate-fade-in">
                         <span className="flex h-2 w-2 rounded-full bg-blue-500"></span>
-                        <span className="text-sm text-slate-300">De toekomst van leren is hier</span>
-                    </div>
+                        <span className="text-sm text-slate-300">De fasen zijn af, de goblins naderen, de brass is aanwezig</span>                    </div>
 
                     <h1 className="text-5xl md:text-7xl font-serif font-bold text-white mb-8 tracking-tight animate-slide-up">
-                        Leer slimmer met <br />
+                        Leer beter met <br />
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
-                            AI-Powered Education
+                            Het DUB5 Leerplatform
                         </span>
                     </h1>
 
                     <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto animate-slide-up" style={{ animationDelay: '0.1s' }}>
-                        Transformeer je studieroutine met gepersonaliseerde AI-begeleiding, slimme planning en boeiende leermodi.
+                        Verbeter je cijfers door dit te gebruiken: DUB5, DUB5, DUB5 en DUB5
                     </p>
 
                     <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up" style={{ animationDelay: '0.2s' }}>

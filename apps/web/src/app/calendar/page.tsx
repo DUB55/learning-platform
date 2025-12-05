@@ -51,14 +51,25 @@ export default function CalendarPage() {
 
         // Combine date with start time
         const [startHours, startMinutes] = eventStartTime.split(':').map(Number);
-        const eventDate = new Date(selectedDate);
-        eventDate.setHours(startHours, startMinutes, 0, 0);
+        const startDate = new Date(selectedDate);
+        startDate.setHours(startHours, startMinutes, 0, 0);
+
+        // Combine end date (default to selected date if same) with end time
+        const [endHours, endMinutes] = eventEndTime.split(':').map(Number);
+        const endDate = new Date(selectedDate); // Currently assumes single-day event for simplicity, but allows time range
+        endDate.setHours(endHours, endMinutes, 0, 0);
+
+        // If end time is before start time, assume it's the next day
+        if (endDate < startDate) {
+            endDate.setDate(endDate.getDate() + 1);
+        }
 
         const { error } = await (supabase.from('calendar_events') as any).insert({
             user_id: user?.id,
             title: eventTitle,
             description: eventDescription,
-            start_date: eventDate.toISOString(),
+            start_date: startDate.toISOString(),
+            end_date: endDate.toISOString(),
             color: eventColor
         });
 
@@ -72,7 +83,7 @@ export default function CalendarPage() {
             fetchEvents();
         } else {
             console.error('Error creating event:', error);
-            alert('Failed to create event');
+            alert(`Failed to create event: ${error.message}`);
         }
     };
 

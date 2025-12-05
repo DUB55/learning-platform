@@ -163,41 +163,48 @@ export default function CreateLearningSetPage() {
 
             setIsCreating(true);
 
-            // Create learning set
-            const { data: setData, error: setError } = await supabase
-                .from('learning_sets')
+            // Create learning set - database requires both user_id and created_by
+            const { data: setData, error: setError } = await (supabase
+                .from('learning_sets') as any)
                 .insert([{
                     paragraph_id: paragraphId,
                     user_id: user.id,
+                    created_by: user.id,
                     title: title,
                     description: description || null
                 }])
                 .select()
                 .single();
 
-            if (setError) throw setError;
+            if (setError) {
+                throw new Error(setError.message || 'Failed to create learning set');
+            }
 
             // Create items
             const items = pairs
                 .filter(p => p.term.trim() && p.definition.trim())
                 .map((pair, index) => ({
                     learning_set_id: setData.id,
-                    term: pair.term,
-                    definition: pair.definition,
+                    front_text: pair.term.trim(),
+                    back_text: pair.definition.trim(),
                     order_index: index
                 }));
 
-            // Use the correct table name 'leerset_items' as per user feedback
-            const { error: itemsError } = await supabase
-                .from('leerset_items')
-                .insert(items);
+            if (items.length > 0) {
+                const { error: itemsError } = await (supabase
+                    .from('flashcards') as any)
+                    .insert(items);
 
-            if (itemsError) throw itemsError;
+                if (itemsError) {
+                    throw new Error(itemsError.message || 'Failed to add terms');
+                }
+            }
 
+            // Success - navigate without showing any error
             router.push(`/subjects/${params.id}/units/${params.unitId}/paragraphs/${params.paragraphId}/learning-sets/${setData.id}`);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating learning set:', error);
-            alert('Failed to create learning set');
+            alert(`Failed to create learning set: ${error?.message || 'Unknown error'}`);
         } finally {
             setIsCreating(false);
         }

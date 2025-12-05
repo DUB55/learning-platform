@@ -271,7 +271,7 @@ export default function UnitsPage() {
                                                         </span>
                                                     )}
                                                 </div>
-                                                <p className="text-slate-400 text-sm">{unit.paragraph_count || 0} paragraphs</p>
+                                                {/* Paragraph count removed */}
                                             </div>
                                         )}
                                     </div>
@@ -279,8 +279,7 @@ export default function UnitsPage() {
 
                                 <div className="flex justify-between items-center text-xs text-slate-400 pt-4 border-t border-white/5">
                                     <div className="flex items-center gap-1">
-                                        <FileText className="w-3 h-3" />
-                                        <span>Unit {unit.order_index + 1}</span>
+                                        {/* Unit label removed as requested */}
                                     </div>
                                     <div className="flex items-center gap-1">
                                         <Clock className="w-3 h-3" />

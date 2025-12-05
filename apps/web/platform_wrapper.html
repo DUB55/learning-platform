@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>DUB5 - Learning Platform</title>
+    <link rel="icon" href="/favicon.ico">
+    <!-- Import canvas-confetti library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Import Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Import Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Overlay Styles */
+        #celebration-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            background: linear-gradient(135deg, #0f172a 0%, #581c87 50%, #0f172a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: opacity 1s ease-out;
+        }
+
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Animations */
+        @keyframes float-up {
+            0% {
+                transform: translateY(110vh) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-10vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes bounce-slow {
+
+            0%,
+            100% {
+                transform: translateY(0) scale(1);
+            }
+
+            50% {
+                transform: translateY(-30px) scale(1.1);
+            }
+        }
+
+        @keyframes slide-up {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fade-in-up {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes gradient {
+
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        .balloon {
+            position: absolute;
+            font-size: 3rem;
+            animation: float-up linear infinite;
+            pointer-events: none;
+        }
+
+        .animate-bounce-slow {
+            animation: bounce-slow 2s ease-in-out infinite;
+        }
+
+        .animate-slide-up {
+            animation: slide-up 0.8s ease-out forwards;
+        }
+
+        .animate-fade-in-up {
+            animation: fade-in-up 0.6s ease-out forwards;
+            opacity: 0;
+        }
+
+        .animate-gradient {
+            background-size: 200% 200%;
+            animation: gradient 3s ease infinite;
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #facc15, #ec4899, #9333ea);
+        }
+
+        .glass-card {
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 1rem;
+            padding: 1.5rem;
+        }
+
+        .delay-200 {
+            animation-delay: 0.2s;
+        }
+
+        .delay-400 {
+            animation-delay: 0.4s;
+        }
+
+        .delay-600 {
+            animation-delay: 0.6s;
+        }
+
+        .delay-800 {
+            animation-delay: 0.8s;
+        }
+
+        #countdown-text {
+            font-size: 5rem;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        @media (min-width: 768px) {
+            #countdown-text {
+                font-size: 8rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Celebration Overlay -->
+    <div id="celebration-overlay">
+        <!-- Animated background gradient -->
+        <div class="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 animate-pulse">
+        </div>
+
+        <!-- Content Container -->
+        <div id="celebration-content" class="relative z-10 text-center max-w-4xl w-full px-4">
+            <!-- Countdown Phase -->
+            <div id="countdown-phase">
+                <div id="countdown-text" class="animate-bounce-slow">Are you ready?</div>
+            </div>
+
+            <!-- Celebration Phase (Hidden initially) -->
+            <div id="celebration-phase" class="hidden space-y-8">
+                <div class="flex justify-center gap-4 text-6xl animate-bounce">
+                    <i data-lucide="party-popper" class="w-16 h-16 text-yellow-400"></i>
+                    <i data-lucide="sparkles" class="w-16 h-16 text-pink-400"></i>
+                    <i data-lucide="rocket" class="w-16 h-16 text-blue-400"></i>
+                </div>
+
+                <div class="space-y-4">
+                    <h1 class="text-5xl md:text-7xl font-black animate-gradient">
+                        IT'S FINALLY HERE! 🎉
+                    </h1>
+                    <p class="text-2xl md:text-4xl font-bold text-white">
+                        The Learning Platform is COMPLETE!
+                    </p>
+                </div>
+
+                <div class="max-w-2xl mx-auto space-y-4">
+                    <div class="glass-card animate-fade-in-up delay-200">
+                        <p class="text-xl text-slate-200">
+                            🚀 <strong>All features built</strong> - From AI assistance to announcements
+                        </p>
+                    </div>
+                    <div class="glass-card animate-fade-in-up delay-400">
+                        <p class="text-xl text-slate-200">
+                            ✨ <strong>TypeScript errors defeated</strong> - Zero compilation errors!
+                        </p>
+                    </div>
+                    <div class="glass-card animate-fade-in-up delay-600">
+                        <p class="text-xl text-slate-200">
+                            🎯 <strong>Deployed on Vercel</strong> - Live and ready to go!
+                        </p>
+                    </div>
+                </div>
+
+                <div class="text-lg text-slate-300 animate-fade-in-up delay-800">
+                    <p>Welcome to your amazing learning platform! 🎓</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <iframe src="https://learning-platform-tau-steel.vercel.app/"></iframe>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const hasVisited = localStorage.getItem('wrapper_visited');
+            const overlay = document.getElementById('celebration-overlay');
+
+            if (hasVisited) {
+                // If visited, hide overlay immediately
+                overlay.style.display = 'none';
+                return;
+            }
+
+            // Start the sequence
+            startCelebrationSequence();
+        });
+
+        function startCelebrationSequence() {
+            const countdownText = document.getElementById('countdown-text');
+            const countdownPhase = document.getElementById('countdown-phase');
+            const celebrationPhase = document.getElementById('celebration-phase');
+
+            // Sequence timing
+            setTimeout(() => countdownText.textContent = "3", 1500);
+            setTimeout(() => countdownText.textContent = "2", 2500);
+            setTimeout(() => countdownText.textContent = "1", 3500);
+
+            // EXPLOSION
+            setTimeout(() => {
+                countdownPhase.style.display = 'none';
+                celebrationPhase.classList.remove('hidden');
+                celebrationPhase.classList.add('animate-slide-up');
+
+                launchConfetti();
+                createBalloons();
+
+                // Mark as visited
+                localStorage.setItem('wrapper_visited', 'true');
+
+            }, 4500);
+
+            // End celebration
+            setTimeout(() => {
+                const overlay = document.getElementById('celebration-overlay');
+                overlay.style.opacity = '0';
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 1000);
+            }, 14000); // 9.5s after celebration starts (4.5 + 9.5 = 14)
+        }
+
+        function launchConfetti() {
+            const myConfetti = confetti.create(null, {
+                resize: true,
+                useWorker: true
+            });
+
+            // Fire a burst of confetti
+            const duration = 3000;
+            const end = Date.now() + duration;
+
+            (function frame() {
+                myConfetti({
+                    particleCount: 7,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: ['#60a5fa', '#c084fc', '#f472b6']
+                });
+                myConfetti({
+                    particleCount: 7,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: ['#60a5fa', '#c084fc', '#f472b6']
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }());
+
+            // Big burst in center
+            setTimeout(() => {
+                myConfetti({
+                    particleCount: 150,
+                    spread: 100,
+                    origin: { y: 0.6 },
+                    colors: ['#60a5fa', '#c084fc', '#f472b6', '#fbbf24']
+                });
+            }, 200);
+        }
+
+        function createBalloons() {
+            const overlay = document.getElementById('celebration-overlay');
+            const emojis = ['🎈', '🎉', '🎊'];
+
+            for (let i = 0; i < 15; i++) {
+                const balloon = document.createElement('div');
+                balloon.className = 'balloon';
+                balloon.textContent = emojis[i % 3];
+                balloon.style.left = `${Math.random() * 100}%`;
+                balloon.style.animationDelay = `${Math.random() * 2}s`;
+                balloon.style.animationDuration = `${3 + Math.random() * 3}s`;
+                overlay.appendChild(balloon);
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -4,6 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Home, Book, Calendar, Settings, LogOut, Moon, Sun } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
+import RoutePrefetcher from './RoutePrefetcher';
+
 export function Layout({ children }: { children: ReactNode }) {
     const { user, profile, signOut } = useAuth();
     const [darkMode, setDarkMode] = useState(false);
@@ -20,6 +22,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
+            <RoutePrefetcher />
             {/* Top Navigation */}
             <nav className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

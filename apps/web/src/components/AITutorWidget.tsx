@@ -8,11 +8,12 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export default function AITutorWidget() {
     const [isOpen, setIsOpen] = useState(false);
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const pathname = usePathname();
 
     // Hide on document pages to prevent overlay issues
-    if (!user || pathname?.includes('/documents/')) return null;
+    // Also hide for admins (replaced by AdminControls)
+    if (!user || pathname?.includes('/documents/') || profile?.is_admin) return null;
 
     return (
         <div className="fixed bottom-6 right-6 z-50">
