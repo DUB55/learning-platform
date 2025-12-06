@@ -31,7 +31,7 @@ interface LearningSet {
     title: string;
     description: string | null;
     folder_id: string | null;
-    is_global: boolean;
+    is_public: boolean;
     created_at: string;
 }
 
@@ -168,10 +168,12 @@ export default function EnhancedDocumentsPage() {
 
     const handleToggleGlobal = async (resource: any, type: string) => {
         const table = type === 'document' ? 'documents' : type === 'learning_set' ? 'learning_sets' : 'folders';
+        const field = type === 'learning_set' ? 'is_public' : 'is_global';
+        const currentValue = type === 'learning_set' ? resource.is_public : resource.is_global;
 
         await supabase
             .from(table)
-            .update({ is_global: !resource.is_global })
+            .update({ [field]: !currentValue })
             .eq('id', resource.id);
 
         fetchData();
@@ -219,7 +221,7 @@ export default function EnhancedDocumentsPage() {
         if (profile?.is_admin) {
             items.push({
                 icon: <Globe className="w-4 h-4" />,
-                label: resource.is_global ? 'Make Private' : 'Make Global',
+                label: (type === 'learning_set' ? resource.is_public : resource.is_global) ? 'Make Private' : 'Make Global',
                 onClick: () => handleToggleGlobal(resource, type)
             });
         }
@@ -373,7 +375,7 @@ export default function EnhancedDocumentsPage() {
                                     >
                                         <div className="flex items-center justify-between mb-3">
                                             <BookOpen className="w-8 h-8 text-purple-400" />
-                                            {profile?.is_admin && set.is_global && (
+                                            {profile?.is_admin && set.is_public && (
                                                 <span className="px-2 py-1 bg-purple-500/20 text-purple-300 text-xs rounded border border-purple-500/30">
                                                     Global
                                                 </span>
@@ -496,9 +498,10 @@ export default function EnhancedDocumentsPage() {
             {/* Resource Context Menu */}
             {resourceMenu && (
                 <ResourceContextMenu
-                    x={resourceMenu.x}
-                    y={resourceMenu.y}
-                    isGlobal={resourceMenu.resource.is_global || false}
+                    position={{ x: resourceMenu.x, y: resourceMenu.y }}
+                    resourceType={resourceMenu.type as any}
+                    isAdmin={profile?.is_admin || false}
+                    isGlobal={(resourceMenu.type === 'learning_set' ? resourceMenu.resource.is_public : resourceMenu.resource.is_global) || false}
                     onClose={() => setResourceMenu(null)}
                     items={getResourceMenuItems(resourceMenu.resource, resourceMenu.type)}
                 />

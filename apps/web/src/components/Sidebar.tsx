@@ -204,12 +204,12 @@ function SidebarItem({ icon, label, href, active, compact }: { icon: React.React
         <Link
             href={href}
             onMouseEnter={() => router.prefetch(href)}
-            className={`flex items-center gap-3 transition-all duration-200 group ${active
+            className={`flex items-center transition-all duration-200 group ${active
                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
                 : 'text-slate-400 hover:text-white hover:bg-white/5'
                 } ${compact
                     ? 'w-12 h-12 justify-center mx-auto rounded-xl p-0'
-                    : 'w-full pl-[30px] py-3 rounded-xl'
+                    : 'w-full pl-[30px] py-3 rounded-xl gap-3'
                 }`}
             title={compact ? label : undefined}
         >
