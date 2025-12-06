@@ -114,6 +114,11 @@ export default function Sidebar() {
 
                 {/* Footer */}
                 <div className="p-4 border-t border-white/5 space-y-4 flex-shrink-0">
+                    {/* Version Indicator for Debugging */}
+                    <div className="text-xs text-slate-600 text-center font-mono">
+                        v2.1 (Dec 6) {isCompact ? '' : '- Production'}
+                    </div>
+
                     {/* Toggle Button */}
                     <button
                         onClick={toggleSidebar}
