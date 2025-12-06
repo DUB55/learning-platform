@@ -24,10 +24,16 @@ const IconMap: Record<string, any> = {
     'megaphone': Megaphone
 };
 
+import { useSearchParams } from 'next/navigation';
+
 export default function GlobalAnnouncementOverlay() {
     const { profile } = useAuth();
+    const searchParams = useSearchParams();
     const [blockingAnnouncement, setBlockingAnnouncement] = useState<Announcement | null>(null);
     const [modalAnnouncement, setModalAnnouncement] = useState<Announcement | null>(null);
+
+    // EMERGENCY SAFE MODE: Disable all overlays if ?safe_mode=true is present
+    if (searchParams.get('safe_mode')) return null;
 
     useEffect(() => {
         // Initial fetch
