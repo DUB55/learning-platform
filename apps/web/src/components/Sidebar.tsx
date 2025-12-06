@@ -116,7 +116,7 @@ export default function Sidebar() {
                 <div className="p-4 border-t border-white/5 space-y-4 flex-shrink-0">
                     {/* Version Indicator for Debugging */}
                     <div className="text-xs text-slate-600 text-center font-mono">
-                        v2.1 (Dec 6) {isCompact ? '' : '- Production'}
+                        v2.2 (Dec 6 - Forced Update) {isCompact ? '' : '- Production'}
                     </div>
 
                     {/* Toggle Button */}
@@ -128,7 +128,13 @@ export default function Sidebar() {
                     </button>
 
                     {userXP && (
-                        <div onClick={() => setShowProfileModal(true)} className="block cursor-pointer">
+                        <div
+                            onClick={() => {
+                                console.log('Profile clicked', { userXP });
+                                setShowProfileModal(true);
+                            }}
+                            className="block cursor-pointer"
+                        >
                             <div className={`bg-gradient-to-br from-purple-600/10 to-pink-600/10 border border-purple-500/20 rounded-xl p-3 hover:border-purple-500/40 transition-all group relative overflow-hidden`}>
                                 <div className={`flex items-center ${isCompact ? 'justify-center' : 'gap-3'} mb-2`}>
                                     {profile?.avatar_url ? (
