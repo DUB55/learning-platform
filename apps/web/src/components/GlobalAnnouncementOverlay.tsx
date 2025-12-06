@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import { X, AlertTriangle, AlertCircle, Lock, ShieldAlert, Info, Megaphone } from 'lucide-react';
 
 interface Announcement {
@@ -24,6 +25,7 @@ const IconMap: Record<string, any> = {
 };
 
 export default function GlobalAnnouncementOverlay() {
+    const { profile } = useAuth();
     const [blockingAnnouncement, setBlockingAnnouncement] = useState<Announcement | null>(null);
     const [modalAnnouncement, setModalAnnouncement] = useState<Announcement | null>(null);
 
@@ -111,6 +113,18 @@ export default function GlobalAnnouncementOverlay() {
                         <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
                         {blockingAnnouncement.badge_text || 'System Locked by Administrator'}
                     </div>
+
+                    {profile?.is_admin && (
+                        <div className="pt-8">
+                            <button
+                                onClick={() => setBlockingAnnouncement(null)}
+                                className="text-xs text-slate-500 hover:text-red-400 transition-colors flex items-center gap-2 mx-auto"
+                            >
+                                <Lock className="w-3 h-3" />
+                                Admin Bypass: Dismiss Overlay
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         );
