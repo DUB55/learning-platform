@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import Sidebar from '@/components/Sidebar';
+
 import { ArrowLeft, Plus, Edit2, Trash2, Save, X, Image, GripVertical } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -157,10 +157,10 @@ export default function AdminProfilePicturesPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
-            <Sidebar />
+        <div className="h-full overflow-y-auto p-8 relative">
+            
 
-            <main className="flex-1 overflow-y-auto relative p-8">
+            <div className="flex-1 relative">
                 <div className="max-w-6xl mx-auto">
                     <header className="mb-8">
                         <button
@@ -249,7 +249,7 @@ export default function AdminProfilePicturesPage() {
                         </div>
                     )}
                 </div>
-            </main>
+            </div>
 
             {/* Add/Edit Modal */}
             {(showAddModal || editingPicture) && (

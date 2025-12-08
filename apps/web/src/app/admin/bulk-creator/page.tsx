@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import Sidebar from '@/components/Sidebar';
+
 import { ArrowLeft, Play, FileText, AlertCircle, CheckCircle2, HelpCircle, Copy, BookOpen } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -579,10 +579,10 @@ bereik = alle mogelijke output waarden
 Dit is de samenvatting tekst...`;
 
     return (
-        <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
-            <Sidebar />
+        <div className="h-full overflow-y-auto p-8 relative">
 
-            <main className="flex-1 overflow-y-auto relative p-8">
+
+            <div className="flex-1 relative">
                 <div className="max-w-6xl mx-auto">
                     <header className="mb-8">
                         <button
@@ -776,7 +776,7 @@ term3 = definitie3`}</code>
                         </div>
                     </div>
                 </div>
-            </main>
+            </div>
         </div>
     );
 }

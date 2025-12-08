@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Plus, MoreVertical, FileText, Files, Globe, Lock, Edit2, Trash2 } from 'lucide-react';
-import Sidebar from '@/components/Sidebar';
+
 import ResourceContextMenu from '@/components/ResourceContextMenu';
 import Toast from '@/components/Toast';
 import { useToast } from '@/hooks/useToast';
@@ -222,10 +222,10 @@ export default function ParagraphsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
-            <Sidebar />
+        <div className="h-full overflow-y-auto p-8 relative">
 
-            <main className="flex-1 overflow-y-auto relative p-8">
+
+            <div className="flex-1 relative">
                 <div className="max-w-7xl mx-auto">
                     {/* Header */}
                     <div className="mb-8">
@@ -358,7 +358,7 @@ export default function ParagraphsPage() {
                         />
                     )}
                 </div>
-            </main>
+            </div>
 
             {/* Toast Notifications */}
             {toasts.map((toast) => (

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import Sidebar from '@/components/Sidebar';
+
 import { AlertCircle, AlertTriangle, Clock, ExternalLink } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -146,67 +146,66 @@ export default function AnnouncementsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
-            <Sidebar />
+        <div className="h-full overflow-y-auto p-8 relative">
 
-            <main className="flex-1 overflow-y-auto relative p-8">
-                <div className="max-w-4xl mx-auto">
-                    <header className="mb-10">
-                        <h1 className="text-3xl font-serif font-bold text-white mb-2">Announcements</h1>
-                        <p className="text-slate-400">Stay updated with the latest news and updates</p>
-                    </header>
 
-                    {isLoadingData ? (
-                        <div className="text-center py-10">
-                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-                        </div>
-                    ) : announcements.length === 0 ? (
-                        <div className="glass-card p-12 text-center">
-                            <p className="text-slate-400">No announcements at this time</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {announcements.map((announcement) => (
-                                <div
-                                    key={announcement.id}
-                                    className={`glass-card p-6 transition-all duration-300 ${getPriorityStyles(announcement.priority)} ${!announcement.is_read ? 'bg-blue-500/5' : ''
-                                        } ${announcement.linked_page_id ? 'cursor-pointer hover:bg-white/5' : ''}`}
-                                    onClick={() => handleAnnouncementClick(announcement)}
-                                >
-                                    <div className="flex items-start gap-4">
-                                        {!announcement.is_read && (
-                                            <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                                        )}
+            <div className="max-w-4xl mx-auto">
+                <header className="mb-10">
+                    <h1 className="text-3xl font-serif font-bold text-white mb-2">Announcements</h1>
+                    <p className="text-slate-400">Stay updated with the latest news and updates</p>
+                </header>
 
-                                        {getPriorityIcon(announcement.priority)}
+                {isLoadingData ? (
+                    <div className="text-center py-10">
+                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+                    </div>
+                ) : announcements.length === 0 ? (
+                    <div className="glass-card p-12 text-center">
+                        <p className="text-slate-400">No announcements at this time</p>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {announcements.map((announcement) => (
+                            <div
+                                key={announcement.id}
+                                className={`glass-card p-6 transition-all duration-300 ${getPriorityStyles(announcement.priority)} ${!announcement.is_read ? 'bg-blue-500/5' : ''
+                                    } ${announcement.linked_page_id ? 'cursor-pointer hover:bg-white/5' : ''}`}
+                                onClick={() => handleAnnouncementClick(announcement)}
+                            >
+                                <div className="flex items-start gap-4">
+                                    {!announcement.is_read && (
+                                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                    )}
 
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="text-xl font-bold text-white mb-2">
-                                                {announcement.title}
-                                            </h3>
-                                            <p className="text-slate-300 whitespace-pre-wrap mb-4">
-                                                {announcement.content}
-                                            </p>
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-1 text-xs text-slate-500">
-                                                    <Clock className="w-3 h-3" />
-                                                    <span>{announcement.created_at ? new Date(announcement.created_at).toLocaleDateString() : 'N/A'}</span>
-                                                </div>
-                                                {announcement.linked_page_id && announcement.linked_page && (
-                                                    <div className="flex items-center gap-1 text-blue-400 text-sm">
-                                                        <span>Read more</span>
-                                                        <ExternalLink className="w-4 h-4" />
-                                                    </div>
-                                                )}
+                                    {getPriorityIcon(announcement.priority)}
+
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="text-xl font-bold text-white mb-2">
+                                            {announcement.title}
+                                        </h3>
+                                        <p className="text-slate-300 whitespace-pre-wrap mb-4">
+                                            {announcement.content}
+                                        </p>
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-1 text-xs text-slate-500">
+                                                <Clock className="w-3 h-3" />
+                                                <span>{announcement.created_at ? new Date(announcement.created_at).toLocaleDateString() : 'N/A'}</span>
                                             </div>
+                                            {announcement.linked_page_id && announcement.linked_page && (
+                                                <div className="flex items-center gap-1 text-blue-400 text-sm">
+                                                    <span>Read more</span>
+                                                    <ExternalLink className="w-4 h-4" />
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </main>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
         </div>
     );
 }

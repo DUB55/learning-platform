@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import Sidebar from '@/components/Sidebar';
+
 import AIChatSidebar from '@/components/AIChatSidebar';
 import { Send, Bot, User, Sparkles, StopCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -168,10 +168,7 @@ export default function AIChatPage() {
     };
 
     return (
-        <div className="flex h-screen bg-[#0f172a] overflow-hidden">
-            {/* Main Navigation Sidebar */}
-            <Sidebar />
-
+        <div className="flex h-screen overflow-hidden">
             {/* Chat History Sidebar */}
             <AIChatSidebar
                 currentChatId={currentChatId || undefined}

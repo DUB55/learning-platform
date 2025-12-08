@@ -8,6 +8,8 @@ export interface UserXP {
     current_streak: number;
     longest_streak: number;
     last_activity_date: string | null;
+    study_minutes: number;
+    tasks_completed: number;
 }
 
 export interface Achievement {
@@ -311,6 +313,36 @@ class XPService {
         }
 
         return data;
+    }
+
+    /**
+     * Check study time achievements
+     */
+    async checkStudyTimeAchievements(userId: string): Promise<void> {
+        const xp = await this.getUserXP(userId);
+        if (!xp) return;
+
+        const minutes = xp.study_minutes || 0;
+        // Try to unlock various milestones (will fail silently if achievement doesn't exist)
+        if (minutes >= 60) await this.unlockAchievement(userId, 'study_time_1h');
+        if (minutes >= 300) await this.unlockAchievement(userId, 'study_time_5h'); // 5 hours
+        if (minutes >= 600) await this.unlockAchievement(userId, 'study_time_10h'); // 10 hours
+        if (minutes >= 1440) await this.unlockAchievement(userId, 'study_time_24h'); // 24 hours
+        if (minutes >= 6000) await this.unlockAchievement(userId, 'study_time_100h'); // 100 hours
+    }
+
+    /**
+     * Check task completion achievements
+     */
+    async checkTaskAchievements(userId: string): Promise<void> {
+        const xp = await this.getUserXP(userId);
+        if (!xp) return;
+
+        const tasks = xp.tasks_completed || 0;
+        if (tasks >= 1) await this.unlockAchievement(userId, 'task_first');
+        if (tasks >= 10) await this.unlockAchievement(userId, 'task_10');
+        if (tasks >= 50) await this.unlockAchievement(userId, 'task_50');
+        if (tasks >= 100) await this.unlockAchievement(userId, 'task_100');
     }
 
     /**

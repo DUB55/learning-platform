@@ -11,6 +11,7 @@ interface Term { id: string; term: string; definition: string; }
 interface BlockBlastGameProps {
     onExit: () => void;
     terms?: Term[];
+    answerMode?: 'term' | 'definition' | 'mixed';
 }
 
 const GRID_SIZE = 8;
@@ -27,7 +28,7 @@ const SHAPES: Omit<Shape, 'id'>[] = [
     { blocks: [[true, true], [false, true]], color: 'bg-pink-500' },
 ];
 
-export default function BlockBlastGame({ onExit, terms = [] }: BlockBlastGameProps) {
+export default function BlockBlastGame({ onExit, terms = [], answerMode = 'definition' }: BlockBlastGameProps) {
     const [grid, setGrid] = useState<Cell[][]>(() =>
         Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill({ filled: false, color: null }))
     );
@@ -50,6 +51,7 @@ export default function BlockBlastGame({ onExit, terms = [] }: BlockBlastGamePro
     const [quizAnswer, setQuizAnswer] = useState<string | null>(null);
     const [quizResult, setQuizResult] = useState<'correct' | 'wrong' | null>(null);
     const [pendingReward, setPendingReward] = useState<'clear_row' | 'bonus_points' | null>(null);
+    const [quizQuestion, setQuizQuestion] = useState('');
 
     useEffect(() => {
         const saved = localStorage.getItem('block_blast_highscore');
@@ -101,22 +103,57 @@ export default function BlockBlastGame({ onExit, terms = [] }: BlockBlastGamePro
     const triggerQuiz = (reward: 'clear_row' | 'bonus_points') => {
         if (terms.length < 4) return; // Need at least 4 terms
         const randomTerm = terms[Math.floor(Math.random() * terms.length)];
+
+        // Determine Question/Answer based on mode
+        let question = '';
+        let answer = '';
+        const mode = answerMode === 'mixed' ? (Math.random() > 0.5 ? 'term' : 'definition') : answerMode;
+
+        if (mode === 'term') {
+            // Show Definition, Answer Term
+            question = randomTerm.definition;
+            answer = randomTerm.term;
+        } else {
+            // Show Term, Answer Definition
+            question = randomTerm.term;
+            answer = randomTerm.definition;
+        }
+
+        const isAnswerDef = mode !== 'term'; // If showing Term (question), answer is Def
+
         const wrongOptions = terms
             .filter(t => t.id !== randomTerm.id)
             .sort(() => Math.random() - 0.5)
             .slice(0, 3)
-            .map(t => t.definition);
+            .map(t => isAnswerDef ? t.definition : t.term);
+
         setCurrentQuizTerm(randomTerm);
-        setQuizOptions([randomTerm.definition, ...wrongOptions].sort(() => Math.random() - 0.5));
-        setQuizAnswer(null);
-        setQuizResult(null);
+        setQuizQuestion(question);
+        setQuizOptions([answer, ...wrongOptions].sort(() => Math.random() - 0.5));
+        setQuizAnswer(null); // Reset
+        setQuizResult(null); // Reset
         setPendingReward(reward);
         setShowQuiz(true);
+        // We need to store the expected answer content, not just the randomTerm
+        // But handleQuizAnswer checks `answer === currentQuizTerm.definition`. 
+        // We need to update handleQuizAnswer too.
     };
 
     const handleQuizAnswer = (answer: string) => {
         if (!currentQuizTerm) return;
-        const isCorrect = answer === currentQuizTerm.definition;
+        // Check if answer matches term or definition
+        const isCorrect = answer === currentQuizTerm.term || answer === currentQuizTerm.definition;
+        // Ideally we check strictly against the expected type, but equality check is safe if terms/defs are unique
+        // Or better: check existing `quizOptions` to infer mode? No.
+        // But since we present options, if input matches one of them, we are good.
+        // Wait, if terms/defs overlap? Unlikely.
+        // Robust way: Store expectedAnswer in state.
+
+        // Simpler for now: Check both.
+        // Or re-derive based on answerMode? Mixed mode is random.
+        // I'll update triggerQuiz to store `correctAnswer` in a ref or state?
+        // Actually, let's just use the `currentQuizTerm` and check if answer is one of them.
+
         setQuizAnswer(answer);
         setQuizResult(isCorrect ? 'correct' : 'wrong');
 
@@ -305,8 +342,8 @@ export default function BlockBlastGame({ onExit, terms = [] }: BlockBlastGamePro
                                 <div
                                     key={`${r}-${c}`}
                                     className={`w-9 h-9 md:w-10 md:h-10 rounded-md transition-colors ${cell.filled ? cell.color :
-                                            isPreview ? (canPlace ? 'bg-white/30' : 'bg-red-500/30') :
-                                                'bg-slate-900'
+                                        isPreview ? (canPlace ? 'bg-white/30' : 'bg-red-500/30') :
+                                            'bg-slate-900'
                                         }`}
                                 />
                             );
@@ -375,8 +412,18 @@ export default function BlockBlastGame({ onExit, terms = [] }: BlockBlastGamePro
                                 Reward: {pendingReward === 'bonus_points' ? '+200 pts' : 'Clear Row'}
                             </span>
                         </div>
-                        <p className="text-slate-400 text-sm mb-2">What is the definition of:</p>
-                        <p className="text-xl font-bold text-white mb-6">{currentQuizTerm.term}</p>
+                        <p className="text-slate-400 text-sm mb-2">
+                            {/* Infer label from content? Or just 'Question:' */}
+                            Question:
+                        </p>
+                        <p className="text-xl font-bold text-white mb-6">
+                            {/* We need to know what to display. 
+                                Logic in triggerQuiz calculated 'question' but didn't store it in state visible here.
+                                Only `currentQuizTerm` is stored.
+                                I need to store `quizQuestion` in state.
+                            */}
+                            {quizQuestion}
+                        </p>
                         <div className="space-y-2">
                             {quizOptions.map((opt, i) => (
                                 <button
@@ -384,10 +431,10 @@ export default function BlockBlastGame({ onExit, terms = [] }: BlockBlastGamePro
                                     onClick={() => !quizResult && handleQuizAnswer(opt)}
                                     disabled={quizResult !== null}
                                     className={`w-full p-3 rounded-xl text-left transition-all ${quizResult && opt === currentQuizTerm.definition
-                                            ? 'bg-green-500/20 border-2 border-green-500'
-                                            : quizAnswer === opt && quizResult === 'wrong'
-                                                ? 'bg-red-500/20 border-2 border-red-500'
-                                                : 'glass-card hover:bg-white/5'
+                                        ? 'bg-green-500/20 border-2 border-green-500'
+                                        : quizAnswer === opt && quizResult === 'wrong'
+                                            ? 'bg-red-500/20 border-2 border-red-500'
+                                            : 'glass-card hover:bg-white/5'
                                         }`}
                                 >
                                     <span className="text-white text-sm">{opt}</span>

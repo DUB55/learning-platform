@@ -1,5 +1,4 @@
 'use client';
-'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -9,11 +8,19 @@ interface UISettings {
     iconStyle: 'colored' | 'monochrome';
     sidebarCompact: boolean;
     animationsEnabled: boolean;
+    theme: 'dark' | 'light' | 'system';
+    cardStyle: 'glass' | 'solid' | 'minimal';
+    fontSize: 'small' | 'medium' | 'large';
+    reduceMotion: boolean;
+    highContrast: boolean;
+    notifications: boolean;
+    soundEnabled: boolean;
 }
 
 interface UISettingsContextType {
     settings: UISettings;
     updateSettings: (newSettings: Partial<UISettings>) => Promise<void>;
+    resetSettings: () => Promise<void>;
     loading: boolean;
 }
 
@@ -21,13 +28,22 @@ const defaultSettings: UISettings = {
     iconStyle: 'colored',
     sidebarCompact: false,
     animationsEnabled: true,
+    theme: 'dark',
+    cardStyle: 'glass',
+    fontSize: 'medium',
+    reduceMotion: false,
+    highContrast: false,
+    notifications: true,
+    soundEnabled: true,
 };
 
 const UISettingsContext = createContext<UISettingsContextType>({
     settings: defaultSettings,
     updateSettings: async () => { },
+    resetSettings: async () => { },
     loading: false,
 });
+
 
 export function UISettingsProvider({ children }: { children: ReactNode }) {
     const { user } = useAuth();
@@ -98,12 +114,32 @@ export function UISettingsProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    const resetSettings = async () => {
+        setSettings(defaultSettings);
+        if (user) {
+            try {
+                await supabase
+                    .from('user_settings')
+                    .upsert({
+                        user_id: user.id,
+                        ui_preferences: defaultSettings,
+                        updated_at: new Date().toISOString(),
+                    } as any);
+            } catch (error) {
+                console.error('Failed to reset UI settings:', error);
+            }
+        } else {
+            localStorage.setItem('ui_settings', JSON.stringify(defaultSettings));
+        }
+    };
+
     return (
-        <UISettingsContext.Provider value={{ settings, updateSettings, loading }}>
+        <UISettingsContext.Provider value={{ settings, updateSettings, resetSettings, loading }}>
             {children}
         </UISettingsContext.Provider>
     );
 }
+
 
 export function useUISettings() {
     return useContext(UISettingsContext);

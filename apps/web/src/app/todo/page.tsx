@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import Sidebar from '@/components/Sidebar';
+
 import { Plus, Check, Circle, Trash2, Calendar as CalendarIcon, Tag, Edit2, FolderOpen } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useTasks } from '@/hooks/useTasks';
 import ContextMenu from '@/components/ContextMenu';
+import { xpService } from '@/lib/xpService';
 
 export default function TodoPage() {
     const { user } = useAuth();
@@ -72,6 +73,12 @@ export default function TodoPage() {
                 .from('tasks')
                 .update({ is_completed: !currentStatus })
                 .eq('id', taskId);
+
+            if (!currentStatus) {
+                // Task is being completed
+                await supabase.rpc('increment_tasks_completed', { user_uuid: user.id });
+                await xpService.checkTaskAchievements(user.id);
+            }
 
             if (error) throw error;
             await mutate();
@@ -242,163 +249,162 @@ export default function TodoPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
-            <Sidebar />
+        <div className="p-8 pb-32 relative">
+            <div className="max-w-4xl mx-auto">
+                <header className="mb-10">
+                    <h1 className="text-3xl font-serif font-bold text-white mb-2">To-do List</h1>
+                    <p className="text-slate-400">Stay organized and track your progress</p>
+                </header>
 
-            <main className="flex-1 overflow-y-auto relative p-8">
-                <div className="max-w-4xl mx-auto">
-                    <header className="mb-10">
-                        <h1 className="text-3xl font-serif font-bold text-white mb-2">To-do List</h1>
-                        <p className="text-slate-400">Stay organized and track your progress</p>
-                    </header>
-
-                    {/* Add Task Input */}
-                    <div className="glass-card p-4 mb-8">
-                        <form onSubmit={handleAddTask} className="flex gap-4">
-                            <div className="flex-1 relative">
-                                <input
-                                    type="text"
-                                    value={newTaskTitle}
-                                    onChange={(e) => setNewTaskTitle(e.target.value)}
-                                    placeholder="Add a new task..."
-                                    className="w-full bg-slate-800/50 border border-white/10 rounded-xl px-4 py-3 pl-12 text-white focus:outline-none focus:border-blue-500 transition-colors"
-                                />
-                                <Plus className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={!newTaskTitle.trim()}
-                                className="glass-button px-6 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                Add
-                            </button>
-                        </form>
-                    </div>
-
-                    {/* Filters */}
-                    <div className="flex gap-2 mb-6">
-                        {(['all', 'active', 'completed'] as const).map((f) => (
-                            <button
-                                key={f}
-                                onClick={() => setFilter(f)}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${filter === f
-                                    ? 'bg-blue-600 text-white'
-                                    : 'text-slate-400 hover:text-white hover:bg-white/5'
-                                    }`}
-                            >
-                                {f}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Task List */}
-                    <div className="space-y-3">
-                        {loading ? (
-                            <div className="text-center py-10">
-                                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-                            </div>
-                        ) : filteredTasks.length === 0 ? (
-                            <div className="text-center py-16 text-slate-500">
-                                <p>No tasks found</p>
-                            </div>
-                        ) : (
-                            filteredTasks.map((task: any) => (
-                                <div
-                                    key={task.id}
-                                    draggable={!task.is_completed}
-                                    onDragStart={(e) => handleDragStart(e, task.id)}
-                                    onDragOver={(e) => handleDragOver(e, task.id)}
-                                    onDrop={handleDrop}
-                                    className={`glass-card p-4 flex items-center gap-4 group transition-all cursor-move ${task.is_completed ? 'opacity-50' : ''
-                                        } ${draggedTaskId === task.id ? 'opacity-0' : ''}`}
-                                    onContextMenu={(e) => handleContextMenu(e, task.id)}
-                                >
-                                    <button
-                                        onClick={() => toggleTaskCompletion(task.id, task.is_completed)}
-                                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${task.is_completed
-                                            ? 'bg-blue-500 border-blue-500 text-white'
-                                            : 'border-slate-500 text-transparent hover:border-blue-500'
-                                            }`}
-                                    >
-                                        {task.is_completed && <Check className="w-4 h-4" />}
-                                    </button>
-
-                                    <div className="flex-1">
-                                        {editingTask && editingTask.id === task.id ? (
-                                            <input
-                                                type="text"
-                                                value={editingTask.title}
-                                                onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
-                                                onBlur={handleSaveEdit}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') handleSaveEdit();
-                                                    if (e.key === 'Escape') setEditingTask(null);
-                                                }}
-                                                autoFocus
-                                                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-3 py-1 text-white focus:outline-none focus:border-blue-500"
-                                            />
-                                        ) : (
-                                            <h3 className={`font-medium text-white ${task.is_completed ? 'line-through text-slate-400' : ''}`}>
-                                                {task.title}
-                                            </h3>
-                                        )}
-                                        <div className="flex items-center gap-4 mt-1 text-xs text-slate-500">
-                                            {task.due_date && (
-                                                <div className="flex items-center gap-1">
-                                                    <CalendarIcon className="w-3 h-3" />
-                                                    <span>{new Date(task.due_date).toLocaleDateString()}</span>
-                                                </div>
-                                            )}
-
-                                            {editingCategory && editingCategory.id === task.id ? (
-                                                <div className="flex items-center gap-1">
-                                                    <Tag className="w-3 h-3 text-blue-400" />
-                                                    <input
-                                                        type="text"
-                                                        value={editingCategory.type}
-                                                        onChange={(e) => setEditingCategory({ ...editingCategory, type: e.target.value })}
-                                                        onBlur={handleSaveCategory}
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === 'Enter') handleSaveCategory();
-                                                            if (e.key === 'Escape') setEditingCategory(null);
-                                                        }}
-                                                        autoFocus
-                                                        className="bg-slate-800/50 border border-blue-500/50 rounded px-2 py-0.5 text-blue-400 text-xs focus:outline-none w-24"
-                                                    />
-                                                </div>
-                                            ) : (
-                                                <button
-                                                    onClick={() => setEditingCategory({ id: task.id, type: task.type || 'assignment' })}
-                                                    className="flex items-center gap-1 capitalize hover:text-blue-400 transition-colors"
-                                                >
-                                                    <Tag className="w-3 h-3" />
-                                                    <span>{task.type || 'assignment'}</span>
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <button
-                                        onClick={() => deleteTask(task.id)}
-                                        className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            ))
-                        )}
-                    </div>
+                {/* Add Task Input */}
+                <div className="glass-card p-4 mb-8">
+                    <form onSubmit={handleAddTask} className="flex gap-4">
+                        <div className="flex-1 relative">
+                            <input
+                                type="text"
+                                value={newTaskTitle}
+                                onChange={(e) => setNewTaskTitle(e.target.value)}
+                                placeholder="Add a new task..."
+                                className="w-full bg-slate-800/50 border border-white/10 rounded-xl px-4 py-3 pl-12 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                            />
+                            <Plus className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={!newTaskTitle.trim()}
+                            className="glass-button px-6 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Add
+                        </button>
+                    </form>
                 </div>
-            </main>
+
+                {/* Filters */}
+                <div className="flex gap-2 mb-6">
+                    {(['all', 'active', 'completed'] as const).map((f) => (
+                        <button
+                            key={f}
+                            onClick={() => setFilter(f)}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${filter === f
+                                ? 'bg-blue-600 text-white'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                }`}
+                        >
+                            {f}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Task List */}
+                <div className="space-y-3">
+                    {loading ? (
+                        <div className="text-center py-10">
+                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+                        </div>
+                    ) : filteredTasks.length === 0 ? (
+                        <div className="text-center py-16 text-slate-500">
+                            <p>No tasks found</p>
+                        </div>
+                    ) : (
+                        filteredTasks.map((task: any) => (
+                            <div
+                                key={task.id}
+                                draggable={!task.is_completed}
+                                onDragStart={(e) => handleDragStart(e, task.id)}
+                                onDragOver={(e) => handleDragOver(e, task.id)}
+                                onDrop={handleDrop}
+                                className={`glass-card p-4 flex items-center gap-4 group transition-all cursor-move ${task.is_completed ? 'opacity-50' : ''
+                                    } ${draggedTaskId === task.id ? 'opacity-0' : ''}`}
+                                onContextMenu={(e) => handleContextMenu(e, task.id)}
+                            >
+                                <button
+                                    onClick={() => toggleTaskCompletion(task.id, task.is_completed)}
+                                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${task.is_completed
+                                        ? 'bg-blue-500 border-blue-500 text-white'
+                                        : 'border-slate-500 text-transparent hover:border-blue-500'
+                                        }`}
+                                >
+                                    {task.is_completed && <Check className="w-4 h-4" />}
+                                </button>
+
+                                <div className="flex-1">
+                                    {editingTask && editingTask.id === task.id ? (
+                                        <input
+                                            type="text"
+                                            value={editingTask.title}
+                                            onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
+                                            onBlur={handleSaveEdit}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleSaveEdit();
+                                                if (e.key === 'Escape') setEditingTask(null);
+                                            }}
+                                            autoFocus
+                                            className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-3 py-1 text-white focus:outline-none focus:border-blue-500"
+                                        />
+                                    ) : (
+                                        <h3 className={`font-medium text-white ${task.is_completed ? 'line-through text-slate-400' : ''}`}>
+                                            {task.title}
+                                        </h3>
+                                    )}
+                                    <div className="flex items-center gap-4 mt-1 text-xs text-slate-500">
+                                        {task.due_date && (
+                                            <div className="flex items-center gap-1">
+                                                <CalendarIcon className="w-3 h-3" />
+                                                <span>{new Date(task.due_date).toLocaleDateString()}</span>
+                                            </div>
+                                        )}
+
+                                        {editingCategory && editingCategory.id === task.id ? (
+                                            <div className="flex items-center gap-1">
+                                                <Tag className="w-3 h-3 text-blue-400" />
+                                                <input
+                                                    type="text"
+                                                    value={editingCategory.type}
+                                                    onChange={(e) => setEditingCategory({ ...editingCategory, type: e.target.value })}
+                                                    onBlur={handleSaveCategory}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') handleSaveCategory();
+                                                        if (e.key === 'Escape') setEditingCategory(null);
+                                                    }}
+                                                    autoFocus
+                                                    className="bg-slate-800/50 border border-blue-500/50 rounded px-2 py-0.5 text-blue-400 text-xs focus:outline-none w-24"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <button
+                                                onClick={() => setEditingCategory({ id: task.id, type: task.type || 'assignment' })}
+                                                className="flex items-center gap-1 capitalize hover:text-blue-400 transition-colors"
+                                            >
+                                                <Tag className="w-3 h-3" />
+                                                <span>{task.type || 'assignment'}</span>
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => deleteTask(task.id)}
+                                    className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
+
 
             {/* Context Menu */}
-            {contextMenu && (
-                <ContextMenu
-                    items={getContextMenuItems(contextMenu.taskId)}
-                    position={{ x: contextMenu.x, y: contextMenu.y }}
-                    onClose={() => setContextMenu(null)}
-                />
-            )}
+            {
+                contextMenu && (
+                    <ContextMenu
+                        items={getContextMenuItems(contextMenu.taskId)}
+                        position={{ x: contextMenu.x, y: contextMenu.y }}
+                        onClose={() => setContextMenu(null)}
+                    />
+                )
+            }
         </div>
     );
 }

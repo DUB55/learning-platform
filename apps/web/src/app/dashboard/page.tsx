@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import Sidebar from '@/components/Sidebar';
+
 import {
     Bell,
     Search,
@@ -92,9 +92,12 @@ export default function Dashboard() {
                 .select('duration_seconds, created_at')
                 .returns<{ duration_seconds: number, created_at: string }[]>();
 
+            const totalSeconds = sessionsData?.reduce((acc: number, curr: any) => acc + (curr.duration_seconds || 0), 0) || 0;
+
+
             // Fetch streak data from gamification
-            const { data: streakData } = await supabase
-                .from('daily_streaks')
+            const { data: streakData } = await (supabase
+                .from('daily_streaks') as any)
                 .select('current_streak')
                 .eq('user_id', user!.id)
                 .single();
@@ -112,15 +115,16 @@ export default function Dashboard() {
                 .select('*', { count: 'exact', head: true })
                 .eq('user_id', user!.id);
 
-            // Calculate stats
-            let totalSeconds = 0;
-            if (sessionsData) {
-                totalSeconds = sessionsData.reduce((acc, curr) => acc + curr.duration_seconds, 0);
-            }
+            // Fetch XP data for study time (from TimeTracker) which is more accurate for "tab open" time
+            const { data: xpData } = await (supabase
+                .from('user_xp') as any)
+                .select('study_minutes, current_streak')
+                .eq('user_id', user!.id)
+                .single();
 
             setStats({
-                streak: streakData?.current_streak || 0,
-                totalStudyTime: Math.round(totalSeconds / 3600),
+                streak: xpData?.current_streak || streakData?.current_streak || 0,
+                totalStudyTime: xpData?.study_minutes ? Math.round(xpData.study_minutes / 60) : Math.round(totalSeconds / 3600),
                 completedTasks: completedCount || 0,
                 totalTasks: totalCount || 0
             });
@@ -150,21 +154,23 @@ export default function Dashboard() {
         setResourceMenu(null);
     };
 
-    const getMenuItems = (resource: any) => {
+    const menuItems = useMemo(() => {
+        if (!resourceMenu) return [];
+
         return [
             {
                 icon: <Edit2 className="w-4 h-4" />,
                 label: 'Edit',
-                onClick: () => router.push(`/subjects/${resource.id}/edit`)
+                onClick: () => router.push(`/subjects/${resourceMenu.resource.id}/edit`)
             },
             {
                 icon: <Trash2 className="w-4 h-4" />,
                 label: 'Delete',
-                onClick: () => handleDeleteSubject(resource),
+                onClick: () => handleDeleteSubject(resourceMenu.resource),
                 danger: true
             }
         ];
-    };
+    }, [resourceMenu, router]);
 
     if (loading || isLoadingData) {
         return (
@@ -174,14 +180,14 @@ export default function Dashboard() {
         );
     }
 
-    if (!user) return null;
+    if (!user) {
+        return null;
+    }
 
     return (
-        <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
-            <Sidebar />
-
+        <>
             {/* Main Content */}
-            <main className="flex-1 overflow-y-auto relative">
+            <div className="relative">
                 {/* Background Gradients */}
                 <div className="fixed inset-0 pointer-events-none">
                     <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px] opacity-50"></div>
@@ -320,7 +326,7 @@ export default function Dashboard() {
 
                 {resourceMenu && (
                     <ResourceContextMenu
-                        items={getMenuItems(resourceMenu.resource)}
+                        items={menuItems}
                         position={resourceMenu}
                         onClose={() => setResourceMenu(null)}
                         resourceType="subject"
@@ -328,8 +334,8 @@ export default function Dashboard() {
                         isAdmin={profile?.is_admin || false}
                     />
                 )}
-            </main>
-        </div>
+            </div>
+        </>
     );
 }
 

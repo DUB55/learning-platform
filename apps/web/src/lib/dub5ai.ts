@@ -206,10 +206,12 @@ class Dub5AIService {
            - "title": string (slide title)
            - "subtitle": string (optional subtitle)
            - "content": array of strings (bullet points)
+           - "image_prompt": string (a descriptive prompt for an AI image generator to visualize this slide's content)
            - "type": "title" | "content" | "section"
         
         Create 5-8 slides with a good flow: title slide, content slides, and a conclusion.
         `;
+
 
         try {
             const result = await this.streamRequest(prompt, {
@@ -224,6 +226,37 @@ class Dub5AIService {
             throw new Error('Failed to generate presentation');
         }
     }
+
+    /**
+     * Generates a summary from text
+     */
+    async generateSummary(context: string, type: 'long' | 'normal' | 'short'): Promise<string> {
+        let promptType = '';
+        switch (type) {
+            case 'long':
+                promptType = 'a detailed, comprehensive summary covering all key points and supporting details';
+                break;
+            case 'short':
+                promptType = 'a concise summary in bullet points, focusing only on the most critical facts';
+                break;
+            default:
+                promptType = 'a standard summary that captures the main ideas';
+        }
+
+        const prompt = `Create ${promptType} of the following text: "${context.slice(0, 6000)}". Result should be formatted in Markdown.`;
+
+        try {
+            const result = await this.streamRequest(prompt, {
+                task: 'summary',
+                params: { type }
+            });
+            return result;
+        } catch (error) {
+            console.error('Failed to generate summary:', error);
+            throw new Error('Failed to generate summary');
+        }
+    }
 }
+
 
 export const dub5ai = new Dub5AIService();

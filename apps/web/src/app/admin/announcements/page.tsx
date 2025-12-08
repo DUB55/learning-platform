@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import Sidebar from '@/components/Sidebar';
+
 import { Plus, Edit2, Trash2, Eye, Clock, FileText } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -124,6 +124,34 @@ export default function AdminAnnouncementsPage() {
             created_by: user.id,
             title: formData.title,
             content: formData.content,
+            priority: formData.priority,
+            expires_at: formData.expires_at || null,
+            linked_page_id: linkedPageId
+        };
+
+        try {
+            if (editingAnnouncement) {
+                // Update existing
+                const { error } = await (supabase.from('announcements') as any)
+                    .update(announcementData)
+                    .eq('id', editingAnnouncement.id);
+
+                if (error) throw error;
+            } else {
+                // Create new
+                const { error } = await (supabase.from('announcements') as any)
+                    .insert([announcementData]);
+
+                if (error) throw error;
+            }
+
+            setShowAddModal(false);
+            setEditingAnnouncement(null);
+            resetForm();
+            fetchData();
+        } catch (error) {
+            console.error('Error saving announcement:', error);
+            alert('Failed to save announcement');
         }
     };
 
@@ -139,6 +167,7 @@ export default function AdminAnnouncementsPage() {
         });
         setCreateLinkedPage(false);
     };
+
 
     const handleEdit = (announcement: Announcement) => {
         setEditingAnnouncement(announcement);
@@ -186,10 +215,10 @@ export default function AdminAnnouncementsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
-            <Sidebar />
+        <div className="h-full overflow-y-auto p-8 relative">
 
-            <main className="flex-1 overflow-y-auto relative p-8">
+
+            <div className="flex-1 relative">
                 <div className="max-w-6xl mx-auto">
                     <header className="mb-10">
                         <div className="flex items-center justify-between mb-2">
@@ -400,7 +429,7 @@ export default function AdminAnnouncementsPage() {
                         </div>
                     )}
                 </div>
-            </main>
+            </div>
         </div>
     );
 }

@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import Sidebar from '@/components/Sidebar';
+
 import {
     Plus, Globe, Trash2, ShieldAlert, Sparkles, Code, Users,
     ChevronDown, ChevronRight, Settings, Image, Megaphone,
-    BookOpen, Eye, LayoutGrid, ToggleLeft, ToggleRight, Lock
+    BookOpen, Eye, LayoutGrid, ToggleLeft, ToggleRight, Lock, Sliders
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -116,6 +116,7 @@ export default function AdminPage() {
 
     // Settings State
     const [loadingIndicator, setLoadingIndicator] = useState(true);
+    const [loadingSpinner, setLoadingSpinner] = useState(false);
     const [loadingIndicatorLoading, setLoadingIndicatorLoading] = useState(true);
 
     // Profile Picture Settings
@@ -149,6 +150,9 @@ export default function AdminPage() {
                     switch (setting.setting_key) {
                         case 'ui.show_loading_indicator':
                             setLoadingIndicator(setting.default_value === 'true');
+                            break;
+                        case 'ui.show_loading_spinner':
+                            setLoadingSpinner(setting.default_value === 'true');
                             break;
                         case 'ui.profile_pic_columns':
                             setProfilePicColumns(parseInt(setting.default_value) || 5);
@@ -251,10 +255,8 @@ export default function AdminPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
-            <Sidebar />
-
-            <main className="flex-1 overflow-y-auto relative p-8">
+        <>
+            <div className="p-8 pb-32 relative">
                 <div className="max-w-4xl mx-auto">
                     {/* Header */}
                     <header className="mb-8">
@@ -266,7 +268,7 @@ export default function AdminPage() {
                     </header>
 
                     {/* Quick Actions */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-8">
                         <button
                             onClick={() => router.push('/admin/bulk-creator')}
                             className="glass-card p-4 flex flex-col items-center gap-2 hover:bg-white/5 transition-colors group"
@@ -295,6 +297,13 @@ export default function AdminPage() {
                             <Lock className="w-6 h-6 text-red-400 group-hover:scale-110 transition-transform" />
                             <span className="text-sm text-white">Permissions</span>
                         </button>
+                        <button
+                            onClick={() => router.push('/admin/features')}
+                            className="glass-card p-4 flex flex-col items-center gap-2 hover:bg-white/5 transition-colors group"
+                        >
+                            <Sliders className="w-6 h-6 text-emerald-400 group-hover:scale-110 transition-transform" />
+                            <span className="text-sm text-white">Feature Toggles</span>
+                        </button>
                     </div>
 
                     {/* UI Settings */}
@@ -314,6 +323,25 @@ export default function AdminPage() {
                                             'ui.show_loading_indicator',
                                             String(newValue),
                                             'Controls visibility of the global loading indicator'
+                                        );
+                                    }}
+                                />
+                            </SettingRow>
+
+                            <SettingRow
+                                title="Loading Spinner"
+                                description="Show a spinning circle in the corner during navigation"
+                            >
+                                <ToggleSwitch
+                                    enabled={loadingSpinner}
+                                    loading={loadingIndicatorLoading}
+                                    onChange={async () => {
+                                        const newValue = !loadingSpinner;
+                                        setLoadingSpinner(newValue);
+                                        await updateSetting(
+                                            'ui.show_loading_spinner',
+                                            String(newValue),
+                                            'Controls visibility of the loading spinner'
                                         );
                                     }}
                                 />
@@ -344,6 +372,16 @@ export default function AdminPage() {
                                     </button>
                                 </div>
                             </SettingRow>
+
+                            <div className="pt-4 border-t border-white/5">
+                                <button
+                                    onClick={() => router.push('/admin/gradient-editor')}
+                                    className="w-full glass-button py-3 flex items-center justify-center gap-2 group"
+                                >
+                                    <div className="w-5 h-5 rounded-full bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 group-hover:scale-110 transition-transform" />
+                                    <span>Open Gradient Animator</span>
+                                </button>
+                            </div>
                         </div>
                     </CollapsibleSection>
 
@@ -467,7 +505,7 @@ export default function AdminPage() {
                         </div>
                     </CollapsibleSection>
                 </div>
-            </main>
-        </div>
+            </div>
+        </>
     );
 }

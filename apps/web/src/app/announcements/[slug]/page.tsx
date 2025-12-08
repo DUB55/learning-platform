@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import Sidebar from '@/components/Sidebar';
+
 import { ArrowLeft, Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -62,9 +62,9 @@ export default function AnnouncementPageView() {
 
     if (!page) {
         return (
-            <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
-                <Sidebar />
-                <main className="flex-1 overflow-y-auto relative p-8">
+            <div className="h-full overflow-y-auto p-8 relative">
+
+                <div className="flex-1 relative">
                     <div className="max-w-4xl mx-auto">
                         <div className="glass-card p-12 text-center">
                             <h1 className="text-2xl font-bold text-white mb-2">Page Not Found</h1>
@@ -77,16 +77,16 @@ export default function AnnouncementPageView() {
                             </button>
                         </div>
                     </div>
-                </main>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
-            <Sidebar />
+        <div className="h-full overflow-y-auto p-8 relative">
 
-            <main className="flex-1 overflow-y-auto relative p-8">
+
+            <div className="flex-1 relative">
                 <div className="max-w-4xl mx-auto">
                     <button
                         onClick={() => router.push('/announcements')}
@@ -118,7 +118,7 @@ export default function AnnouncementPageView() {
                         </div>
                     </article>
                 </div>
-            </main>
+            </div>
         </div>
     );
 }

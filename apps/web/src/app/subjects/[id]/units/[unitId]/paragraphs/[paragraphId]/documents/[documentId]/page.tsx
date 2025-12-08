@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import Sidebar from '@/components/Sidebar';
+
 import { ArrowLeft, Edit2, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -93,10 +93,10 @@ export default function ViewDocumentPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
-            <Sidebar />
+        <div className="h-full relative block">
 
-            <main className={`flex-1 overflow-y-auto relative ${hasHtmlContent ? 'p-0' : 'p-8'}`}>
+
+            <div className={`flex-1 relative h-full ${hasHtmlContent ? 'p-0' : 'p-8 overflow-y-auto'}`}>
                 {/* Header section - always with padding */}
                 <div className={`${hasHtmlContent ? 'p-4' : ''}`}>
                     <button
@@ -203,7 +203,7 @@ export default function ViewDocumentPage() {
                         </div>
                     )}
                 </div>
-            </main>
+            </div>
         </div>
     );
 }

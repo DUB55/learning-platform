@@ -1,176 +1,195 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
-import Sidebar from '@/components/Sidebar';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useUISettings } from '@/contexts/UISettingsContext';
-import { Palette, Zap, Eye, Check } from 'lucide-react';
-import { useToast } from '@/hooks/useToast';
-import Toast from '@/components/Toast';
+import { Moon, Sun, Monitor, Type, Layout, Bell, Shield, Eye, Palette, Volume2, Globe } from 'lucide-react';
+import ToggleSwitch from '@/components/ui/ToggleSwitch';
+
 
 export default function SettingsPage() {
-    const { settings, updateSettings } = useUISettings();
-    const { toasts, showToast, hideToast } = useToast();
+    const { user, profile } = useAuth();
+    const { settings, updateSettings, resetSettings } = useUISettings();
+    const [mounted, setMounted] = useState(false);
 
-    const handleToggle = async (key: keyof typeof settings) => {
-        const newValue = typeof settings[key] === 'boolean' ? !settings[key] : settings[key];
-        await updateSettings({ [key]: newValue });
-        showToast('Settings updated', 'success');
-    };
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
-    const handleIconStyleChange = async (style: 'colored' | 'monochrome') => {
-        await updateSettings({ iconStyle: style });
-        showToast('Icon style updated', 'success');
-    };
+    if (!mounted) return null;
+
+    const sections = [
+        {
+            id: 'appearance',
+            title: 'Appearance',
+            icon: <Palette className="w-5 h-5 text-purple-400" />,
+            description: 'Customize the look and feel of your interface',
+            settings: [
+                {
+                    id: 'theme',
+                    title: 'Theme',
+                    type: 'select',
+                    value: settings.theme,
+                    options: [
+                        { value: 'dark', label: 'Dark Mode', icon: <Moon className="w-4 h-4" /> },
+                        { value: 'light', label: 'Light Mode', icon: <Sun className="w-4 h-4" /> },
+                        { value: 'system', label: 'System Default', icon: <Monitor className="w-4 h-4" /> }
+                    ],
+                    onChange: (val: any) => updateSettings({ theme: val })
+                },
+                {
+                    id: 'cardStyle',
+                    title: 'Card Style',
+                    type: 'select',
+                    value: settings.cardStyle,
+                    options: [
+                        { value: 'glass', label: 'Glassmorphism' },
+                        { value: 'solid', label: 'Solid' },
+                        { value: 'minimal', label: 'Minimal' }
+                    ],
+                    onChange: (val: any) => updateSettings({ cardStyle: val })
+                }
+            ]
+        },
+        {
+            id: 'accessibility',
+            title: 'Accessibility',
+            icon: <Type className="w-5 h-5 text-blue-400" />,
+            description: 'Adjust text size and readability settings',
+            settings: [
+                {
+                    id: 'fontSize',
+                    title: 'Font Size',
+                    type: 'select',
+                    value: settings.fontSize,
+                    options: [
+                        { value: 'small', label: 'Small' },
+                        { value: 'medium', label: 'Medium' },
+                        { value: 'large', label: 'Large' }
+                    ],
+                    onChange: (val: any) => updateSettings({ fontSize: val })
+                },
+                {
+                    id: 'reduceMotion',
+                    title: 'Reduce Motion',
+                    type: 'toggle',
+                    value: settings.reduceMotion,
+                    onChange: (val: any) => updateSettings({ reduceMotion: val })
+                },
+                {
+                    id: 'highContrast',
+                    title: 'High Contrast',
+                    type: 'toggle',
+                    value: settings.highContrast,
+                    onChange: (val: any) => updateSettings({ highContrast: val })
+                }
+            ]
+        },
+        {
+            id: 'layout',
+            title: 'Layout',
+            icon: <Layout className="w-5 h-5 text-green-400" />,
+            description: 'Configure sidebar and content layout',
+            settings: [
+                {
+                    id: 'sidebarCompact',
+                    title: 'Compact Sidebar',
+                    type: 'toggle',
+                    value: settings.sidebarCompact,
+                    onChange: (val: any) => updateSettings({ sidebarCompact: val })
+                }
+            ]
+        },
+        {
+            id: 'notifications',
+            title: 'Notifications',
+            icon: <Bell className="w-5 h-5 text-yellow-400" />,
+            description: 'Manage your notification preferences',
+            settings: [
+                {
+                    id: 'notifications',
+                    title: 'Enable Notifications',
+                    type: 'toggle',
+                    value: settings.notifications,
+                    onChange: (val: any) => updateSettings({ notifications: val })
+                },
+                {
+                    id: 'soundEnabled',
+                    title: 'Sound Effects',
+                    type: 'toggle',
+                    value: settings.soundEnabled,
+                    onChange: (val: any) => updateSettings({ soundEnabled: val })
+                }
+            ]
+        }
+    ];
 
     return (
-        <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
-            <Sidebar />
+        <div className="h-full overflow-y-auto p-8">
+            <div className="max-w-4xl mx-auto">
+                <header className="mb-10">
+                    <h1 className="text-3xl font-serif font-bold text-white mb-2">Settings</h1>
+                    <p className="text-slate-400">Manage your preferences and application settings</p>
+                </header>
 
-            <main className="flex-1 overflow-y-auto relative p-8">
-                <div className="max-w-4xl mx-auto">
-                    <header className="mb-10">
-                        <h1 className="text-3xl font-serif font-bold text-white mb-2">Settings</h1>
-                        <p className="text-slate-400">Customize your learning experience</p>
-                    </header>
-
-                    {/* Appearance Section */}
-                    <div className="glass-card p-6 mb-6">
-                        <div className="flex items-center gap-3 mb-6">
-                            <Palette className="w-5 h-5 text-purple-400" />
-                            <h2 className="text-xl font-bold text-white">Appearance</h2>
-                        </div>
-
-                        {/* Icon Style */}
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-slate-300 mb-3">
-                                Icon Style
-                            </label>
-                            <div className="grid grid-cols-2 gap-4">
-                                <button
-                                    onClick={() => handleIconStyleChange('colored')}
-                                    className={`p-4 rounded-xl border-2 transition-all ${settings.iconStyle === 'colored'
-                                        ? 'border-purple-500 bg-purple-500/10'
-                                        : 'border-white/10 hover:border-white/20'
-                                        }`}
-                                >
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-white font-medium">Colored Icons</span>
-                                        {settings.iconStyle === 'colored' && (
-                                            <Check className="w-5 h-5 text-purple-400" />
-                                        )}
-                                    </div>
-                                    <p className="text-sm text-slate-400 text-left">
-                                        Icons with vibrant colors
-                                    </p>
-                                    <div className="flex gap-2 mt-3">
-                                        <div className="w-8 h-8 rounded bg-blue-500/20 flex items-center justify-center">
-                                            <span className="text-blue-400">📚</span>
-                                        </div>
-                                        <div className="w-8 h-8 rounded bg-purple-500/20 flex items-center justify-center">
-                                            <span className="text-purple-400">✨</span>
-                                        </div>
-                                        <div className="w-8 h-8 rounded bg-green-500/20 flex items-center justify-center">
-                                            <span className="text-green-400">📅</span>
-                                        </div>
-                                    </div>
-                                </button>
-
-                                <button
-                                    onClick={() => handleIconStyleChange('monochrome')}
-                                    className={`p-4 rounded-xl border-2 transition-all ${settings.iconStyle === 'monochrome'
-                                        ? 'border-purple-500 bg-purple-500/10'
-                                        : 'border-white/10 hover:border-white/20'
-                                        }`}
-                                >
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-white font-medium">Monochrome</span>
-                                        {settings.iconStyle === 'monochrome' && (
-                                            <Check className="w-5 h-5 text-purple-400" />
-                                        )}
-                                    </div>
-                                    <p className="text-sm text-slate-400 text-left">
-                                        All icons in grey tones
-                                    </p>
-                                    <div className="flex gap-2 mt-3">
-                                        <div className="w-8 h-8 rounded bg-slate-700/50 flex items-center justify-center">
-                                            <span className="text-slate-400">📚</span>
-                                        </div>
-                                        <div className="w-8 h-8 rounded bg-slate-700/50 flex items-center justify-center">
-                                            <span className="text-slate-400">✨</span>
-                                        </div>
-                                        <div className="w-8 h-8 rounded bg-slate-700/50 flex items-center justify-center">
-                                            <span className="text-slate-400">📅</span>
-                                        </div>
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Compact Sidebar */}
-                        <div className="border-t border-white/5 pt-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <label className="text-sm font-medium text-slate-300 block mb-1">
-                                        Compact Sidebar
-                                    </label>
-                                    <p className="text-sm text-slate-500">
-                                        Reduce sidebar width for more screen space
-                                    </p>
+                <div className="space-y-8">
+                    {sections.map((section) => (
+                        <div key={section.id} className="glass-card p-8">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                                    {section.icon}
                                 </div>
-                                <button
-                                    onClick={() => handleToggle('sidebarCompact')}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.sidebarCompact ? 'bg-purple-600' : 'bg-slate-700'
-                                        }`}
-                                >
-                                    <span
-                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.sidebarCompact ? 'translate-x-6' : 'translate-x-1'
-                                            }`}
-                                    />
-                                </button>
+                                <div>
+                                    <h2 className="text-xl font-bold text-white">{section.title}</h2>
+                                    <p className="text-sm text-slate-400">{section.description}</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-6">
+                                {section.settings.map((setting) => (
+                                    <div key={setting.id} className="flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
+                                        <div className="flex-1">
+                                            <h3 className="font-medium text-white">{setting.title}</h3>
+                                        </div>
+
+                                        <div className="flex-shrink-0 ml-4">
+                                            {setting.type === 'toggle' ? (
+                                                <ToggleSwitch
+                                                    checked={setting.value as boolean}
+                                                    onChange={() => setting.onChange(!setting.value)}
+                                                />
+                                            ) : setting.type === 'select' ? (
+                                                <div className="relative">
+                                                    <select
+                                                        value={setting.value as string}
+                                                        onChange={(e) => setting.onChange(e.target.value)}
+                                                        className="bg-slate-900 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:border-blue-500 appearance-none pr-10 cursor-pointer"
+                                                    >
+                                                        {setting.options?.map((opt) => (
+                                                            <option key={opt.value} value={opt.value}>
+                                                                {opt.label}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            ) : null}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                    </div>
-
-                    {/* Performance Section */}
-                    <div className="glass-card p-6">
-                        <div className="flex items-center gap-3 mb-6">
-                            <Zap className="w-5 h-5 text-yellow-400" />
-                            <h2 className="text-xl font-bold text-white">Performance</h2>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <label className="text-sm font-medium text-slate-300 block mb-1">
-                                    Animations
-                                </label>
-                                <p className="text-sm text-slate-500">
-                                    Enable smooth transitions and animations
-                                </p>
-                            </div>
-                            <button
-                                onClick={() => handleToggle('animationsEnabled')}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.animationsEnabled ? 'bg-purple-600' : 'bg-slate-700'
-                                    }`}
-                            >
-                                <span
-                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.animationsEnabled ? 'translate-x-6' : 'translate-x-1'
-                                        }`}
-                                />
-                            </button>
-                        </div>
-                    </div>
+                    ))}
                 </div>
 
-                {toasts.map((toast) => (
-                    <Toast
-                        key={toast.id}
-                        message={toast.message}
-                        type={toast.type}
-                        onClose={() => hideToast(toast.id)}
-                    />
-                ))}
-            </main>
+                <div className="mt-8 flex justify-end">
+                    <button
+                        onClick={resetSettings}
+                        className="px-6 py-3 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors font-medium text-sm"
+                    >
+                        Reset to Defaults
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }

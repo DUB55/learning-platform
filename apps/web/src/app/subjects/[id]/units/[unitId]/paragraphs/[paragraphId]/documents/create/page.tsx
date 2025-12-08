@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import Sidebar from '@/components/Sidebar';
+
 import {
     ArrowLeft, Plus, Type, Image as ImageIcon, Youtube, Code,
     Table, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
@@ -11,6 +11,10 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { documentSchema } from '@/lib/validation';
+import YoutubeImportModal from '@/components/imports/YoutubeImportModal';
+import FileImportModal from '@/components/imports/FileImportModal';
+
+
 
 interface DocumentElement {
     id: string;
@@ -39,7 +43,48 @@ export default function CreateDocumentPage() {
     const [elements, setElements] = useState<DocumentElement[]>([]);
     const [showAddElement, setShowAddElement] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [draggedElement, setDraggedElement] = useState<string | null>(null);
+    const [showYoutubeModal, setShowYoutubeModal] = useState(false);
+    const [showFileModal, setShowFileModal] = useState(false);
+
+    const handleFileSuccess = (data: any, type: 'flashcards' | 'summary') => {
+        if (type === 'summary') {
+            const newElement: DocumentElement = {
+                id: Date.now().toString(),
+                type: 'text',
+                content: data, // Markdown summary
+                order: elements.length,
+                styling: {
+                    color: '#ffffff',
+                    fontSize: '16px',
+                    fontFamily: 'Inter',
+                    alignment: 'left'
+                }
+            };
+            setElements(prev => [...prev, newElement]);
+        }
+    };
+
+
+    const handleYoutubeSuccess = (data: any, type: 'flashcards' | 'summary') => {
+        if (type === 'summary') {
+            const newElement: DocumentElement = {
+                id: Date.now().toString(),
+                type: 'text',
+                content: data, // Markdown summary
+                order: elements.length,
+                styling: {
+                    color: '#ffffff',
+                    fontSize: '16px',
+                    fontFamily: 'Inter',
+                    alignment: 'left'
+                }
+            };
+            setElements(prev => [...prev, newElement]);
+        }
+    };
+
 
     // Permissions (check from database in production)
     const [permissions, setPermissions] = useState({
@@ -185,9 +230,10 @@ export default function CreateDocumentPage() {
                     title: title,
                     content: {},
                     document_type: dbDocumentType,
-                    elements: elements,
+                    elements: elements as any,
                     type: documentType
                 }])
+
                 .select()
                 .single();
 
@@ -203,10 +249,10 @@ export default function CreateDocumentPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
-            <Sidebar />
+        <div className="h-full overflow-y-auto p-8 relative">
 
-            <main className="flex-1 overflow-y-auto relative p-8">
+
+            <div className="flex-1 relative">
                 <div className="max-w-5xl mx-auto">
                     <button
                         onClick={() => router.back()}
@@ -219,7 +265,23 @@ export default function CreateDocumentPage() {
                     <div className="mb-10">
                         <h1 className="text-3xl font-serif font-bold text-white mb-2">Create Document</h1>
                         <p className="text-slate-400">Build your document with rich content and elements</p>
+                        <div className="flex justify-end">
+                            <button
+                                onClick={() => setShowYoutubeModal(true)}
+                                className="bg-red-600 hover:bg-red-500 text-white flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors shadow-lg shadow-red-900/20"
+                            >
+                                <Youtube size={18} /> Import from YouTube
+                            </button>
+                            <button
+                                onClick={() => setShowFileModal(true)}
+                                className="bg-purple-600 hover:bg-purple-500 text-white flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors shadow-lg shadow-purple-900/20"
+                            >
+                                <FileText size={18} /> Import File
+                            </button>
+                        </div>
+
                     </div>
+
 
                     {/* Document Title */}
                     <div className="glass-card p-6 mb-6">
@@ -445,73 +507,84 @@ export default function CreateDocumentPage() {
                         </button>
                     </div>
                 </div>
-            </main>
-
-            {/* Add Element Modal */}
-            {showAddElement && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="glass-card p-8 w-full max-w-3xl">
-                        <h2 className="text-2xl font-bold text-white mb-6">Add Element</h2>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            {permissions.allow_rich_text && (
-                                <button
-                                    onClick={() => addElement('text')}
-                                    className="glass-card p-6 hover:bg-white/10 transition-all flex flex-col items-center gap-3 group"
-                                >
-                                    <Type className="w-10 h-10 text-blue-400 group-hover:scale-110 transition-transform" />
-                                    <span className="text-white font-medium">Text</span>
-                                </button>
-                            )}
-
-                            {permissions.allow_youtube && (
-                                <button
-                                    onClick={() => addElement('youtube')}
-                                    className="glass-card p-6 hover:bg-white/10 transition-all flex flex-col items-center gap-3 group"
-                                >
-                                    <Youtube className="w-10 h-10 text-red-400 group-hover:scale-110 transition-transform" />
-                                    <span className="text-white font-medium">YouTube</span>
-                                </button>
-                            )}
-
-                            {permissions.allow_images && (
-                                <button
-                                    onClick={() => addElement('image')}
-                                    className="glass-card p-6 hover:bg-white/10 transition-all flex flex-col items-center gap-3 group"
-                                >
-                                    <ImageIcon className="w-10 h-10 text-green-400 group-hover:scale-110 transition-transform" />
-                                    <span className="text-white font-medium">Image</span>
-                                </button>
-                            )}
-
-                            {permissions.allow_tables && (
-                                <button
-                                    onClick={() => addElement('table')}
-                                    className="glass-card p-6 hover:bg-white/10 transition-all flex flex-col items-center gap-3 group"
-                                >
-                                    <Table className="w-10 h-10 text-purple-400 group-hover:scale-110 transition-transform" />
-                                    <span className="text-white font-medium">Table</span>
-                                </button>
-                            )}
-
-                            {permissions.allow_html && (
-                                <button
-                                    onClick={() => addElement('html')}
-                                    className="glass-card p-6 hover:bg-white/10 transition-all flex flex-col items-center gap-3 group"
-                                >
-                                    <Code className="w-10 h-10 text-amber-400 group-hover:scale-110 transition-transform" />
-                                    <span className="text-white font-medium">HTML</span>
-                                </button>
-                            )}
-                        </div>
-                        <button
-                            onClick={() => setShowAddElement(false)}
-                            className="w-full mt-6 px-4 py-3 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
-                        >
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            )}
+            </div>
         </div>
+
+            {/* Add Element Modal */ }
+    {
+        showAddElement && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                <div className="glass-card p-8 w-full max-w-3xl">
+                    <h2 className="text-2xl font-bold text-white mb-6">Add Element</h2>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {permissions.allow_rich_text && (
+                            <button
+                                onClick={() => addElement('text')}
+                                className="glass-card p-6 hover:bg-white/10 transition-all flex flex-col items-center gap-3 group"
+                            >
+                                <Type className="w-10 h-10 text-blue-400 group-hover:scale-110 transition-transform" />
+                                <span className="text-white font-medium">Text</span>
+                            </button>
+                        )}
+
+                        {permissions.allow_youtube && (
+                            <button
+                                onClick={() => addElement('youtube')}
+                                className="glass-card p-6 hover:bg-white/10 transition-all flex flex-col items-center gap-3 group"
+                            >
+                                <Youtube className="w-10 h-10 text-red-400 group-hover:scale-110 transition-transform" />
+                                <span className="text-white font-medium">YouTube</span>
+                            </button>
+                        )}
+
+                        {permissions.allow_images && (
+                            <button
+                                onClick={() => addElement('image')}
+                                className="glass-card p-6 hover:bg-white/10 transition-all flex flex-col items-center gap-3 group"
+                            >
+                                <ImageIcon className="w-10 h-10 text-green-400 group-hover:scale-110 transition-transform" />
+                                <span className="text-white font-medium">Image</span>
+                            </button>
+                        )}
+
+                        {permissions.allow_tables && (
+                            <button
+                                onClick={() => addElement('table')}
+                                className="glass-card p-6 hover:bg-white/10 transition-all flex flex-col items-center gap-3 group"
+                            >
+                                <Table className="w-10 h-10 text-purple-400 group-hover:scale-110 transition-transform" />
+                                <span className="text-white font-medium">Table</span>
+                            </button>
+                        )}
+
+                        {permissions.allow_html && (
+                            <button
+                                onClick={() => addElement('html')}
+                                className="glass-card p-6 hover:bg-white/10 transition-all flex flex-col items-center gap-3 group"
+                            >
+                                <Code className="w-10 h-10 text-amber-400 group-hover:scale-110 transition-transform" />
+                                <span className="text-white font-medium">HTML</span>
+                            </button>
+                        )}
+                    </div>
+                    <button
+                        onClick={() => setShowAddElement(false)}
+                        className="w-full mt-6 px-4 py-3 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        )
+    }
+
+    <YoutubeImportModal
+        isOpen={showYoutubeModal}
+        onClose={() => setShowYoutubeModal(false)}
+        onSuccess={handleYoutubeSuccess}
+        allowedModes={['summary']}
+    />
+        </div >
     );
+
 }

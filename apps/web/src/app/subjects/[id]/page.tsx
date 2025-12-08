@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import Sidebar from '@/components/Sidebar';
+
 import { Plus, ChevronRight, FileText, Trash2, BookOpen } from 'lucide-react';
 
 type Unit = { id: string; title: string; order_index: number };
@@ -57,9 +57,9 @@ export default function SubjectDetailPage() {
     // ... existing fetch functions ...
 
     return (
-        <div className="min-h-screen bg-[#0f172a] flex">
-            <Sidebar />
-            <main className="flex-1 p-8">
+        <div className="h-full overflow-y-auto p-8 relative">
+
+            <div className="flex-1">
                 <header className="mb-8">
                     <button onClick={() => router.back()} className="text-slate-400 hover:text-white mb-4">
                         ← Back to Subjects
@@ -374,7 +374,7 @@ export default function SubjectDetailPage() {
                         </div>
                     </div>
                 )}
-            </main>
+            </div>
         </div>
     );
 }

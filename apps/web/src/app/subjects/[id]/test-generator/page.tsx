@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import Sidebar from '@/components/Sidebar';
+
 import { ArrowLeft, Sparkles, BookOpen, Clock, HelpCircle, CheckCircle2 } from 'lucide-react';
 import { dub5ai } from '@/lib/dub5ai';
 import { supabase } from '@/lib/supabase';
@@ -86,10 +86,10 @@ export default function TestGeneratorPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
-            <Sidebar />
+        <div className="h-full overflow-y-auto p-8 relative">
 
-            <main className="flex-1 overflow-y-auto relative p-8">
+
+            <div className="flex-1 relative">
                 <div className="max-w-4xl mx-auto">
                     <button
                         onClick={() => router.back()}
@@ -225,7 +225,7 @@ export default function TestGeneratorPage() {
                         onClose={() => hideToast(toast.id)}
                     />
                 ))}
-            </main>
+            </div>
         </div>
     );
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import Sidebar from '@/components/Sidebar';
+
 import { CheckCircle2, XCircle, RefreshCw, GitCommit, Clock, ShieldAlert, Github } from 'lucide-react';
 import { getGitHistory, CommitInfo } from './actions';
 import { useRouter } from 'next/navigation';
@@ -53,17 +53,17 @@ export default function AdminSyncPage() {
 
     if (loading || !profile?.is_admin) {
         return (
-            <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
+            <div className="h-full flex items-center justify-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
-            <Sidebar />
+        <div className="h-full overflow-y-auto p-8">
 
-            <main className="flex-1 overflow-y-auto relative p-8">
+
+            <div className="flex-1 relative">
                 <div className="max-w-4xl mx-auto">
                     <header className="mb-10">
                         <div className="flex items-center gap-3 mb-2">
@@ -168,7 +168,7 @@ export default function AdminSyncPage() {
                         )}
                     </div>
                 </div>
-            </main>
+            </div>
         </div>
     );
 }

@@ -20,10 +20,15 @@ import {
     FileText,
     ChevronLeft,
     ChevronRight,
-    Trophy
+    Trophy,
+    Timer,
+    Network,
+    Bot,
+    StickyNote
 } from 'lucide-react';
 import { xpService, UserXP } from '@/lib/xpService';
 import ProfilePictureModal from './ProfilePictureModal';
+import SidebarItem from './SidebarItem';
 
 export default function Sidebar() {
     const pathname = usePathname();
@@ -70,6 +75,7 @@ export default function Sidebar() {
         window.location.reload();
     };
 
+    // Compact logic
     const isCompact = settings.sidebarCompact && !isHovered;
 
     return (
@@ -80,145 +86,145 @@ export default function Sidebar() {
                 currentAvatarUrl={profile?.avatar_url}
                 onUpdate={handleProfileUpdate}
             />
+            {/* 
+               Sidebar Container
+               w-[68px] (4.25rem) or w-64 (16rem).
+            */}
             <aside
-                className={`${isCompact ? 'w-20' : 'w-64'} bg-slate-900/50 backdrop-blur-xl border-r border-white/5 flex flex-col min-h-screen transition-all duration-300 ease-in-out z-40`}
+                className={`${isCompact ? 'w-[68px]' : 'w-64'} bg-slate-900/50 backdrop-blur-xl border-r border-white/5 flex flex-col min-h-screen transition-all duration-300 ease-in-out z-40 overflow-hidden relative`}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
             >
                 {/* Header */}
-                <div className="p-4 flex-shrink-0">
-                    <div className={`flex items-center gap-3 mb-2 ${isCompact ? 'justify-center' : 'px-2'}`}>
-                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20 flex-shrink-0">
-                            <BookOpen className="w-5 h-5 text-white" />
+                <div className="flex-shrink-0 h-20 flex items-center">
+                    {/* Fixed Rail Wrapper */}
+                    <div className="w-full h-full flex items-center px-0">
+                        {/* Icon Rail: w-[68px] fixed */}
+                        <div className="w-[68px] flex-shrink-0 flex items-center justify-center">
+                            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                                <BookOpen className="w-6 h-6 text-white" />
+                            </div>
                         </div>
                         <div className={`overflow-hidden transition-all duration-300 ${isCompact ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
-                            <span className="text-lg font-serif font-bold text-white tracking-tight whitespace-nowrap">LearnHub</span>
+                            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400 whitespace-nowrap">
+                                Leerplatform
+                            </h1>
                         </div>
                     </div>
                 </div>
 
-                {/* Nav */}
-                <div className={`flex-1 py-2 space-y-1 ${isCompact ? 'px-2' : 'px-4'}`}>
-                    <SidebarItem icon={<LayoutDashboard className={getIconColor('text-blue-400')} />} label="Dashboard" href="/dashboard" active={isActive('/dashboard')} compact={isCompact} />
-                    <SidebarItem icon={<BookOpen className={getIconColor('text-green-400')} />} label="Subjects" href="/subjects" active={isActive('/subjects')} compact={isCompact} />
-                    <SidebarItem icon={<CalendarIcon className={getIconColor('text-cyan-400')} />} label="Calendar" href="/calendar" active={isActive('/calendar')} compact={isCompact} />
-                    <SidebarItem icon={<CheckSquare className={getIconColor('text-pink-400')} />} label="Tasks" href="/todo" active={isActive('/todo')} compact={isCompact} />
-                    <SidebarItem icon={<Sparkles className={getIconColor('text-purple-400')} />} label="DUB5 AI" href="/ai-chat" active={isActive('/ai-chat')} compact={isCompact} />
-                    <SidebarItem icon={<Zap className={getIconColor('text-yellow-400')} />} label="Study Modes" href="/study-modes" active={isActive('/study-modes')} compact={isCompact} />
-                    <SidebarItem icon={<CalendarIcon className={getIconColor('text-blue-400')} />} label="Study Plans" href="/dashboard/study-plans" active={isActive('/dashboard/study-plans')} compact={isCompact} />
-                    <SidebarItem icon={<FileText className={getIconColor('text-orange-400')} />} label="AI PPT" href="/ai-ppt" active={isActive('/ai-ppt')} compact={isCompact} />
-                    <SidebarItem icon={<Library className={getIconColor('text-indigo-400')} />} label="Library" href="/library" active={isActive('/library')} compact={isCompact} />
-                    {profile?.is_admin && <SidebarItem icon={<ShieldAlert className={getIconColor('text-red-400')} />} label="Admin" href="/admin" active={isActive('/admin')} compact={isCompact} />}
-                    {profile?.is_admin && <SidebarItem icon={<RefreshCw className={getIconColor('text-green-400')} />} label="Git Sync" href="/admin/sync" active={isActive('/admin/sync')} compact={isCompact} />}
+                {/* Navigation Items */}
+                <div className="flex-1 overflow-y-auto py-4 px-0 space-y-1 scrollbar-hide">
+                    {/* 
+                       Note: SidebarItem now handles the 68px rail internally.
+                       We pass compact state.
+                    */}
+                    <SidebarItem icon={LayoutDashboard} label="Dashboard" href="/dashboard" active={isActive('/dashboard')} compact={isCompact} />
+                    <SidebarItem icon={BookOpen} label="Subjects" href="/subjects" active={isActive('/subjects')} compact={isCompact} color={getIconColor('text-blue-400')} />
+                    <SidebarItem icon={CheckSquare} label="Tasks" href="/todo" active={isActive('/todo')} compact={isCompact} color={getIconColor('text-pink-400')} />
+                    <SidebarItem icon={CalendarIcon} label="Calendar" href="/calendar" active={isActive('/calendar')} compact={isCompact} color={getIconColor('text-cyan-400')} />
+                    <SidebarItem icon={Sparkles} label="DUB5 AI" href="/ai-chat" active={isActive('/ai-chat')} compact={isCompact} color={getIconColor('text-purple-400')} />
+                    <SidebarItem icon={Zap} label="Study Modes" href="/study-modes" active={isActive('/study-modes')} compact={isCompact} color={getIconColor('text-yellow-400')} />
+                    <SidebarItem icon={FileText} label="Study Plans" href="/study-plans" active={isActive('/study-plans')} compact={isCompact} color={getIconColor('text-blue-400')} />
+                    <SidebarItem icon={FileText} label="AI PPT" href="/ai-ppt" active={isActive('/ai-ppt')} compact={isCompact} color={getIconColor('text-orange-400')} />
+                    <SidebarItem icon={Trophy} label="Leaderboard" href="/dashboard/leaderboard" active={isActive('/dashboard/leaderboard')} compact={isCompact} color={getIconColor('text-yellow-400')} />
+
+                    <SidebarItem icon={Library} label="Library" href="/library" active={isActive('/library')} compact={isCompact} color={getIconColor('text-indigo-400')} />
+
+                    {/* New Features Section */}
+                    <div className={`my-2 border-t border-white/5 mx-4 ${isCompact ? 'opacity-0' : 'opacity-100'} transition-opacity`} />
+                    <SidebarItem icon={Timer} label="Focus Mode" href="/focus" active={isActive('/focus')} compact={isCompact} color={getIconColor('text-emerald-400')} />
+                    <SidebarItem icon={Network} label="Mind Maps" href="/ai-mindmap" active={isActive('/ai-mindmap')} compact={isCompact} color={getIconColor('text-purple-400')} />
+                    <SidebarItem icon={StickyNote} label="Smart Notes" href="/smart-notes" active={isActive('/smart-notes')} compact={isCompact} color={getIconColor('text-teal-400')} />
+
+                    {profile?.is_admin && (
+                        <>
+                            <div className={`my-2 border-t border-white/5 mx-4 ${isCompact ? 'opacity-0' : 'opacity-100'} transition-opacity`} />
+
+                            <SidebarItem icon={ShieldAlert} label="Admin" href="/admin" active={isActive('/admin')} compact={isCompact} color={getIconColor('text-red-400')} />
+                            <SidebarItem icon={RefreshCw} label="Git Sync" href="/admin/sync" active={isActive('/admin/sync')} compact={isCompact} color={getIconColor('text-green-400')} />
+                        </>
+                    )}
                 </div>
 
-                {/* Footer */}
-                <div className="p-4 border-t border-white/5 space-y-4 flex-shrink-0">
-                    {/* Version Indicator for Debugging */}
-                    <div className="text-xs text-slate-600 text-center font-mono">
-                        v2.2 (Dec 6 - Forced Update) {isCompact ? '' : '- Production'}
-                    </div>
-
-                    {/* Toggle Button */}
-                    <button
-                        onClick={toggleSidebar}
-                        className="w-full flex items-center justify-center p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-                    >
-                        {settings.sidebarCompact ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
-                    </button>
-
-                    {userXP && (
+                {/* Footer - same background as sidebar */}
+                <div className="flex-shrink-0 border-t border-white/5 pb-2">
+                    <div className="space-y-1 pt-2">
+                        {/* 1. Toggle Button - unified hover for whole row */}
                         <div
-                            onClick={() => {
-                                console.log('Profile clicked', { userXP });
-                                setShowProfileModal(true);
-                            }}
-                            className="block cursor-pointer"
+                            className="flex items-center cursor-pointer group h-12 transition-colors mx-0 hover:bg-white/5 rounded-xl"
+                            onClick={toggleSidebar}
                         >
-                            <div className={`bg-gradient-to-br from-purple-600/10 to-pink-600/10 border border-purple-500/20 rounded-xl p-3 hover:border-purple-500/40 transition-all group relative overflow-hidden`}>
-                                <div className={`flex items-center ${isCompact ? 'justify-center' : 'gap-3'} mb-2`}>
-                                    {profile?.avatar_url ? (
-                                        <img
-                                            src={profile.avatar_url}
-                                            alt="Profile"
-                                            className="w-8 h-8 rounded-full object-cover border border-purple-500/30 flex-shrink-0"
-                                        />
-                                    ) : (
-                                        <Trophy className="w-8 h-8 text-purple-400 flex-shrink-0 p-1.5 bg-purple-500/10 rounded-full" />
-                                    )}
+                            <div className="w-[68px] flex-shrink-0 flex items-center justify-center">
+                                <div className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 group-hover:text-white transition-colors">
+                                    {settings.sidebarCompact ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+                                </div>
+                            </div>
+                            <div className={`overflow-hidden transition-all duration-300 flex items-center ${isCompact ? 'w-0 opacity-0' : 'w-40 opacity-100'}`}>
+                                <span className="text-sm font-medium text-slate-400 group-hover:text-white whitespace-nowrap px-1">Collapse</span>
+                            </div>
+                        </div>
 
-                                    <div className={`overflow-hidden transition-all duration-300 ${isCompact ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
-                                        <div className="flex justify-between items-center w-full">
-                                            <span className="text-sm font-medium text-white whitespace-nowrap">Level {userXP.level}</span>
-                                            <span className="text-xs text-purple-300 whitespace-nowrap ml-2">{userXP.total_xp.toLocaleString()} XP</span>
+
+                        {/* 2. Settings */}
+                        <SidebarItem
+                            icon={Settings}
+                            label="Settings"
+                            href="/settings"
+                            active={isActive('/settings')}
+                            compact={isCompact}
+                        />
+
+                        {/* 3. Log Out */}
+                        <SidebarItem
+                            icon={LogOut}
+                            label="Sign Out"
+                            onClick={() => signOut()}
+                            compact={isCompact}
+                            className="text-red-400 hover:text-red-300"
+                            active={false} // Logout never active
+                        />
+
+                        {/* 4. User Profile */}
+                        {userXP && (
+                            <div
+                                className="group flex items-center cursor-pointer hover:bg-white/5 h-14 transition-all duration-300 mx-0 mt-2"
+                                onClick={() => setShowProfileModal(true)}
+                            >
+                                {/* Avatar Rail */}
+                                <div className="w-[68px] flex-shrink-0 flex items-center justify-center">
+                                    <div className="w-10 h-10 rounded-xl overflow-hidden ring-2 ring-transparent group-hover:ring-white/20 transition-all shadow-lg">
+                                        {profile?.avatar_url ? (
+                                            <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+                                                {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || '?'}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Info Text */}
+                                <div className={`overflow-hidden transition-all duration-300 ${isCompact ? 'w-0 opacity-0' : 'w-32 opacity-100'}`}>
+                                    <div className="px-1 pr-2">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <span className="text-xs font-bold text-white whitespace-nowrap">Lvl {userXP.level}</span>
+                                            <span className="text-[10px] text-purple-300 whitespace-nowrap">{userXP.total_xp.toLocaleString()} XP</span>
+                                        </div>
+                                        {/* Progress Bar */}
+                                        <div className="w-full bg-slate-700/50 rounded-full h-1.5 overflow-hidden">
+                                            <div
+                                                className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
+                                                style={{ width: `${xpProgress}%` }}
+                                            />
                                         </div>
                                     </div>
                                 </div>
-
-                                <div className={`transition-all duration-300 ${isCompact ? 'h-0 opacity-0' : 'h-auto opacity-100'}`}>
-                                    <div className="relative w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                                        <div
-                                            className="absolute top-0 left-0 h-full bg-gradient-to-r from-purple-600 to-pink-600 transition-all duration-500 group-hover:shadow-lg group-hover:shadow-purple-500/50"
-                                            style={{ width: `${xpProgress}%` }}
-                                        ></div>
-                                    </div>
-                                    <p className="text-xs text-slate-400 mt-1 whitespace-nowrap">
-                                        {xpForNext - (userXP.total_xp % xpForNext)} XP to next
-                                    </p>
-                                </div>
-
-                                {/* Edit Overlay Hint */}
-                                <div className={`absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ${isCompact ? 'hidden' : ''}`}>
-                                    <span className="text-xs font-medium text-white">Change Picture</span>
-                                </div>
                             </div>
-                        </div>
-                    )}
-
-                    <div className="space-y-1">
-                        <SidebarItem icon={<Settings />} label="Settings" href="/settings" active={isActive('/settings')} compact={isCompact} />
-                        <button
-                            onClick={() => signOut()}
-                            className={`w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all duration-200 group ${isCompact ? 'justify-center' : ''}`}
-                            title={isCompact ? "Sign Out" : undefined}
-                        >
-                            <div className="flex-shrink-0">
-                                <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                            </div>
-                            <div className={`overflow-hidden transition-all duration-300 ${isCompact ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
-                                <span className="font-medium whitespace-nowrap">Sign Out</span>
-                            </div>
-                        </button>
+                        )}
                     </div>
                 </div>
             </aside>
         </>
-    );
-}
-
-
-function SidebarItem({ icon, label, href, active, compact }: { icon: React.ReactNode, label: string, href: string, active: boolean, compact: boolean }) {
-    const router = useRouter();
-
-    return (
-        <Link
-            href={href}
-            onMouseEnter={() => router.prefetch(href)}
-            className={`flex items-center transition-all duration-200 group ${active
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
-                } ${compact
-                    ? 'w-12 h-12 justify-center mx-auto rounded-xl p-0'
-                    : 'w-full pl-[30px] py-3 rounded-xl gap-3'
-                }`}
-            title={compact ? label : undefined}
-        >
-            <div className={`flex-shrink-0 transition-transform duration-200 ${active ? 'scale-110' : 'group-hover:scale-110'}`}>
-                {icon}
-            </div>
-            <div className={`overflow-hidden transition-all duration-300 ${compact ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
-                <span className="font-medium whitespace-nowrap">{label}</span>
-            </div>
-        </Link>
     );
 }

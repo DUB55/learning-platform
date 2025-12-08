@@ -10,6 +10,8 @@ import AdminControls from '@/components/AdminControls';
 import GlobalAnnouncementOverlay from '@/components/GlobalAnnouncementOverlay';
 import DynamicFontProvider from '../components/DynamicFontProvider';
 import SiteContentLoader from '@/components/SiteContentLoader';
+import TimeTracker from '@/components/Gamification/TimeTracker';
+import MainLayout from '@/components/MainLayout';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' });
@@ -42,8 +44,14 @@ export default function RootLayout({
                         <RoutePrefetcher />
                         <GlobalLoadingIndicator />
                         <GlobalAnnouncementOverlay />
+                        <TimeTracker />
                         <AdminControls />
-                        {children}
+
+                        {/* MAIN LAYOUT WRAPPER */}
+                        <MainLayout>
+                            {children}
+                        </MainLayout>
+
                         <AITutorWidget />
                     </UISettingsProvider>
                 </AuthProvider>

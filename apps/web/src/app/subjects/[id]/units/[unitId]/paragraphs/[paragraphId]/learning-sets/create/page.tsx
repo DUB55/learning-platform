@@ -3,11 +3,16 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import Sidebar from '@/components/Sidebar';
-import { Plus, ArrowLeft, Upload, X, Trash2, Sparkles } from 'lucide-react';
+
+import { Plus, ArrowLeft, Upload, X, Trash2, Sparkles, Table } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { dub5ai } from '@/lib/dub5ai';
 import { learningSetSchema } from '@/lib/validation';
+import YoutubeImportModal from '@/components/imports/YoutubeImportModal';
+import FileImportModal from '@/components/imports/FileImportModal';
+import CsvImportModal from '@/components/imports/CsvImportModal';
+
+
 
 interface TermDefinitionPair {
     id: string;
@@ -39,6 +44,33 @@ export default function CreateLearningSetPage() {
     const [customTermSep, setCustomTermSep] = useState('');
     const [customPairSep, setCustomPairSep] = useState('');
     const [isCreating, setIsCreating] = useState(false);
+    const [showYoutubeModal, setShowYoutubeModal] = useState(false);
+    const [showFileModal, setShowFileModal] = useState(false);
+    const [showCsvModal, setShowCsvModal] = useState(false);
+
+    const handleFileSuccess = (data: any, type: 'flashcards' | 'summary') => {
+        if (type === 'flashcards' && Array.isArray(data)) {
+            const newPairs = data.map((p: any) => ({
+                id: Date.now().toString() + Math.random(),
+                term: p.term || '',
+                definition: p.definition || ''
+            }));
+            setPairs(prev => [...prev.filter(p => p.term || p.definition), ...newPairs]);
+        }
+    };
+
+
+    const handleYoutubeSuccess = (data: any, type: 'flashcards' | 'summary') => {
+        if (type === 'flashcards' && Array.isArray(data)) {
+            const newPairs = data.map((p: any) => ({
+                id: Date.now().toString() + Math.random(),
+                term: p.term || '',
+                definition: p.definition || ''
+            }));
+            setPairs(prev => [...prev.filter(p => p.term || p.definition), ...newPairs]);
+        }
+    };
+
 
     const handleAIGenerate = async () => {
         if (!aiContext.trim()) return;
@@ -211,9 +243,9 @@ export default function CreateLearningSetPage() {
     };
 
     return (
-        <div className="flex min-h-screen bg-slate-950 text-white">
-            <Sidebar />
-            <div className="flex-1 flex flex-col p-8">
+        <div className="h-full overflow-y-auto p-8 relative text-white">
+
+            <div className="flex-1 flex flex-col">
                 <div className="flex items-center justify-between mb-8">
                     <button onClick={() => router.back()} className="text-slate-400 hover:text-white transition-colors flex items-center gap-2">
                         <ArrowLeft size={20} /> Back
@@ -255,9 +287,29 @@ export default function CreateLearningSetPage() {
                             <Sparkles size={18} /> Generate with AI
                         </button>
                         <button
+                            onClick={() => setShowYoutubeModal(true)}
+                            className="bg-red-600 hover:bg-red-500 text-white flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors shadow-lg shadow-red-900/20"
+                        >
+                            <Upload size={18} /> YouTube Import
+                        </button>
+                        <button
+                            onClick={() => setShowFileModal(true)}
+                            className="bg-purple-600 hover:bg-purple-500 text-white flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors shadow-lg shadow-purple-900/20"
+                        >
+                            <Upload size={18} /> File Import
+                        </button>
+                        <button
+                            onClick={() => setShowCsvModal(true)}
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors shadow-lg shadow-emerald-900/20"
+                        >
+                            <Table size={18} /> CSV Import
+                        </button>
+                        <button
+
                             onClick={() => setShowImportModal(true)}
                             className="glass-button flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
                         >
+
                             <Upload size={18} /> Import
                         </button>
                     </div>
@@ -505,6 +557,36 @@ export default function CreateLearningSetPage() {
                     </div>
                 </div>
             )}
+            )}
+
+            <YoutubeImportModal
+                isOpen={showYoutubeModal}
+                onClose={() => setShowYoutubeModal(false)}
+                onSuccess={handleYoutubeSuccess}
+                allowedModes={['flashcards']}
+            />
+
+            <FileImportModal
+                isOpen={showFileModal}
+                onClose={() => setShowFileModal(false)}
+                onSuccess={handleFileSuccess}
+                allowedModes={['flashcards']}
+            />
+
+            <CsvImportModal
+                isOpen={showCsvModal}
+                onClose={() => setShowCsvModal(false)}
+                onSuccess={(data) => {
+                    const newPairs = data.map(p => ({
+                        id: Date.now().toString() + Math.random(),
+                        term: p.term,
+                        definition: p.definition
+                    }));
+                    setPairs(prev => [...prev.filter(p => p.term || p.definition), ...newPairs]);
+                }}
+            />
         </div>
+
     );
+
 }

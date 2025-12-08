@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import Sidebar from '@/components/Sidebar';
+
 import { Shield, Search, Save, ChevronDown, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -191,10 +191,10 @@ export default function AdminPermissionsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
-            <Sidebar />
+        <div className="h-full overflow-y-auto p-8 relative">
 
-            <main className="flex-1 overflow-y-auto relative p-8">
+
+            <div className="flex-1 relative">
                 <div className="max-w-6xl mx-auto">
                     <div className="flex items-center justify-between mb-10">
                         <div>
@@ -394,7 +394,7 @@ export default function AdminPermissionsPage() {
                         })}
                     </div>
                 </div>
-            </main>
+            </div>
         </div>
     );
 }
