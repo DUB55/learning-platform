@@ -21,10 +21,12 @@ import {
     ChevronLeft,
     ChevronRight,
     Trophy,
+    BarChart2,
     Timer,
     Network,
     Bot,
-    StickyNote
+    StickyNote,
+    Gamepad2
 } from 'lucide-react';
 import { xpService, UserXP } from '@/lib/xpService';
 import ProfilePictureModal from './ProfilePictureModal';
@@ -128,6 +130,8 @@ export default function Sidebar() {
                     <SidebarItem icon={FileText} label="Study Plans" href="/study-plans" active={isActive('/study-plans')} compact={isCompact} color={getIconColor('text-blue-400')} />
                     <SidebarItem icon={FileText} label="AI PPT" href="/ai-ppt" active={isActive('/ai-ppt')} compact={isCompact} color={getIconColor('text-orange-400')} />
                     <SidebarItem icon={Trophy} label="Leaderboard" href="/dashboard/leaderboard" active={isActive('/dashboard/leaderboard')} compact={isCompact} color={getIconColor('text-yellow-400')} />
+                    <SidebarItem icon={BarChart2} label="Statistics" href="/dashboard/stats" active={isActive('/dashboard/stats')} compact={isCompact} color={getIconColor('text-indigo-400')} />
+                    <SidebarItem icon={Gamepad2} label="Arcade" href="/games" active={isActive('/games')} compact={isCompact} color={getIconColor('text-fuchsia-400')} />
 
                     <SidebarItem icon={Library} label="Library" href="/library" active={isActive('/library')} compact={isCompact} color={getIconColor('text-indigo-400')} />
 

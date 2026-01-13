@@ -7,8 +7,63 @@ import { useAuth } from '@/contexts/AuthContext';
 import {
     ArrowLeft, Edit2, Trash2, Play, Shuffle, Eye, EyeOff,
     ChevronsRight, Star, Settings, X, Check, ChevronLeft, ChevronRight,
-    BookOpen, PenTool, ClipboardList, Gamepad2, Layers, GraduationCap
+    BookOpen, PenTool, ClipboardList, Gamepad2, Layers, GraduationCap, Volume2
 } from 'lucide-react';
+
+// ... (imports remain)
+
+// Add speakText helper inside component
+const speakText = (text: string) => {
+    if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        // utterance.lang = 'nl-NL'; // Detect or default? Let's use auto or en-US/nl-NL based on content? 
+        // For now, let browser detect or default.
+        window.speechSynthesis.cancel(); // Stop previous
+        window.speechSynthesis.speak(utterance);
+    }
+};
+
+// ... (inside flashcard render)
+
+{/* Flashcard with flip animation */ }
+<div
+    className="perspective-1000 cursor-pointer mb-8"
+    onClick={flipCard}
+>
+    <div className={`relative transition-transform duration-500 transform-style-3d ${isFlipped && animationStyle === 'flip' ? 'rotate-y-180' : ''}`}
+        style={{ transformStyle: 'preserve-3d', transition: 'transform 0.6s' }}
+    >
+        <div className={`glass-card p-12 min-h-[350px] flex flex-col items-center justify-center ${isFlipped ? 'opacity-0' : 'opacity-100'}`}
+            style={{ backfaceVisibility: 'hidden' }}
+        >
+            <button
+                onClick={(e) => { e.stopPropagation(); speakText(isAnswerWithTerm(currentIndex) ? activeCard.definition : activeCard.term); }}
+                className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+            >
+                <Volume2 className="w-5 h-5" />
+            </button>
+            <p className="text-slate-400 text-sm mb-4">{isAnswerWithTerm(currentIndex) ? 'Definition' : 'Term'}</p>
+            <h3 className="text-3xl font-bold text-white text-center">{isAnswerWithTerm(currentIndex) ? activeCard.definition : activeCard.term}</h3>
+            <p className="text-slate-500 text-sm mt-8">Click or press Space to flip</p>
+        </div>
+    </div>
+
+    {isFlipped && (
+        <div
+            className={`glass-card p-12 min-h-[350px] flex flex-col items-center justify-center absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 ${animationStyle === 'flip' ? 'rotate-y-180' : ''}`}
+        >
+            <button
+                onClick={(e) => { e.stopPropagation(); speakText(isAnswerWithTerm(currentIndex) ? activeCard.term : activeCard.definition); }}
+                className="absolute top-4 right-4 p-2 text-blue-300 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+            >
+                <Volume2 className="w-5 h-5" />
+            </button>
+            <p className="text-blue-400 text-sm mb-4">{isAnswerWithTerm(currentIndex) ? 'Term' : 'Definition'}</p>
+            <h3 className="text-2xl font-medium text-white text-center">{isAnswerWithTerm(currentIndex) ? activeCard.term : activeCard.definition}</h3>
+        </div>
+    )}
+</div>
+
 import { supabase } from '@/lib/supabase';
 import BlockBlastGame from '@/components/games/BlockBlastGame';
 import FlappyBirdGame from '@/components/games/FlappyBirdGame';
@@ -16,6 +71,7 @@ import CrossyRoadGame from '@/components/games/CrossyRoadGame';
 import MatchGame from '@/components/games/MatchGame';
 import MeteorGame from '@/components/games/MeteorGame';
 import StudyResultsPage from '@/components/StudyResultsPage';
+import Sidebar from '@/components/Sidebar';
 
 interface LearningSetItem {
     id: string;
@@ -178,6 +234,14 @@ export default function ViewLearningSetPage() {
         setItems(items.map(item =>
             item.id === id ? { ...item, starred: !item.starred } : item
         ));
+    };
+
+    const speakText = (text: string) => {
+        if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(utterance);
+        }
     };
 
     // FLASHCARD MODE
@@ -625,317 +689,176 @@ export default function ViewLearningSetPage() {
                             <div className={`relative transition-transform duration-500 transform-style-3d ${isFlipped && animationStyle === 'flip' ? 'rotate-y-180' : ''}`}
                                 style={{ transformStyle: 'preserve-3d', transition: 'transform 0.6s' }}
                             >
-                                className={`glass-card p-12 min-h-[350px] flex flex-col items-center justify-center ${isFlipped ? 'opacity-0' : 'opacity-100'}`}
-                                style={{ backfaceVisibility: 'hidden' }}
+                                <div className={`glass-card p-12 min-h-[350px] flex flex-col items-center justify-center ${isFlipped ? 'opacity-0' : 'opacity-100'}`}
+                                    style={{ backfaceVisibility: 'hidden' }}
                                 >
-                                <p className="text-slate-400 text-sm mb-4">{isAnswerWithTerm(currentIndex) ? 'Definition' : 'Term'}</p>
-                                <h3 className="text-3xl font-bold text-white text-center">{isAnswerWithTerm(currentIndex) ? activeCard.definition : activeCard.term}</h3>
-                                <p className="text-slate-500 text-sm mt-8">Click or press Space to flip</p>
-                            </div>
-
-                            {isFlipped && (
-                                <div
-                                    className={`glass-card p-12 min-h-[350px] flex flex-col items-center justify-center absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 ${animationStyle === 'flip' ? 'rotate-y-180' : ''}`}
-                                >
-                                    <p className="text-blue-400 text-sm mb-4">{isAnswerWithTerm(currentIndex) ? 'Term' : 'Definition'}</p>
-                                    <h3 className="text-2xl font-medium text-white text-center">{isAnswerWithTerm(currentIndex) ? activeCard.term : activeCard.definition}</h3>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); speakText(isAnswerWithTerm(currentIndex) ? activeCard.definition : activeCard.term); }}
+                                        className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                                    >
+                                        <Volume2 className="w-5 h-5" />
+                                    </button>
+                                    <p className="text-slate-400 text-sm mb-4">{isAnswerWithTerm(currentIndex) ? 'Definition' : 'Term'}</p>
+                                    <h3 className="text-3xl font-bold text-white text-center">{isAnswerWithTerm(currentIndex) ? activeCard.definition : activeCard.term}</h3>
+                                    <p className="text-slate-500 text-sm mt-8">Click or press Space to flip</p>
                                 </div>
-                            )}
+
+                                {isFlipped && (
+                                    <div
+                                        className={`glass-card p-12 min-h-[350px] flex flex-col items-center justify-center absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 ${animationStyle === 'flip' ? 'rotate-y-180' : ''}`}
+                                    >
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); speakText(isAnswerWithTerm(currentIndex) ? activeCard.term : activeCard.definition); }}
+                                            className="absolute top-4 right-4 p-2 text-blue-300 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                                        >
+                                            <Volume2 className="w-5 h-5" />
+                                        </button>
+                                        <p className="text-blue-400 text-sm mb-4">{isAnswerWithTerm(currentIndex) ? 'Term' : 'Definition'}</p>
+                                        <h3 className="text-2xl font-medium text-white text-center">{isAnswerWithTerm(currentIndex) ? activeCard.term : activeCard.definition}</h3>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Navigation */}
+                        <div className="flex items-center justify-between">
+                            <button
+                                onClick={() => { setCurrentIndex(Math.max(0, currentIndex - 1)); setIsFlipped(false); }}
+                                disabled={currentIndex === 0}
+                                className="glass-button px-6 py-3 rounded-xl disabled:opacity-30 flex items-center gap-2"
+                            >
+                                <ChevronLeft className="w-4 h-4" /> Previous
+                            </button>
+
+                            <button onClick={() => toggleStar(activeCard.id)} className="p-3">
+                                <Star className={`w-6 h-6 ${activeCard.starred ? 'fill-yellow-500 text-yellow-500' : 'text-slate-500'}`} />
+                            </button>
+
+                            <button
+                                onClick={() => { setCurrentIndex(Math.min(studyItems.length - 1, currentIndex + 1)); setIsFlipped(false); }}
+                                disabled={currentIndex === studyItems.length - 1}
+                                className="glass-button px-6 py-3 rounded-xl disabled:opacity-30 flex items-center gap-2"
+                            >
+                                Next <ChevronRight className="w-4 h-4" />
+                            </button>
                         </div>
                     </div>
-
-                    {/* Navigation */}
-                    <div className="flex items-center justify-between">
-                        <button
-                            onClick={() => { setCurrentIndex(Math.max(0, currentIndex - 1)); setIsFlipped(false); }}
-                            disabled={currentIndex === 0}
-                            className="glass-button px-6 py-3 rounded-xl disabled:opacity-30 flex items-center gap-2"
-                        >
-                            <ChevronLeft className="w-4 h-4" /> Previous
-                        </button>
-
-                        <button onClick={() => toggleStar(activeCard.id)} className="p-3">
-                            <Star className={`w-6 h-6 ${activeCard.starred ? 'fill-yellow-500 text-yellow-500' : 'text-slate-500'}`} />
-                        </button>
-
-                        <button
-                            onClick={() => { setCurrentIndex(Math.min(studyItems.length - 1, currentIndex + 1)); setIsFlipped(false); }}
-                            disabled={currentIndex === studyItems.length - 1}
-                            className="glass-button px-6 py-3 rounded-xl disabled:opacity-30 flex items-center gap-2"
-                        >
-                            Next <ChevronRight className="w-4 h-4" />
-                        </button>
-                    </div>
                 </div>
-            </div>
-                </div >
-            { showSettings && <SettingsModal />
-    }
+            </div >
+            {
+            showSettings && <SettingsModal />
+        }
             </div >
         );
-}
+    }
 
-// MULTIPLE CHOICE VIEW
-if (studyMode === 'multiple-choice' && studyItems.length > 0) {
-    const currentItem = studyItems[currentIndex];
-    const question = isAnswerWithTerm(currentIndex) ? currentItem.definition : currentItem.term;
+    // MULTIPLE CHOICE VIEW
+    if (studyMode === 'multiple-choice' && studyItems.length > 0) {
+        const currentItem = studyItems[currentIndex];
+        const question = isAnswerWithTerm(currentIndex) ? currentItem.definition : currentItem.term;
 
-    return (
-        <div className="h-full overflow-y-auto p-8 relative">
+        return (
+            <div className="h-full overflow-y-auto p-8 relative">
 
-            <div className="flex-1 relative">
-                <div className="max-w-3xl mx-auto">
-                    <div className="flex justify-between items-center mb-6">
-                        <button onClick={() => setStudyMode(null)} className="flex items-center gap-2 text-slate-400 hover:text-white">
-                            <ArrowLeft className="w-4 h-4" /> Exit
-                        </button>
-                        <span className="text-slate-400">{currentIndex + 1} / {studyItems.length}</span>
-                        <button onClick={() => setShowSettings(true)} className="text-slate-400 hover:text-white">
-                            <Settings className="w-5 h-5" />
-                        </button>
-                    </div>
-
-                    <div className="glass-card p-8 mb-6">
-                        <p className="text-slate-400 text-sm mb-2">{isAnswerWithTerm(currentIndex) ? 'Definition' : 'Term'}</p>
-                        <h2 className="text-2xl font-bold text-white">{question}</h2>
-                    </div>
-
-                    <div className="grid gap-3">
-                        {mcOptions.map((option, idx) => (
-                            <button
-                                key={idx}
-                                onClick={() => handleMCSelect(option)}
-                                disabled={mcResult !== null}
-                                className={`p-4 rounded-xl text-left transition-all ${mcSelected === option
-                                    ? mcResult === 'correct'
-                                        ? 'bg-green-500/20 border-2 border-green-500 text-green-400'
-                                        : 'bg-red-500/20 border-2 border-red-500 text-red-400'
-                                    : mcResult && option === (isAnswerWithTerm(currentIndex) ? currentItem.term : currentItem.definition)
-                                        ? 'bg-green-500/20 border-2 border-green-500 text-green-400'
-                                        : 'glass-card hover:bg-white/5'
-                                    }`}
-                            >
-                                <span className="text-blue-400 mr-3">{String.fromCharCode(65 + idx)}.</span>
-                                <span className="text-white">{option}</span>
+                <div className="flex-1 relative">
+                    <div className="max-w-3xl mx-auto">
+                        <div className="flex justify-between items-center mb-6">
+                            <button onClick={() => setStudyMode(null)} className="flex items-center gap-2 text-slate-400 hover:text-white">
+                                <ArrowLeft className="w-4 h-4" /> Exit
                             </button>
-                        ))}
-                    </div>
-
-                    {mcResult && (
-                        <button
-                            onClick={nextMCQuestion}
-                            disabled={currentIndex === studyItems.length - 1}
-                            className="w-full mt-6 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-medium disabled:opacity-50"
-                        >
-                            {currentIndex === studyItems.length - 1 ? 'Finished!' : 'Next Question'}
-                        </button>
-                    )}
-                </div>
-            </div>
-            {showSettings && <SettingsModal />}
-        </div>
-    );
-}
-
-// WRITING MODE VIEW
-if (studyMode === 'writing' && studyItems.length > 0) {
-    const currentItem = studyItems[currentIndex];
-    const question = isAnswerWithTerm(currentIndex) ? currentItem.definition : currentItem.term;
-    const correctAnswer = isAnswerWithTerm(currentIndex) ? currentItem.term : currentItem.definition;
-
-    return (
-        <div className="h-full overflow-y-auto p-8 relative">
-
-            <div className="flex-1 relative">
-                <div className="max-w-3xl mx-auto">
-                    <div className="flex justify-between items-center mb-6">
-                        <button onClick={() => setStudyMode(null)} className="flex items-center gap-2 text-slate-400 hover:text-white">
-                            <ArrowLeft className="w-4 h-4" /> Exit
-                        </button>
-                        <span className="text-slate-400">{currentIndex + 1} / {studyItems.length}</span>
-                        <button onClick={() => setShowSettings(true)} className="text-slate-400 hover:text-white">
-                            <Settings className="w-5 h-5" />
-                        </button>
-                    </div>
-
-                    <div className="glass-card p-8 mb-6">
-                        <p className="text-slate-400 text-sm mb-2">{settings.answerWithTerm ? 'Definition' : 'Term'}</p>
-                        <h2 className="text-2xl font-bold text-white">{question}</h2>
-                    </div>
-
-                    <div className="space-y-4">
-                        <input
-                            type="text"
-                            value={userAnswer}
-                            onChange={(e) => setUserAnswer(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    if (writeResult) nextWriteQuestion();
-                                    else checkWriteAnswer();
-                                }
-                            }}
-                            placeholder={`Type the ${isAnswerWithTerm(currentIndex) ? 'term' : 'definition'}...`}
-                            disabled={writeResult !== null}
-                            className={`w-full bg-slate-800/50 border-2 rounded-xl px-4 py-4 text-white text-lg focus:outline-none ${writeResult === 'correct' ? 'border-green-500 bg-green-500/10' :
-                                writeResult === 'wrong' ? 'border-red-500 bg-red-500/10' :
-                                    'border-white/10 focus:border-blue-500'
-                                }`}
-                            autoFocus
-                        />
-
-                        {writeResult === 'wrong' && (
-                            <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
-                                <p className="text-red-400 text-sm mb-1">Correct answer:</p>
-                                <p className="text-white font-medium">{correctAnswer}</p>
-                            </div>
-                        )}
-
-                        {writeResult ? (
-                            <button
-                                onClick={nextWriteQuestion}
-                                disabled={currentIndex === studyItems.length - 1}
-                                className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-medium disabled:opacity-50"
-                            >
-                                {currentIndex === studyItems.length - 1 ? 'Finished!' : 'Continue (Enter)'}
-                            </button>
-                        ) : (
-                            <button
-                                onClick={checkWriteAnswer}
-                                className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-medium"
-                            >
-                                Check Answer (Enter)
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </main>
-            {showSettings && <SettingsModal />}
-        </div>
-    );
-}
-
-// LEARNING MODE VIEW (3-step: Review -> MC -> Write if wrong)
-if (studyMode === 'learning' && studyItems.length > 0) {
-    const currentItem = studyItems[currentIndex];
-    const question = isAnswerWithTerm(currentIndex) ? currentItem.definition : currentItem.term;
-    const correctAnswer = isAnswerWithTerm(currentIndex) ? currentItem.term : currentItem.definition;
-
-    return (
-        <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
-            <Sidebar />
-            <main className="flex-1 overflow-y-auto relative p-8">
-                <div className="max-w-3xl mx-auto">
-                    <div className="flex justify-between items-center mb-6">
-                        <button onClick={() => setStudyMode(null)} className="flex items-center gap-2 text-slate-400 hover:text-white">
-                            <ArrowLeft className="w-4 h-4" /> Exit
-                        </button>
-                        <div className="flex items-center gap-4">
                             <span className="text-slate-400">{currentIndex + 1} / {studyItems.length}</span>
-                            <div className="flex gap-1">
-                                {['review', 'mc', 'write'].map((step, i) => (
-                                    <div
-                                        key={step}
-                                        className={`w-2 h-2 rounded-full ${learningStep === step ? 'bg-blue-500' :
-                                            i < ['review', 'mc', 'write'].indexOf(learningStep) ? 'bg-green-500' : 'bg-slate-600'
-                                            }`}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                        <button onClick={() => setShowSettings(true)} className="text-slate-400 hover:text-white">
-                            <Settings className="w-5 h-5" />
-                        </button>
-                    </div>
-
-                    {/* Step 1: Review */}
-                    {learningStep === 'review' && (
-                        <div className="space-y-6">
-                            <div className="glass-card p-8 text-center">
-                                <p className="text-slate-400 text-sm mb-2">Term</p>
-                                <h2 className="text-3xl font-bold text-white mb-6">{currentItem.term}</h2>
-                                <div className="h-px bg-white/10 mb-6" />
-                                <p className="text-slate-400 text-sm mb-2">Definition</p>
-                                <p className="text-xl text-slate-200">{currentItem.definition}</p>
-                            </div>
-                            <button
-                                onClick={nextLearningStep}
-                                className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-medium text-lg"
-                            >
-                                Got it! Quiz me →
+                            <button onClick={() => setShowSettings(true)} className="text-slate-400 hover:text-white">
+                                <Settings className="w-5 h-5" />
                             </button>
                         </div>
-                    )}
 
-                    {/* Step 2: Multiple Choice */}
-                    {learningStep === 'mc' && (
-                        <div className="space-y-6">
-                            <div className="glass-card p-8">
-                                <p className="text-slate-400 text-sm mb-2">{isAnswerWithTerm(currentIndex) ? 'Definition' : 'Term'}</p>
-                                <h2 className="text-2xl font-bold text-white">{question}</h2>
-                            </div>
+                        <div className="glass-card p-8 mb-6">
+                            <p className="text-slate-400 text-sm mb-2">{isAnswerWithTerm(currentIndex) ? 'Definition' : 'Term'}</p>
+                            <h2 className="text-2xl font-bold text-white">{question}</h2>
+                        </div>
 
-                            <div className="grid gap-3">
-                                {learningMCOptions.map((option, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => !learningMCResult && handleLearningMC(option)}
-                                        disabled={learningMCResult !== null}
-                                        className={`p-4 rounded-xl text-left transition-all ${learningMCResult && option === correctAnswer
-                                            ? 'bg-green-500/20 border-2 border-green-500 text-green-400'
-                                            : learningMCResult === 'wrong' && option !== correctAnswer && learningMCOptions.indexOf(option) === learningMCOptions.findIndex(o => o !== correctAnswer)
-                                                ? 'bg-red-500/20 border-2 border-red-500 text-red-400'
-                                                : 'glass-card hover:bg-white/5'
-                                            }`}
-                                    >
-                                        <span className="text-blue-400 mr-3">{String.fromCharCode(65 + idx)}.</span>
-                                        <span className="text-white">{option}</span>
-                                    </button>
-                                ))}
-                            </div>
-
-                            {learningMCResult && (
+                        <div className="grid gap-3">
+                            {mcOptions.map((option, idx) => (
                                 <button
-                                    onClick={nextLearningStep}
-                                    className={`w-full py-4 rounded-xl font-medium text-lg ${learningMCResult === 'correct'
-                                        ? 'bg-green-600 hover:bg-green-500 text-white'
-                                        : 'bg-orange-600 hover:bg-orange-500 text-white'
+                                    key={idx}
+                                    onClick={() => handleMCSelect(option)}
+                                    disabled={mcResult !== null}
+                                    className={`p-4 rounded-xl text-left transition-all ${mcSelected === option
+                                        ? mcResult === 'correct'
+                                            ? 'bg-green-500/20 border-2 border-green-500 text-green-400'
+                                            : 'bg-red-500/20 border-2 border-red-500 text-red-400'
+                                        : mcResult && option === (isAnswerWithTerm(currentIndex) ? currentItem.term : currentItem.definition)
+                                            ? 'bg-green-500/20 border-2 border-green-500 text-green-400'
+                                            : 'glass-card hover:bg-white/5'
                                         }`}
                                 >
-                                    {learningMCResult === 'correct' ? 'Continue →' : 'Practice Typing →'}
+                                    <span className="text-blue-400 mr-3">{String.fromCharCode(65 + idx)}.</span>
+                                    <span className="text-white">{option}</span>
                                 </button>
-                            )}
+                            ))}
                         </div>
-                    )}
 
-                    {/* Step 3: Write (only if MC was wrong) */}
-                    {learningStep === 'write' && (
-                        <div className="space-y-6">
-                            <div className="glass-card p-8">
-                                <p className="text-slate-400 text-sm mb-2">{settings.answerWithTerm ? 'Definition' : 'Term'}</p>
-                                <h2 className="text-2xl font-bold text-white">{question}</h2>
-                            </div>
+                        {mcResult && (
+                            <button
+                                onClick={nextMCQuestion}
+                                disabled={currentIndex === studyItems.length - 1}
+                                className="w-full mt-6 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-medium disabled:opacity-50"
+                            >
+                                {currentIndex === studyItems.length - 1 ? 'Finished!' : 'Next Question'}
+                            </button>
+                        )}
+                    </div>
+                </div>
+                {showSettings && <SettingsModal />}
+            </div>
+        );
+    }
 
-                            <p className="text-orange-400 text-center">Type the correct answer to reinforce your memory:</p>
+    // WRITING MODE VIEW
+    if (studyMode === 'writing' && studyItems.length > 0) {
+        const currentItem = studyItems[currentIndex];
+        const question = isAnswerWithTerm(currentIndex) ? currentItem.definition : currentItem.term;
+        const correctAnswer = isAnswerWithTerm(currentIndex) ? currentItem.term : currentItem.definition;
 
+        return (
+            <div className="h-full overflow-y-auto p-8 relative">
+
+                <div className="flex-1 relative">
+                    <div className="max-w-3xl mx-auto">
+                        <div className="flex justify-between items-center mb-6">
+                            <button onClick={() => setStudyMode(null)} className="flex items-center gap-2 text-slate-400 hover:text-white">
+                                <ArrowLeft className="w-4 h-4" /> Exit
+                            </button>
+                            <span className="text-slate-400">{currentIndex + 1} / {studyItems.length}</span>
+                            <button onClick={() => setShowSettings(true)} className="text-slate-400 hover:text-white">
+                                <Settings className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="glass-card p-8 mb-6">
+                            <p className="text-slate-400 text-sm mb-2">{settings.answerWithTerm ? 'Definition' : 'Term'}</p>
+                            <h2 className="text-2xl font-bold text-white">{question}</h2>
+                        </div>
+
+                        <div className="space-y-4">
                             <input
                                 type="text"
                                 value={userAnswer}
                                 onChange={(e) => setUserAnswer(e.target.value)}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
-                                        if (writeResult) nextLearningStep();
+                                        if (writeResult) nextWriteQuestion();
                                         else checkWriteAnswer();
                                     }
                                 }}
-                                    }}
-                            placeholder={`Type the ${isAnswerWithTerm(currentIndex) ? 'term' : 'definition'}...`}
-                            disabled={writeResult !== null}
-                            className={`w-full bg-slate-800/50 border-2 rounded-xl px-4 py-4 text-white text-lg focus:outline-none ${writeResult === 'correct' ? 'border-green-500 bg-green-500/10' :
-                                writeResult === 'wrong' ? 'border-red-500 bg-red-500/10' :
-                                    'border-white/10 focus:border-blue-500'
-                                }`}
-                            autoFocus
-                                />
+                                placeholder={`Type the ${isAnswerWithTerm(currentIndex) ? 'term' : 'definition'}...`}
+                                disabled={writeResult !== null}
+                                className={`w-full bg-slate-800/50 border-2 rounded-xl px-4 py-4 text-white text-lg focus:outline-none ${writeResult === 'correct' ? 'border-green-500 bg-green-500/10' :
+                                    writeResult === 'wrong' ? 'border-red-500 bg-red-500/10' :
+                                        'border-white/10 focus:border-blue-500'
+                                    }`}
+                                autoFocus
+                            />
 
                             {writeResult === 'wrong' && (
                                 <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
@@ -946,82 +869,387 @@ if (studyMode === 'learning' && studyItems.length > 0) {
 
                             {writeResult ? (
                                 <button
-                                    onClick={nextLearningStep}
-                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-medium text-lg"
+                                    onClick={nextWriteQuestion}
+                                    disabled={currentIndex === studyItems.length - 1}
+                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-medium disabled:opacity-50"
                                 >
-                                    {currentIndex === studyItems.length - 1 ? 'Finish!' : 'Next Card →'}
+                                    {currentIndex === studyItems.length - 1 ? 'Finished!' : 'Continue (Enter)'}
                                 </button>
                             ) : (
                                 <button
                                     onClick={checkWriteAnswer}
-                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-medium"
+                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-medium"
                                 >
-                                    Check Answer
+                                    Check Answer (Enter)
                                 </button>
                             )}
                         </div>
-                    )}
-                </div>
-            </main>
-            {showSettings && <SettingsModal />}
-        </div>
-    );
-}
+                    </div>
+                </main>
+                {showSettings && <SettingsModal />}
+            </div>
+        );
+    }
 
-// TEST MODE VIEW
-if (studyMode === 'test') {
-    if (testSubmitted) {
-        const totalCorrect = Object.values(testResults).filter(Boolean).length;
-        const filteredItems = studyItems.filter(item => {
-            if (testFilter === 'all') return true;
-            if (testFilter === 'correct') return testResults[item.id];
-            return !testResults[item.id];
-        });
+    // LEARNING MODE VIEW (3-step: Review -> MC -> Write if wrong)
+    if (studyMode === 'learning' && studyItems.length > 0) {
+        const currentItem = studyItems[currentIndex];
+        const question = isAnswerWithTerm(currentIndex) ? currentItem.definition : currentItem.term;
+        const correctAnswer = isAnswerWithTerm(currentIndex) ? currentItem.term : currentItem.definition;
 
         return (
             <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
                 <Sidebar />
                 <main className="flex-1 overflow-y-auto relative p-8">
                     <div className="max-w-3xl mx-auto">
-                        <button onClick={() => setStudyMode(null)} className="flex items-center gap-2 text-slate-400 hover:text-white mb-6">
-                            <ArrowLeft className="w-4 h-4" /> Exit
-                        </button>
-
-                        <div className="glass-card p-6 mb-6 text-center">
-                            <h2 className="text-3xl font-bold text-white mb-2">
-                                {totalCorrect} / {studyItems.length}
-                            </h2>
-                            <p className="text-slate-400">
-                                {Math.round((totalCorrect / studyItems.length) * 100)}% correct
-                            </p>
+                        <div className="flex justify-between items-center mb-6">
+                            <button onClick={() => setStudyMode(null)} className="flex items-center gap-2 text-slate-400 hover:text-white">
+                                <ArrowLeft className="w-4 h-4" /> Exit
+                            </button>
+                            <div className="flex items-center gap-4">
+                                <span className="text-slate-400">{currentIndex + 1} / {studyItems.length}</span>
+                                <div className="flex gap-1">
+                                    {['review', 'mc', 'write'].map((step, i) => (
+                                        <div
+                                            key={step}
+                                            className={`w-2 h-2 rounded-full ${learningStep === step ? 'bg-blue-500' :
+                                                i < ['review', 'mc', 'write'].indexOf(learningStep) ? 'bg-green-500' : 'bg-slate-600'
+                                                }`}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                            <button onClick={() => setShowSettings(true)} className="text-slate-400 hover:text-white">
+                                <Settings className="w-5 h-5" />
+                            </button>
                         </div>
 
-                        <div className="flex gap-2 mb-6">
-                            {(['all', 'correct', 'wrong'] as const).map(filter => (
+                        {/* Step 1: Review */}
+                        {learningStep === 'review' && (
+                            <div className="space-y-6">
+                                <div className="glass-card p-8 text-center">
+                                    <p className="text-slate-400 text-sm mb-2">Term</p>
+                                    <h2 className="text-3xl font-bold text-white mb-6">{currentItem.term}</h2>
+                                    <div className="h-px bg-white/10 mb-6" />
+                                    <p className="text-slate-400 text-sm mb-2">Definition</p>
+                                    <p className="text-xl text-slate-200">{currentItem.definition}</p>
+                                </div>
                                 <button
-                                    key={filter}
-                                    onClick={() => setTestFilter(filter)}
-                                    className={`px-4 py-2 rounded-xl transition-colors ${testFilter === filter ? 'bg-blue-600 text-white' : 'glass-button'
-                                        }`}
+                                    onClick={nextLearningStep}
+                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-medium text-lg"
                                 >
-                                    {filter === 'all' ? 'All' : filter === 'correct' ? '✓ Correct' : '✗ Wrong'}
+                                    Got it! Quiz me →
                                 </button>
-                            ))}
+                            </div>
+                        )}
+
+                        {/* Step 2: Multiple Choice */}
+                        {learningStep === 'mc' && (
+                            <div className="space-y-6">
+                                <div className="glass-card p-8">
+                                    <p className="text-slate-400 text-sm mb-2">{isAnswerWithTerm(currentIndex) ? 'Definition' : 'Term'}</p>
+                                    <h2 className="text-2xl font-bold text-white">{question}</h2>
+                                </div>
+
+                                <div className="grid gap-3">
+                                    {learningMCOptions.map((option, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => !learningMCResult && handleLearningMC(option)}
+                                            disabled={learningMCResult !== null}
+                                            className={`p-4 rounded-xl text-left transition-all ${learningMCResult && option === correctAnswer
+                                                ? 'bg-green-500/20 border-2 border-green-500 text-green-400'
+                                                : learningMCResult === 'wrong' && option !== correctAnswer && learningMCOptions.indexOf(option) === learningMCOptions.findIndex(o => o !== correctAnswer)
+                                                    ? 'bg-red-500/20 border-2 border-red-500 text-red-400'
+                                                    : 'glass-card hover:bg-white/5'
+                                                }`}
+                                        >
+                                            <span className="text-blue-400 mr-3">{String.fromCharCode(65 + idx)}.</span>
+                                            <span className="text-white">{option}</span>
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {learningMCResult && (
+                                    <button
+                                        onClick={nextLearningStep}
+                                        className={`w-full py-4 rounded-xl font-medium text-lg ${learningMCResult === 'correct'
+                                            ? 'bg-green-600 hover:bg-green-500 text-white'
+                                            : 'bg-orange-600 hover:bg-orange-500 text-white'
+                                            }`}
+                                    >
+                                        {learningMCResult === 'correct' ? 'Continue →' : 'Practice Typing →'}
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Step 3: Write (only if MC was wrong) */}
+                        {learningStep === 'write' && (
+                            <div className="space-y-6">
+                                <div className="glass-card p-8">
+                                    <p className="text-slate-400 text-sm mb-2">{settings.answerWithTerm ? 'Definition' : 'Term'}</p>
+                                    <h2 className="text-2xl font-bold text-white">{question}</h2>
+                                </div>
+
+                                <p className="text-orange-400 text-center">Type the correct answer to reinforce your memory:</p>
+
+                                <input
+                                    type="text"
+                                    value={userAnswer}
+                                    onChange={(e) => setUserAnswer(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            if (writeResult) nextLearningStep();
+                                            else checkWriteAnswer();
+                                        }
+                                    }}
+                                    }}
+                                placeholder={`Type the ${isAnswerWithTerm(currentIndex) ? 'term' : 'definition'}...`}
+                                disabled={writeResult !== null}
+                                className={`w-full bg-slate-800/50 border-2 rounded-xl px-4 py-4 text-white text-lg focus:outline-none ${writeResult === 'correct' ? 'border-green-500 bg-green-500/10' :
+                                    writeResult === 'wrong' ? 'border-red-500 bg-red-500/10' :
+                                        'border-white/10 focus:border-blue-500'
+                                    }`}
+                                autoFocus
+                                />
+
+                                {writeResult === 'wrong' && (
+                                    <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
+                                        <p className="text-red-400 text-sm mb-1">Correct answer:</p>
+                                        <p className="text-white font-medium">{correctAnswer}</p>
+                                    </div>
+                                )}
+
+                                {writeResult ? (
+                                    <button
+                                        onClick={nextLearningStep}
+                                        className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-medium text-lg"
+                                    >
+                                        {currentIndex === studyItems.length - 1 ? 'Finish!' : 'Next Card →'}
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={checkWriteAnswer}
+                                        className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-medium"
+                                    >
+                                        Check Answer
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </main>
+                {showSettings && <SettingsModal />}
+            </div>
+        );
+    }
+
+    // TEST MODE VIEW
+    if (studyMode === 'test') {
+        if (testSubmitted) {
+            const totalCorrect = Object.values(testResults).filter(Boolean).length;
+            const filteredItems = studyItems.filter(item => {
+                if (testFilter === 'all') return true;
+                if (testFilter === 'correct') return testResults[item.id];
+                return !testResults[item.id];
+            });
+
+            return (
+                <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
+                    <Sidebar />
+                    <main className="flex-1 overflow-y-auto relative p-8">
+                        <div className="max-w-3xl mx-auto">
+                            <button onClick={() => setStudyMode(null)} className="flex items-center gap-2 text-slate-400 hover:text-white mb-6">
+                                <ArrowLeft className="w-4 h-4" /> Exit
+                            </button>
+
+                            <div className="glass-card p-6 mb-6 text-center">
+                                <h2 className="text-3xl font-bold text-white mb-2">
+                                    {totalCorrect} / {studyItems.length}
+                                </h2>
+                                <p className="text-slate-400">
+                                    {Math.round((totalCorrect / studyItems.length) * 100)}% correct
+                                </p>
+                            </div>
+
+                            <div className="flex gap-2 mb-6">
+                                {(['all', 'correct', 'wrong'] as const).map(filter => (
+                                    <button
+                                        key={filter}
+                                        onClick={() => setTestFilter(filter)}
+                                        className={`px-4 py-2 rounded-xl transition-colors ${testFilter === filter ? 'bg-blue-600 text-white' : 'glass-button'
+                                            }`}
+                                    >
+                                        {filter === 'all' ? 'All' : filter === 'correct' ? '✓ Correct' : '✗ Wrong'}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="space-y-3">
+                                {filteredItems.map(item => (
+                                    <div key={item.id} className={`p-4 rounded-xl border-2 ${testResults[item.id] ? 'border-green-500/30 bg-green-500/5' : 'border-red-500/30 bg-red-500/5'
+                                        }`}>
+                                        <p className="text-slate-400 text-sm">{isAnswerWithTerm(studyItems.findIndex(i => i.id === item.id)) ? item.definition : item.term}</p>
+                                        <p className="text-white font-medium mt-1">Your answer: {testAnswers[item.id] || '(empty)'}</p>
+                                        {!testResults[item.id] && (
+                                            <p className="text-green-400 text-sm mt-1">
+                                                Correct: {isAnswerWithTerm(studyItems.findIndex(i => i.id === item.id)) ? item.term : item.definition}
+                                            </p>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            );
+        }
+
+        return (
+            <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
+                <Sidebar />
+                <main className="flex-1 overflow-y-auto relative p-8">
+                    <div className="max-w-3xl mx-auto">
+                        <div className="flex justify-between items-center mb-6">
+                            <button onClick={() => setStudyMode(null)} className="flex items-center gap-2 text-slate-400 hover:text-white">
+                                <ArrowLeft className="w-4 h-4" /> Exit
+                            </button>
+                            <button onClick={() => setShowSettings(true)} className="text-slate-400 hover:text-white">
+                                <Settings className="w-5 h-5" />
+                            </button>
                         </div>
 
-                        <div className="space-y-3">
-                            {filteredItems.map(item => (
-                                <div key={item.id} className={`p-4 rounded-xl border-2 ${testResults[item.id] ? 'border-green-500/30 bg-green-500/5' : 'border-red-500/30 bg-red-500/5'
-                                    }`}>
-                                    <p className="text-slate-400 text-sm">{isAnswerWithTerm(studyItems.findIndex(i => i.id === item.id)) ? item.definition : item.term}</p>
-                                    <p className="text-white font-medium mt-1">Your answer: {testAnswers[item.id] || '(empty)'}</p>
-                                    {!testResults[item.id] && (
-                                        <p className="text-green-400 text-sm mt-1">
-                                            Correct: {isAnswerWithTerm(studyItems.findIndex(i => i.id === item.id)) ? item.term : item.definition}
-                                        </p>
-                                    )}
+                        <h2 className="text-2xl font-bold text-white mb-6">Test Mode</h2>
+
+                        <div className="space-y-6">
+                            {studyItems.map((item, idx) => (
+                                <div key={item.id} className="glass-card p-4">
+                                    <p className="text-slate-400 text-sm mb-2">
+                                        {idx + 1}. {isAnswerWithTerm(idx) ? item.definition : item.term}
+                                    </p>
+                                    <input
+                                        type="text"
+                                        value={testAnswers[item.id] || ''}
+                                        onChange={(e) => setTestAnswers({ ...testAnswers, [item.id]: e.target.value })}
+                                        placeholder="Type your answer..."
+                                        className="w-full bg-slate-800/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500"
+                                    />
                                 </div>
                             ))}
+                        </div>
+
+                        <button
+                            onClick={submitTest}
+                            className="w-full mt-6 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-medium text-lg"
+                        >
+                            Submit Test
+                        </button>
+                    </div>
+                </main>
+                {showSettings && <SettingsModal />}
+            </div>
+        );
+    }
+
+    // MATCH MODE VIEW
+    if (studyMode === 'match') {
+        return <MatchGame onExit={() => setStudyMode(null)} terms={items} />;
+    }
+
+
+    // PLAY MODE - Game Selection & Games
+    if (studyMode === 'play') {
+        // Format terms for games
+        const gameTerms = items.map(item => ({ id: item.id, term: item.term, definition: item.definition }));
+
+        if (selectedGame === 'blockblast') {
+            return <BlockBlastGame onExit={() => { setSelectedGame('menu'); setStudyMode(null); }} terms={gameTerms} answerMode={settings.answerMode} />;
+        }
+        if (selectedGame === 'flappybird') {
+            return <FlappyBirdGame onExit={() => { setSelectedGame('menu'); setStudyMode(null); }} terms={gameTerms} />;
+        }
+        if (selectedGame === 'crossyroad') {
+            return <CrossyRoadGame onExit={() => { setSelectedGame('menu'); setStudyMode(null); }} terms={gameTerms} />;
+        }
+        if (selectedGame === 'meteor') {
+            return <MeteorGame onExit={() => { setSelectedGame('menu'); setStudyMode(null); }} terms={gameTerms} answerMode={settings.answerMode} />;
+        }
+
+        // Game selection menu
+        return (
+            <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
+                <Sidebar />
+                <main className="flex-1 overflow-y-auto relative p-8">
+                    <div className="max-w-2xl mx-auto">
+                        <button onClick={() => setStudyMode(null)} className="flex items-center gap-2 text-slate-400 hover:text-white mb-8">
+                            <ArrowLeft className="w-4 h-4" /> Back
+                        </button>
+
+                        <h1 className="text-3xl font-bold text-white mb-2">Play Mode</h1>
+                        <p className="text-slate-400 mb-8">Choose a game to play while learning your terms!</p>
+
+                        <div className="grid gap-4">
+                            {/* Block Blast */}
+                            <button
+                                onClick={() => setSelectedGame('blockblast')}
+                                className="glass-card p-6 text-left hover:bg-white/5 transition-all group"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-3xl">
+                                        🧱
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">Block Blast</h3>
+                                        <p className="text-slate-400 text-sm">Drag tetris-like shapes to fill rows. Answer quiz questions for bonuses!</p>
+                                    </div>
+                                </div>
+                            </button>
+
+                            {/* Flappy Bird */}
+                            <button
+                                onClick={() => setSelectedGame('flappybird')}
+                                className="glass-card p-6 text-left hover:bg-white/5 transition-all group"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center text-3xl">
+                                        🐦
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-white group-hover:text-yellow-400 transition-colors">Flappy Bird</h3>
+                                        <p className="text-slate-400 text-sm">Fly through pipes! Pass question pipes to earn bonus points.</p>
+                                    </div>
+                                </div>
+                            </button>
+
+                            {/* Crossy Road */}
+                            <button
+                                onClick={() => setSelectedGame('crossyroad')}
+                                className="glass-card p-6 text-left hover:bg-white/5 transition-all group"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div>
+                                        <h3 className="text-xl font-bold text-white group-hover:text-green-400 transition-colors">Crossy Road</h3>
+                                        <p className="text-slate-400 text-sm">Cross the road without getting hit! Answer quizzes for bonus points.</p>
+                                    </div>
+                                </div>
+                            </button>
+
+                            {/* Meteor Shower */}
+                            <button
+                                onClick={() => setSelectedGame('meteor')}
+                                className="glass-card p-6 text-left hover:bg-white/5 transition-all group"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-orange-600 rounded-xl flex items-center justify-center text-3xl">
+                                        ☄️
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-white group-hover:text-red-400 transition-colors">Meteor Shower</h3>
+                                        <p className="text-slate-400 text-sm">Type definitions to destroy falling meteors before they hit the ground!</p>
+                                    </div>
+                                </div>
+                            </button>
                         </div>
                     </div>
                 </main>
@@ -1029,270 +1257,119 @@ if (studyMode === 'test') {
         );
     }
 
+    // DEFAULT VIEW - Study Mode Selection
     return (
         <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
             <Sidebar />
+
             <main className="flex-1 overflow-y-auto relative p-8">
-                <div className="max-w-3xl mx-auto">
-                    <div className="flex justify-between items-center mb-6">
-                        <button onClick={() => setStudyMode(null)} className="flex items-center gap-2 text-slate-400 hover:text-white">
-                            <ArrowLeft className="w-4 h-4" /> Exit
-                        </button>
-                        <button onClick={() => setShowSettings(true)} className="text-slate-400 hover:text-white">
-                            <Settings className="w-5 h-5" />
-                        </button>
-                    </div>
-
-                    <h2 className="text-2xl font-bold text-white mb-6">Test Mode</h2>
-
-                    <div className="space-y-6">
-                        {studyItems.map((item, idx) => (
-                            <div key={item.id} className="glass-card p-4">
-                                <p className="text-slate-400 text-sm mb-2">
-                                    {idx + 1}. {isAnswerWithTerm(idx) ? item.definition : item.term}
-                                </p>
-                                <input
-                                    type="text"
-                                    value={testAnswers[item.id] || ''}
-                                    onChange={(e) => setTestAnswers({ ...testAnswers, [item.id]: e.target.value })}
-                                    placeholder="Type your answer..."
-                                    className="w-full bg-slate-800/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500"
-                                />
-                            </div>
-                        ))}
-                    </div>
-
+                <div className="max-w-4xl mx-auto">
                     <button
-                        onClick={submitTest}
-                        className="w-full mt-6 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-medium text-lg"
+                        onClick={() => router.back()}
+                        className="flex items-center gap-2 text-slate-400 hover:text-white mb-6 transition-colors"
                     >
-                        Submit Test
+                        <ArrowLeft className="w-4 h-4" />
+                        <span>Back</span>
                     </button>
+
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <h1 className="text-3xl font-serif font-bold text-white mb-2">{learningSet.title}</h1>
+                            {learningSet.description && (
+                                <p className="text-slate-400">{learningSet.description}</p>
+                            )}
+                            <p className="text-slate-500 text-sm mt-2">{items.length} terms</p>
+                        </div>
+
+                        {user?.id === learningSet.user_id && (
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => router.push(`${params.setId}/edit`)}
+                                    className="p-3 glass-button rounded-xl"
+                                >
+                                    <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={handleDelete}
+                                    className="p-3 text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Study Mode Buttons - 7 modes */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-10">
+                        <button onClick={startFlashcards} className="glass-card p-4 hover:bg-white/5 transition-all group text-center">
+                            <Layers className="w-6 h-6 text-blue-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                            <span className="text-white text-sm font-medium">Flashcards</span>
+                        </button>
+
+                        <button onClick={startMultipleChoice} className="glass-card p-4 hover:bg-white/5 transition-all group text-center">
+                            <ClipboardList className="w-6 h-6 text-green-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                            <span className="text-white text-sm font-medium">Multiple Choice</span>
+                        </button>
+
+                        <button onClick={startWritingMode} className="glass-card p-4 hover:bg-white/5 transition-all group text-center">
+                            <PenTool className="w-6 h-6 text-yellow-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                            <span className="text-white text-sm font-medium">Writing</span>
+                        </button>
+
+                        <button onClick={startLearningMode} className="glass-card p-4 hover:bg-white/5 transition-all group text-center">
+                            <GraduationCap className="w-6 h-6 text-purple-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                            <span className="text-white text-sm font-medium">Learning</span>
+                        </button>
+
+                        <button onClick={startTestMode} className="glass-card p-4 hover:bg-white/5 transition-all group text-center">
+                            <BookOpen className="w-6 h-6 text-red-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                            <span className="text-white text-sm font-medium">Test</span>
+                        </button>
+
+                        <button onClick={startPlayMode} className="glass-card p-4 hover:bg-white/5 transition-all group text-center">
+                            <Gamepad2 className="w-6 h-6 text-pink-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                            <span className="text-white text-sm font-medium">Play</span>
+                        </button>
+
+                        <button onClick={startMatchMode} className="glass-card p-4 hover:bg-white/5 transition-all group text-center">
+                            <Shuffle className="w-6 h-6 text-orange-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                            <span className="text-white text-sm font-medium">Match</span>
+                        </button>
+                    </div>
+
+                    {/* All Terms List */}
+                    <div>
+                        <h2 className="text-xl font-bold text-white mb-4">All Terms ({items.length})</h2>
+                        {items.length === 0 ? (
+                            <div className="glass-card p-8 text-center">
+                                <p className="text-slate-400">No terms in this learning set yet.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {items.map((item, index) => (
+                                    <div key={item.id} className="glass-card p-4 flex items-start gap-4">
+                                        <span className="text-slate-500 font-mono text-sm w-6">{index + 1}</span>
+                                        <div className="flex-1 grid grid-cols-2 gap-4">
+                                            <div>
+                                                <h4 className="text-slate-400 text-xs mb-1">TERM</h4>
+                                                <p className="text-white">{item.term}</p>
+                                            </div>
+                                            <div>
+                                                <h4 className="text-slate-400 text-xs mb-1">DEFINITION</h4>
+                                                <p className="text-slate-300">{item.definition}</p>
+                                            </div>
+                                        </div>
+                                        <button onClick={() => toggleStar(item.id)} className="p-1">
+                                            <Star className={`w-4 h-4 ${item.starred ? 'fill-yellow-500 text-yellow-500' : 'text-slate-600'}`} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </main>
             {showSettings && <SettingsModal />}
         </div>
     );
-}
-
-// MATCH MODE VIEW
-if (studyMode === 'match') {
-    return <MatchGame onExit={() => setStudyMode(null)} terms={items} />;
-}
-
-
-// PLAY MODE - Game Selection & Games
-if (studyMode === 'play') {
-    // Format terms for games
-    const gameTerms = items.map(item => ({ id: item.id, term: item.term, definition: item.definition }));
-
-    if (selectedGame === 'blockblast') {
-        return <BlockBlastGame onExit={() => { setSelectedGame('menu'); setStudyMode(null); }} terms={gameTerms} answerMode={settings.answerMode} />;
-    }
-    if (selectedGame === 'flappybird') {
-        return <FlappyBirdGame onExit={() => { setSelectedGame('menu'); setStudyMode(null); }} terms={gameTerms} />;
-    }
-    if (selectedGame === 'crossyroad') {
-        return <CrossyRoadGame onExit={() => { setSelectedGame('menu'); setStudyMode(null); }} terms={gameTerms} />;
-    }
-    if (selectedGame === 'meteor') {
-        return <MeteorGame onExit={() => { setSelectedGame('menu'); setStudyMode(null); }} terms={gameTerms} answerMode={settings.answerMode} />;
-    }
-
-    // Game selection menu
-    return (
-        <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
-            <Sidebar />
-            <main className="flex-1 overflow-y-auto relative p-8">
-                <div className="max-w-2xl mx-auto">
-                    <button onClick={() => setStudyMode(null)} className="flex items-center gap-2 text-slate-400 hover:text-white mb-8">
-                        <ArrowLeft className="w-4 h-4" /> Back
-                    </button>
-
-                    <h1 className="text-3xl font-bold text-white mb-2">Play Mode</h1>
-                    <p className="text-slate-400 mb-8">Choose a game to play while learning your terms!</p>
-
-                    <div className="grid gap-4">
-                        {/* Block Blast */}
-                        <button
-                            onClick={() => setSelectedGame('blockblast')}
-                            className="glass-card p-6 text-left hover:bg-white/5 transition-all group"
-                        >
-                            <div className="flex items-center gap-4">
-                                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-3xl">
-                                    🧱
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">Block Blast</h3>
-                                    <p className="text-slate-400 text-sm">Drag tetris-like shapes to fill rows. Answer quiz questions for bonuses!</p>
-                                </div>
-                            </div>
-                        </button>
-
-                        {/* Flappy Bird */}
-                        <button
-                            onClick={() => setSelectedGame('flappybird')}
-                            className="glass-card p-6 text-left hover:bg-white/5 transition-all group"
-                        >
-                            <div className="flex items-center gap-4">
-                                <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center text-3xl">
-                                    🐦
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-white group-hover:text-yellow-400 transition-colors">Flappy Bird</h3>
-                                    <p className="text-slate-400 text-sm">Fly through pipes! Pass question pipes to earn bonus points.</p>
-                                </div>
-                            </div>
-                        </button>
-
-                        {/* Crossy Road */}
-                        <button
-                            onClick={() => setSelectedGame('crossyroad')}
-                            className="glass-card p-6 text-left hover:bg-white/5 transition-all group"
-                        >
-                            <div className="flex items-center gap-4">
-                                <div>
-                                    <h3 className="text-xl font-bold text-white group-hover:text-green-400 transition-colors">Crossy Road</h3>
-                                    <p className="text-slate-400 text-sm">Cross the road without getting hit! Answer quizzes for bonus points.</p>
-                                </div>
-                            </div>
-                        </button>
-
-                        {/* Meteor Shower */}
-                        <button
-                            onClick={() => setSelectedGame('meteor')}
-                            className="glass-card p-6 text-left hover:bg-white/5 transition-all group"
-                        >
-                            <div className="flex items-center gap-4">
-                                <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-orange-600 rounded-xl flex items-center justify-center text-3xl">
-                                    ☄️
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-white group-hover:text-red-400 transition-colors">Meteor Shower</h3>
-                                    <p className="text-slate-400 text-sm">Type definitions to destroy falling meteors before they hit the ground!</p>
-                                </div>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-            </main>
-        </div>
-    );
-}
-
-// DEFAULT VIEW - Study Mode Selection
-return (
-    <div className="min-h-screen bg-[#0f172a] flex overflow-hidden">
-        <Sidebar />
-
-        <main className="flex-1 overflow-y-auto relative p-8">
-            <div className="max-w-4xl mx-auto">
-                <button
-                    onClick={() => router.back()}
-                    className="flex items-center gap-2 text-slate-400 hover:text-white mb-6 transition-colors"
-                >
-                    <ArrowLeft className="w-4 h-4" />
-                    <span>Back</span>
-                </button>
-
-                <div className="flex items-center justify-between mb-8">
-                    <div>
-                        <h1 className="text-3xl font-serif font-bold text-white mb-2">{learningSet.title}</h1>
-                        {learningSet.description && (
-                            <p className="text-slate-400">{learningSet.description}</p>
-                        )}
-                        <p className="text-slate-500 text-sm mt-2">{items.length} terms</p>
-                    </div>
-
-                    {user?.id === learningSet.user_id && (
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => router.push(`${params.setId}/edit`)}
-                                className="p-3 glass-button rounded-xl"
-                            >
-                                <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                                onClick={handleDelete}
-                                className="p-3 text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
-                            >
-                                <Trash2 className="w-4 h-4" />
-                            </button>
-                        </div>
-                    )}
-                </div>
-
-                {/* Study Mode Buttons - 7 modes */}
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-10">
-                    <button onClick={startFlashcards} className="glass-card p-4 hover:bg-white/5 transition-all group text-center">
-                        <Layers className="w-6 h-6 text-blue-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                        <span className="text-white text-sm font-medium">Flashcards</span>
-                    </button>
-
-                    <button onClick={startMultipleChoice} className="glass-card p-4 hover:bg-white/5 transition-all group text-center">
-                        <ClipboardList className="w-6 h-6 text-green-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                        <span className="text-white text-sm font-medium">Multiple Choice</span>
-                    </button>
-
-                    <button onClick={startWritingMode} className="glass-card p-4 hover:bg-white/5 transition-all group text-center">
-                        <PenTool className="w-6 h-6 text-yellow-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                        <span className="text-white text-sm font-medium">Writing</span>
-                    </button>
-
-                    <button onClick={startLearningMode} className="glass-card p-4 hover:bg-white/5 transition-all group text-center">
-                        <GraduationCap className="w-6 h-6 text-purple-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                        <span className="text-white text-sm font-medium">Learning</span>
-                    </button>
-
-                    <button onClick={startTestMode} className="glass-card p-4 hover:bg-white/5 transition-all group text-center">
-                        <BookOpen className="w-6 h-6 text-red-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                        <span className="text-white text-sm font-medium">Test</span>
-                    </button>
-
-                    <button onClick={startPlayMode} className="glass-card p-4 hover:bg-white/5 transition-all group text-center">
-                        <Gamepad2 className="w-6 h-6 text-pink-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                        <span className="text-white text-sm font-medium">Play</span>
-                    </button>
-
-                    <button onClick={startMatchMode} className="glass-card p-4 hover:bg-white/5 transition-all group text-center">
-                        <Shuffle className="w-6 h-6 text-orange-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                        <span className="text-white text-sm font-medium">Match</span>
-                    </button>
-                </div>
-
-                {/* All Terms List */}
-                <div>
-                    <h2 className="text-xl font-bold text-white mb-4">All Terms ({items.length})</h2>
-                    {items.length === 0 ? (
-                        <div className="glass-card p-8 text-center">
-                            <p className="text-slate-400">No terms in this learning set yet.</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {items.map((item, index) => (
-                                <div key={item.id} className="glass-card p-4 flex items-start gap-4">
-                                    <span className="text-slate-500 font-mono text-sm w-6">{index + 1}</span>
-                                    <div className="flex-1 grid grid-cols-2 gap-4">
-                                        <div>
-                                            <h4 className="text-slate-400 text-xs mb-1">TERM</h4>
-                                            <p className="text-white">{item.term}</p>
-                                        </div>
-                                        <div>
-                                            <h4 className="text-slate-400 text-xs mb-1">DEFINITION</h4>
-                                            <p className="text-slate-300">{item.definition}</p>
-                                        </div>
-                                    </div>
-                                    <button onClick={() => toggleStar(item.id)} className="p-1">
-                                        <Star className={`w-4 h-4 ${item.starred ? 'fill-yellow-500 text-yellow-500' : 'text-slate-600'}`} />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </div>
-        </main>
-        {showSettings && <SettingsModal />}
-    </div>
-);
 }

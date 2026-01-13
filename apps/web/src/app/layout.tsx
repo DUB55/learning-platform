@@ -11,6 +11,7 @@ import GlobalAnnouncementOverlay from '@/components/GlobalAnnouncementOverlay';
 import DynamicFontProvider from '../components/DynamicFontProvider';
 import SiteContentLoader from '@/components/SiteContentLoader';
 import TimeTracker from '@/components/Gamification/TimeTracker';
+import LevelUpListener from '@/components/gamification/LevelUpListener';
 import MainLayout from '@/components/MainLayout';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -45,6 +46,7 @@ export default function RootLayout({
                         <GlobalLoadingIndicator />
                         <GlobalAnnouncementOverlay />
                         <TimeTracker />
+                        <LevelUpListener />
                         <AdminControls />
 
                         {/* MAIN LAYOUT WRAPPER */}

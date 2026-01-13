@@ -15,8 +15,12 @@ export interface PresentationData {
 
 export async function createPresentation(data: PresentationData) {
     // Dynamic import to avoid SSR issues
-    const pptxgen = (await import('pptxgenjs')).default;
-    const pres = new pptxgen();
+    // Handle both ESM and CommonJS export styles
+    const pptxModule = await import('pptxgenjs');
+    const PptxGenJS = pptxModule.default || pptxModule;
+
+    // @ts-ignore - Constructor type mismatch in some versions
+    const pres = new PptxGenJS();
 
     // Set Metadata
     pres.title = data.title;

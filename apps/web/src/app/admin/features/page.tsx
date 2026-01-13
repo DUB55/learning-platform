@@ -8,7 +8,7 @@ import {
     ArrowLeft, Save, Loader2, Settings, Check, X,
     Timer, Network, Bot, StickyNote, Users, Mic,
     Brain, Trophy, FileSpreadsheet, Youtube, FileText,
-    Presentation, Sparkles
+    Presentation, Sparkles, LayoutTemplate
 } from 'lucide-react';
 import ToggleSwitch from '@/components/ui/ToggleSwitch';
 
@@ -58,6 +58,10 @@ export default function AdminFeatureTogglesPage() {
     const [changes, setChanges] = useState<Record<string, boolean>>({});
     const [saveSuccess, setSaveSuccess] = useState(false);
 
+    // Landing Page State
+    const [landingVersion, setLandingVersion] = useState<'classic' | 'modern'>('classic');
+    const [initialLandingVersion, setInitialLandingVersion] = useState<'classic' | 'modern'>('classic');
+
     useEffect(() => {
         if (!loading && (!user || !profile?.is_admin)) {
             router.push('/dashboard');
@@ -66,7 +70,26 @@ export default function AdminFeatureTogglesPage() {
 
     useEffect(() => {
         fetchFeatures();
+        fetchLandingSetting();
     }, []);
+
+    const fetchLandingSetting = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('system_settings')
+                .select('value')
+                .eq('key', 'landing_page_version')
+                .single();
+
+            if (data?.value) {
+                const cleanValue = typeof data.value === 'string' ? data.value.replace(/"/g, '') : data.value;
+                setLandingVersion(cleanValue as 'classic' | 'modern');
+                setInitialLandingVersion(cleanValue as 'classic' | 'modern');
+            }
+        } catch (error) {
+            console.error('Error fetching landing setting:', error);
+        }
+    };
 
     const fetchFeatures = async () => {
         try {
@@ -101,6 +124,17 @@ export default function AdminFeatureTogglesPage() {
         setSaveSuccess(false);
 
         try {
+            // Save Landing Page Setting if changed (using upsert to correct 'classic' or 'modern' json value)
+            if (landingVersion !== initialLandingVersion) {
+                await supabase
+                    .from('system_settings')
+                    .upsert({
+                        key: 'landing_page_version',
+                        value: `"${landingVersion}"`  // Store as quoted string for JSONB
+                    });
+                setInitialLandingVersion(landingVersion);
+            }
+
             const updates = Object.entries(changes).map(([key, value]) => ({
                 setting_key: key,
                 default_value: value.toString(),
@@ -189,7 +223,51 @@ export default function AdminFeatureTogglesPage() {
                     </div>
                 </div>
 
+                {/* System Settings Section */}
+                <h2 className="text-xl font-bold text-white mb-4 mt-8 flex items-center gap-2">
+                    <LayoutTemplate className="w-5 h-5 text-purple-400" />
+                    Global Settings
+                </h2>
+                <div className="glass-card p-6 mb-8">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
+                                <LayoutTemplate className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="text-white font-medium">Landing Page Version</h3>
+                                <p className="text-slate-400 text-sm">Choose the design of the public homepage.</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center bg-black/40 rounded-lg p-1 border border-white/5">
+                            <button
+                                onClick={() => setLandingVersion('classic')}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${landingVersion === 'classic'
+                                        ? 'bg-blue-600 text-white shadow-lg'
+                                        : 'text-slate-400 hover:text-white'
+                                    }`}
+                            >
+                                Classic
+                            </button>
+                            <button
+                                onClick={() => setLandingVersion('modern')}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${landingVersion === 'modern'
+                                        ? 'bg-purple-600 text-white shadow-lg'
+                                        : 'text-slate-400 hover:text-white'
+                                    }`}
+                            >
+                                Modern
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Features List */}
+                <h2 className="text-xl font-bold text-white mb-4 mt-8 flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-yellow-400" />
+                    Features
+                </h2>
                 <div className="glass-card divide-y divide-white/5">
                     {features.length === 0 ? (
                         <div className="p-8 text-center">
@@ -247,3 +325,4 @@ export default function AdminFeatureTogglesPage() {
         </div>
     );
 }
+

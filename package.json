@@ -24,9 +24,13 @@
         "typescript": "^5.2.0"
     },
     "dependencies": {
+        "@react-three/drei": "^9.99.0",
+        "@react-three/fiber": "^8.15.16",
         "@types/nprogress": "^0.2.3",
+        "@types/three": "^0.160.0",
         "nprogress": "^0.2.0",
         "swr": "^2.3.6",
+        "three": "^0.160.0",
         "zod": "^4.1.13"
     }
 }
