@@ -8,6 +8,8 @@ import {
     ZoomIn, ZoomOut, RefreshCw, Loader2, RotateCcw
 } from 'lucide-react';
 import { dub5ai } from '@/lib/dub5ai';
+import ErrorLogger from '@/lib/ErrorLogger';
+import { useEffect } from 'react';
 
 interface MindMapNode {
     id: string;
@@ -29,6 +31,7 @@ export default function AIMindMapPage() {
     const [error, setError] = useState('');
     const svgRef = useRef<SVGSVGElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const [recentMindmaps, setRecentMindmaps] = useState<any[]>([]);
 
     const generateMindMap = async () => {
         if (!topic.trim()) return;
@@ -77,11 +80,18 @@ Include 4-6 main subtopics, each with 2-4 children. Use varied colors from this 
                 setMindMapData(parsed);
                 setPan({ x: 0, y: 0 });
                 setZoom(1);
+                try {
+                    const local = JSON.parse(localStorage.getItem('local_mindmaps') || '[]');
+                    const entry = { id: crypto.randomUUID(), title: topic, data: parsed, createdAt: new Date().toISOString() };
+                    local.unshift(entry);
+                    localStorage.setItem('local_mindmaps', JSON.stringify(local.slice(0, 20)));
+                    setRecentMindmaps(local.slice(0, 20));
+                } catch {}
             } else {
                 throw new Error('Invalid response format');
             }
         } catch (err: any) {
-            console.error('Mind map generation error:', err);
+            ErrorLogger.error('Mind map generation error', err);
             setError(err.message || 'Failed to generate mind map');
         } finally {
             setIsGenerating(false);
@@ -147,7 +157,7 @@ Include 4-6 main subtopics, each with 2-4 children. Use varied colors from this 
             };
             img.src = url;
         } catch (err) {
-            console.error('Export failed:', err);
+            ErrorLogger.error('Mind map export failed', err);
         }
     }, [topic]);
 
@@ -229,8 +239,17 @@ Include 4-6 main subtopics, each with 2-4 children. Use varied colors from this 
         );
     }
 
+    useEffect(() => {
+        try {
+            const local = JSON.parse(localStorage.getItem('local_mindmaps') || '[]');
+            setRecentMindmaps(local);
+        } catch {
+            setRecentMindmaps([]);
+        }
+    }, []);
+
     return (
-        <div className="h-full overflow-y-auto">
+        <div className="h-full">
             <div className="p-8">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6 max-w-6xl mx-auto">
@@ -303,6 +322,47 @@ Include 4-6 main subtopics, each with 2-4 children. Use varied colors from this 
                         )}
                     </div>
                 </div>
+
+                {!mindMapData && recentMindmaps.length > 0 && (
+                    <div className="glass-card p-6 mb-8 max-w-6xl mx-auto">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-white font-bold">Recent Mind Maps</h3>
+                            <button
+                                className="text-slate-400 text-sm hover:text-white"
+                                onClick={() => {
+                                    localStorage.removeItem('local_mindmaps');
+                                    setRecentMindmaps([]);
+                                }}
+                            >
+                                Clear List
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {recentMindmaps.slice(0, 8).map((mm) => (
+                                <button
+                                    key={mm.id}
+                                    className="p-3 rounded-lg bg-white/5 border border-white/10 text-left hover:bg-white/10 transition-colors"
+                                    onClick={() => {
+                                        setTopic(mm.title);
+                                        setMindMapData(mm.data);
+                                        setZoom(1);
+                                        setPan({ x: 0, y: 0 });
+                                    }}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded bg-purple-500/10 flex items-center justify-center text-purple-400">
+                                            <Network className="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <p className="text-white font-medium">{mm.title}</p>
+                                            <p className="text-slate-500 text-xs">{new Date(mm.createdAt).toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Mind Map Canvas */}
                 {mindMapData ? (

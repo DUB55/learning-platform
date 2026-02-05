@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -8,6 +8,7 @@ import { BookOpen, Plus, MoreHorizontal, Clock, Calendar, Globe, Lock, Edit2, Tr
 
 import SubjectMenu from '@/components/SubjectMenu';
 import ResourceContextMenu from '@/components/ResourceContextMenu';
+import ErrorLogger from '@/lib/ErrorLogger';
 
 export default function SubjectsPage() {
     const { user, profile } = useAuth();
@@ -18,10 +19,15 @@ export default function SubjectsPage() {
     const [newSubjectTitle, setNewSubjectTitle] = useState('');
     const [resourceMenu, setResourceMenu] = useState<{ x: number; y: number; subjectId: string } | null>(null);
     const [editingSubject, setEditingSubject] = useState<{ id: string; title: string } | null>(null);
+    const addSubjectControllerRef = useRef<AbortController | null>(null);
+    const toggleGlobalControllerRefs = useRef<Map<string, AbortController>>(new Map());
+    const renameControllerRef = useRef<AbortController | null>(null);
+    const deleteSubjectControllerRefs = useRef<Map<string, AbortController>>(new Map());
 
     useEffect(() => {
+        const fetchController = new AbortController();
         if (user) {
-            fetchSubjects();
+            fetchSubjects(fetchController.signal);
 
             // Subscribe to real-time updates
             const channel = supabase
@@ -29,68 +35,122 @@ export default function SubjectsPage() {
                 .on('postgres_changes',
                     { event: '*', schema: 'public', table: 'subjects' },
                     () => {
-                        fetchSubjects();
+                        fetchSubjects(fetchController.signal);
                     }
                 )
                 .subscribe();
 
             return () => {
                 supabase.removeChannel(channel);
+                fetchController.abort();
+                addSubjectControllerRef.current?.abort();
+                toggleGlobalControllerRefs.current.forEach(c => c.abort());
+                renameControllerRef.current?.abort();
+                deleteSubjectControllerRefs.current.forEach(c => c.abort());
             };
         }
     }, [user]);
 
-    const fetchSubjects = async () => {
+    const fetchSubjects = async (signal?: AbortSignal) => {
         setLoading(true);
         if (!user) return;
 
-        // Fetch subjects with unit counts
-        const { data: subjectsData, error: subjectsError } = await (supabase.from('subjects') as any)
-            .select('*')
-            .order('created_at', { ascending: false });
+        try {
+            // Fetch subjects with unit counts
+            const { data: subjectsData, error: subjectsError } = await (supabase.from('subjects') as any)
+                .select('*')
+                .order('created_at', { ascending: false })
+                .abortSignal(signal);
 
-        if (subjectsError) {
-            console.error('Error fetching subjects:', subjectsError);
+            if (subjectsError) {
+                if (subjectsError.name === 'AbortError') return;
+                ErrorLogger.error('Error fetching subjects:', subjectsError);
+                setLoading(false);
+                return;
+            }
+
+            // Fetch unit counts for each subject more efficiently
+            const subjectIds = (subjectsData || []).map((s: any) => s.id);
+            const { data: unitsData, error: unitsError } = await (supabase
+                .from('units') as any)
+                .select('subject_id')
+                .in('subject_id', subjectIds)
+                .abortSignal(signal);
+
+            if (unitsError) {
+                if (unitsError.name === 'AbortError') return;
+                ErrorLogger.error('Error fetching units:', unitsError);
+            }
+
+            // Fetch study sessions for these subjects
+            const { data: sessionsData, error: sessionsError } = await (supabase
+                .from('study_sessions') as any)
+                .select('subject_id, duration_seconds')
+                .in('subject_id', subjectIds)
+                .abortSignal(signal);
+
+            if (sessionsError) {
+                if (sessionsError.name === 'AbortError') return;
+                ErrorLogger.error('Error fetching study sessions:', sessionsError);
+            }
+
+            const countMap: Record<string, number> = {};
+            unitsData?.forEach((u: any) => {
+                countMap[u.subject_id] = (countMap[u.subject_id] || 0) + 1;
+            });
+
+            const studyTimeMap: Record<string, number> = {};
+            sessionsData?.forEach((s: any) => {
+                if (s.subject_id) {
+                    studyTimeMap[s.subject_id] = (studyTimeMap[s.subject_id] || 0) + s.duration_seconds;
+                }
+            });
+
+            const subjectsWithCounts = (subjectsData || []).map((subject: any) => ({
+                ...subject,
+                unit_count: countMap[subject.id] || 0,
+                study_hours: Math.round((studyTimeMap[subject.id] || 0) / 3600 * 10) / 10 // Rounded to 1 decimal
+            }));
+
+            setSubjects(subjectsWithCounts);
+        } catch (error: any) {
+            if (error.name === 'AbortError') return;
+            ErrorLogger.error('Error in fetchSubjects:', error);
+        } finally {
             setLoading(false);
-            return;
         }
-
-        // Fetch unit counts for each subject
-        const subjectsWithCounts = await Promise.all(
-            (subjectsData || []).map(async (subject) => {
-                const { count } = await supabase
-                    .from('units')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('subject_id', subject.id);
-
-                return {
-                    ...subject,
-                    unit_count: count || 0
-                };
-            })
-        );
-
-        setSubjects(subjectsWithCounts);
-        setLoading(false);
     };
 
     const handleAddSubject = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user || !newSubjectTitle.trim()) return;
 
-        const { error } = await (supabase.from('subjects') as any)
-            .insert([
-                {
-                    user_id: user.id,
-                    title: newSubjectTitle,
-                    color: 'blue'
-                }
-            ] as any);
+        try {
+            addSubjectControllerRef.current?.abort();
+            addSubjectControllerRef.current = new AbortController();
 
-        if (!error) {
+            const { error } = await (supabase.from('subjects') as any)
+                .insert([
+                    {
+                        user_id: user.id,
+                        title: newSubjectTitle,
+                        color: 'blue'
+                    }
+                ] as any)
+                .abortSignal(addSubjectControllerRef.current.signal as any);
+
+            if (error) {
+                if (error.name === 'AbortError') return;
+                throw error;
+            }
+
             setNewSubjectTitle('');
             setShowAddModal(false);
             fetchSubjects();
+        } catch (error) {
+            ErrorLogger.error('Error adding subject', error);
+        } finally {
+            addSubjectControllerRef.current = null;
         }
     };
 
@@ -98,12 +158,26 @@ export default function SubjectsPage() {
         const subject = subjects.find(s => s.id === subjectId);
         if (!subject) return;
 
-        const { error } = await (supabase.from('subjects') as any)
-            .update({ is_global: !subject.is_global })
-            .eq('id', subjectId);
+        try {
+            toggleGlobalControllerRefs.current.get(subjectId)?.abort();
+            const controller = new AbortController();
+            toggleGlobalControllerRefs.current.set(subjectId, controller);
 
-        if (!error) {
+            const { error } = await (supabase.from('subjects') as any)
+                .update({ is_global: !subject.is_global })
+                .eq('id', subjectId)
+                .abortSignal(controller.signal as any);
+
+            if (error) {
+                if (error.name === 'AbortError') return;
+                throw error;
+            }
+            
             fetchSubjects();
+        } catch (error) {
+            ErrorLogger.error('Error toggling global status', error);
+        } finally {
+            toggleGlobalControllerRefs.current.delete(subjectId);
         }
     };
 
@@ -117,13 +191,26 @@ export default function SubjectsPage() {
     const handleSaveRename = async () => {
         if (!editingSubject) return;
 
-        const { error } = await (supabase.from('subjects') as any)
-            .update({ title: editingSubject.title })
-            .eq('id', editingSubject.id);
+        try {
+            renameControllerRef.current?.abort();
+            renameControllerRef.current = new AbortController();
 
-        if (!error) {
+            const { error } = await (supabase.from('subjects') as any)
+                .update({ title: editingSubject.title })
+                .eq('id', editingSubject.id)
+                .abortSignal(renameControllerRef.current.signal as any);
+
+            if (error) {
+                if (error.name === 'AbortError') return;
+                throw error;
+            }
+
             setEditingSubject(null);
             fetchSubjects();
+        } catch (error) {
+            ErrorLogger.error('Error renaming subject', error);
+        } finally {
+            renameControllerRef.current = null;
         }
     };
 
@@ -172,12 +259,26 @@ export default function SubjectsPage() {
     const handleDeleteSubject = async (subjectId: string) => {
         if (!confirm('Are you sure you want to delete this subject?')) return;
 
-        const { error } = await (supabase.from('subjects') as any)
-            .delete()
-            .eq('id', subjectId);
+        try {
+            deleteSubjectControllerRefs.current.get(subjectId)?.abort();
+            const deleteController = new AbortController();
+            deleteSubjectControllerRefs.current.set(subjectId, deleteController);
 
-        if (!error) {
+            const { error } = await (supabase.from('subjects') as any)
+                .delete()
+                .eq('id', subjectId)
+                .abortSignal(deleteController.signal as any);
+
+            if (error) {
+                if (error.name === 'AbortError') return;
+                throw error;
+            }
+
             setSubjects(subjects.filter(s => s.id !== subjectId));
+        } catch (error) {
+            ErrorLogger.error('Error deleting subject', error);
+        } finally {
+            deleteSubjectControllerRefs.current.delete(subjectId);
         }
     };
 
@@ -190,10 +291,8 @@ export default function SubjectsPage() {
     }
 
     return (
-        <div className="h-full overflow-y-auto p-8">
-
-
-            <div className="max-w-7xl mx-auto">
+        <div className="flex-1 flex flex-col p-8 relative">
+            <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col">
                 <div className="flex justify-between items-center mb-8">
                     <div>
                         <h1 className="text-3xl font-serif font-bold text-white mb-2">Subjects</h1>
@@ -213,7 +312,7 @@ export default function SubjectsPage() {
                         <div
                             key={subject.id}
                             className="glass-card p-6 border-l-4 border-blue-500/50 hover:bg-white/5 transition-all duration-300 group cursor-pointer"
-                            onClick={() => router.push(`/subjects/${subject.id}/units`)}
+                            onClick={() => router.push(`/subjects/${subject.id}/chapters`)}
                             onContextMenu={(e) => handleResourceContextMenu(e, subject.id)}
                         >
                             <div className="flex justify-between items-start mb-6">
@@ -246,11 +345,11 @@ export default function SubjectsPage() {
                                     <p className="text-slate-400 text-sm">{subject.unit_count || 0} units</p>
                                 </div>
                                 <div data-subject-menu={subject.id} onClick={(e) => e.stopPropagation()}>
-                                    <SubjectMenu
+                                        <SubjectMenu
                                         subjectId={subject.id}
                                         subjectTitle={subject.title}
                                         isOwner={subject.user_id === user?.id}
-                                        onView={() => router.push(`/subjects/${subject.id}/units`)}
+                                        onView={() => router.push(`/subjects/${subject.id}/chapters`)}
                                         onDelete={() => handleDeleteSubject(subject.id)}
                                     />
                                 </div>
@@ -259,7 +358,7 @@ export default function SubjectsPage() {
                             <div className="flex justify-between items-center text-xs text-slate-400 pt-4 border-t border-white/5">
                                 <div className="flex items-center gap-1">
                                     <Clock className="w-3 h-3" />
-                                    <span>0h studied</span>
+                                    <span>{subject.study_hours || 0}h studied</span>
                                 </div>
                                 <div className="flex items-center gap-1">
                                     <Calendar className="w-3 h-3" />

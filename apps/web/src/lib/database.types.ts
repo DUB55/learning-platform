@@ -13,6 +13,7 @@ export interface Database {
                 Row: {
                     id: string
                     full_name: string | null
+                    bio: string | null
                     avatar_url: string | null
                     updated_at: string | null
                     is_admin: boolean
@@ -20,6 +21,7 @@ export interface Database {
                 Insert: {
                     id: string
                     full_name?: string | null
+                    bio?: string | null
                     avatar_url?: string | null
                     updated_at?: string | null
                     is_admin?: boolean
@@ -27,6 +29,7 @@ export interface Database {
                 Update: {
                     id?: string
                     full_name?: string | null
+                    bio?: string | null
                     avatar_url?: string | null
                     updated_at?: string | null
                     is_admin?: boolean
@@ -111,7 +114,7 @@ export interface Database {
                     subject_id: string | null
                     title: string
                     due_date: string | null
-                    type: 'test' | 'review' | 'assignment' | 'deadline' | null
+                    type: string | null
                     is_completed: boolean
                     created_at: string
                 }
@@ -121,7 +124,7 @@ export interface Database {
                     subject_id?: string | null
                     title: string
                     due_date?: string | null
-                    type?: 'test' | 'review' | 'assignment' | 'deadline' | null
+                    type?: string | null
                     is_completed?: boolean
                     created_at?: string
                 }
@@ -131,7 +134,7 @@ export interface Database {
                     subject_id?: string | null
                     title?: string
                     due_date?: string | null
-                    type?: 'test' | 'review' | 'assignment' | 'deadline' | null
+                    type?: string | null
                     is_completed?: boolean
                     created_at?: string
                 }
@@ -142,7 +145,7 @@ export interface Database {
                     user_id: string
                     subject_id: string | null
                     title: string
-                    type: 'pdf' | 'link' | 'video' | 'image' | 'other'
+                    type: string
                     url: string
                     created_at: string
                 }
@@ -151,7 +154,7 @@ export interface Database {
                     user_id: string
                     subject_id?: string | null
                     title: string
-                    type: 'pdf' | 'link' | 'video' | 'image' | 'other'
+                    type: string
                     url: string
                     created_at?: string
                 }
@@ -160,7 +163,7 @@ export interface Database {
                     user_id?: string
                     subject_id?: string | null
                     title?: string
-                    type?: 'pdf' | 'link' | 'video' | 'image' | 'other'
+                    type?: string
                     url?: string
                     created_at?: string
                 }
@@ -217,7 +220,7 @@ export interface Database {
                     paragraph_id: string
                     title: string
                     content: Json
-                    document_type: 'rich_text' | 'html' | 'youtube' | 'image'
+                    document_type: string
                     order_index: number
                     created_at: string
                     updated_at: string
@@ -227,7 +230,7 @@ export interface Database {
                     paragraph_id: string
                     title: string
                     content?: Json
-                    document_type?: 'rich_text' | 'html' | 'youtube' | 'image'
+                    document_type?: string
                     order_index?: number
                     created_at?: string
                     updated_at?: string
@@ -237,7 +240,7 @@ export interface Database {
                     paragraph_id?: string
                     title?: string
                     content?: Json
-                    document_type?: 'rich_text' | 'html' | 'youtube' | 'image'
+                    document_type?: string
                     order_index?: number
                     created_at?: string
                     updated_at?: string
@@ -275,34 +278,63 @@ export interface Database {
                     created_at?: string
                 }
             }
-            user_settings: {
+            smart_notes: {
                 Row: {
                     id: string
                     user_id: string
-                    theme: 'light' | 'dark'
-                    email_notifications: boolean
-                    push_notifications: boolean
-                    study_reminders: boolean
+                    title: string
+                    content: string
                     created_at: string
                     updated_at: string
                 }
                 Insert: {
                     id?: string
                     user_id: string
-                    theme?: 'light' | 'dark'
-                    email_notifications?: boolean
-                    push_notifications?: boolean
-                    study_reminders?: boolean
+                    title: string
+                    content: string
                     created_at?: string
                     updated_at?: string
                 }
                 Update: {
                     id?: string
                     user_id?: string
-                    theme?: 'light' | 'dark'
+                    title?: string
+                    content?: string
+                    created_at?: string
+                    updated_at?: string
+                }
+            }
+            user_settings: {
+                Row: {
+                    id: string
+                    user_id: string
+                    theme: string
+                    email_notifications: boolean
+                    push_notifications: boolean
+                    study_reminders: boolean
+                    ui_preferences: Json | null
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    theme?: string
                     email_notifications?: boolean
                     push_notifications?: boolean
                     study_reminders?: boolean
+                    ui_preferences?: Json | null
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    theme?: string
+                    email_notifications?: boolean
+                    push_notifications?: boolean
+                    study_reminders?: boolean
+                    ui_preferences?: Json | null
                     created_at?: string
                     updated_at?: string
                 }
@@ -395,21 +427,21 @@ export interface Database {
                 Row: {
                     id: string
                     chat_id: string
-                    role: 'user' | 'assistant' | 'system'
+                    role: string
                     content: string
                     created_at: string
                 }
                 Insert: {
                     id?: string
                     chat_id: string
-                    role: 'user' | 'assistant' | 'system'
+                    role: string
                     content: string
                     created_at?: string
                 }
                 Update: {
                     id?: string
                     chat_id?: string
-                    role?: 'user' | 'assistant' | 'system'
+                    role?: string
                     content?: string
                     created_at?: string
                 }
@@ -448,8 +480,8 @@ export interface Database {
                     id: string
                     test_id: string
                     question_text: string
-                    question_type: 'multiple_choice' | 'true_false' | 'short_answer'
-                    options: string[] | null
+                    question_type: string
+                    options: Json | null
                     correct_answer: string
                     explanation: string | null
                     order_index: number
@@ -459,8 +491,8 @@ export interface Database {
                     id?: string
                     test_id: string
                     question_text: string
-                    question_type: 'multiple_choice' | 'true_false' | 'short_answer'
-                    options?: string[] | null
+                    question_type: string
+                    options?: Json | null
                     correct_answer: string
                     explanation?: string | null
                     order_index?: number
@@ -470,8 +502,8 @@ export interface Database {
                     id?: string
                     test_id?: string
                     question_text?: string
-                    question_type?: 'multiple_choice' | 'true_false' | 'short_answer'
-                    options?: string[] | null
+                    question_type?: string
+                    options?: Json | null
                     correct_answer?: string
                     explanation?: string | null
                     order_index?: number
@@ -678,6 +710,628 @@ export interface Database {
                     created_at?: string
                 }
             }
+            srs_items: {
+                Row: {
+                    id: string
+                    user_id: string
+                    subject_id: string | null
+                    front: string
+                    back: string
+                    interval: number
+                    repetition: number
+                    efactor: number
+                    next_review: string
+                    tags: string[] | null
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    subject_id?: string | null
+                    front: string
+                    back: string
+                    interval?: number
+                    repetition?: number
+                    efactor?: number
+                    next_review?: string
+                    tags?: string[] | null
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    subject_id?: string | null
+                    front?: string
+                    back?: string
+                    interval?: number
+                    repetition?: number
+                    efactor?: number
+                    next_review?: string
+                    tags?: string[] | null
+                    created_at?: string
+                    updated_at?: string
+                }
+            }
+            study_groups: {
+                Row: {
+                    id: string
+                    name: string
+                    description: string | null
+                    created_by: string
+                    created_at: string
+                    image_url: string | null
+                }
+                Insert: {
+                    id?: string
+                    name: string
+                    description?: string | null
+                    created_by: string
+                    created_at?: string
+                    image_url?: string | null
+                }
+                Update: {
+                    id?: string
+                    name?: string
+                    description?: string | null
+                    created_by?: string
+                    created_at?: string
+                    image_url?: string | null
+                }
+            }
+            group_members: {
+                Row: {
+                    id: string
+                    group_id: string
+                    user_id: string
+                    role: 'admin' | 'member'
+                    joined_at: string
+                }
+                Insert: {
+                    id?: string
+                    group_id: string
+                    user_id: string
+                    role?: 'admin' | 'member'
+                    joined_at?: string
+                }
+                Update: {
+                    id?: string
+                    group_id?: string
+                    user_id?: string
+                    role?: 'admin' | 'member'
+                    joined_at?: string
+                }
+            }
+            group_messages: {
+                Row: {
+                    id: string
+                    group_id: string
+                    user_id: string
+                    content: string
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    group_id: string
+                    user_id: string
+                    content: string
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    group_id?: string
+                    user_id?: string
+                    content?: string
+                    created_at?: string
+                }
+            }
+            group_shared_resources: {
+                Row: {
+                    id: string
+                    group_id: string
+                    resource_type: 'note' | 'study_plan' | 'resource'
+                    resource_id: string
+                    shared_by: string
+                    shared_at: string
+                }
+                Insert: {
+                    id?: string
+                    group_id: string
+                    resource_type: 'note' | 'study_plan' | 'resource'
+                    resource_id: string
+                    shared_by: string
+                    shared_at?: string
+                }
+                Update: {
+                    id?: string
+                    group_id?: string
+                    resource_type?: 'note' | 'study_plan' | 'resource'
+                    resource_id?: string
+                    shared_by?: string
+                    shared_at?: string
+                }
+            }
+            challenges: {
+                Row: {
+                    id: string
+                    challenger_id: string
+                    opponent_id: string
+                    type: string
+                    status: string
+                    result: Json | null
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    challenger_id: string
+                    opponent_id: string
+                    type: string
+                    status?: string
+                    result?: Json | null
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    challenger_id?: string
+                    opponent_id?: string
+                    type?: string
+                    status?: string
+                    result?: Json | null
+                    created_at?: string
+                }
+            }
+            practice_test_results: {
+                Row: {
+                    id: string
+                    user_id: string
+                    test_id: string
+                    score: number
+                    total_questions: number
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    test_id: string
+                    score: number
+                    total_questions: number
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    test_id?: string
+                    score?: number
+                    total_questions?: number
+                    created_at?: string
+                }
+            }
+            mastery_data: {
+                Row: {
+                    id: string
+                    user_id: string
+                    subject_id: string
+                    mastery_level: number
+                    last_updated: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    subject_id: string
+                    mastery_level: number
+                    last_updated?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    subject_id?: string
+                    mastery_level?: number
+                    last_updated?: string
+                }
+            }
+            friendships: {
+                Row: {
+                    id: string
+                    user_id: string
+                    friend_id: string
+                    status: string
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    friend_id: string
+                    status?: string
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    friend_id?: string
+                    status?: string
+                    created_at?: string
+                }
+            }
+            study_results: {
+                Row: {
+                    id: string
+                    user_id: string
+                    learning_set_id: string
+                    score: number
+                    correct_answers: number
+                    total_questions: number
+                    study_mode: string
+                    time_spent_seconds: number
+                    completed_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    learning_set_id: string
+                    score: number
+                    correct_answers: number
+                    total_questions: number
+                    study_mode: string
+                    time_spent_seconds: number
+                    completed_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    learning_set_id?: string
+                    score?: number
+                    correct_answers?: number
+                    total_questions?: number
+                    study_mode?: string
+                    time_spent_seconds?: number
+                    completed_at?: string
+                }
+            }
+            leersets: {
+                Row: {
+                    id: string
+                    title: string
+                    subject_id: string
+                    created_by: string
+                    source_id: string | null
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    title: string
+                    subject_id: string
+                    created_by: string
+                    source_id?: string | null
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    title?: string
+                    subject_id?: string
+                    created_by?: string
+                    source_id?: string | null
+                    created_at?: string
+                }
+            }
+            leerset_items: {
+                Row: {
+                    id: string
+                    leerset_id: string
+                    term: string
+                    definition: string
+                    source_id: string | null
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    leerset_id: string
+                    term: string
+                    definition: string
+                    source_id?: string | null
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    leerset_id?: string
+                    term?: string
+                    definition?: string
+                    source_id?: string | null
+                    created_at?: string
+                }
+            }
+            learning_sets: {
+                Row: {
+                    id: string
+                    title: string
+                    description: string | null
+                    paragraph_id: string
+                    subject_id: string
+                    user_id: string
+                    created_by: string
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    title: string
+                    description?: string | null
+                    paragraph_id: string
+                    subject_id: string
+                    user_id: string
+                    created_by: string
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    title?: string
+                    description?: string | null
+                    paragraph_id?: string
+                    subject_id?: string
+                    user_id?: string
+                    created_by?: string
+                    created_at?: string
+                }
+            }
+            learning_set_terms: {
+                Row: {
+                    id: string
+                    learning_set_id: string
+                    term: string
+                    definition: string
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    learning_set_id: string
+                    term: string
+                    definition: string
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    learning_set_id?: string
+                    term?: string
+                    definition?: string
+                    created_at?: string
+                }
+            }
+            announcements: {
+                Row: {
+                    id: string
+                    title: string
+                    content: string
+                    slug: string
+                    author_id: string | null
+                    is_published: boolean
+                    priority: 'low' | 'normal' | 'high' | 'urgent'
+                    linked_page_id: string | null
+                    expires_at: string | null
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    title: string
+                    content: string
+                    slug: string
+                    author_id?: string | null
+                    is_published?: boolean
+                    priority?: 'low' | 'normal' | 'high' | 'urgent'
+                    linked_page_id?: string | null
+                    expires_at?: string | null
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    title?: string
+                    content?: string
+                    slug?: string
+                    author_id?: string | null
+                    is_published?: boolean
+                    priority?: 'low' | 'normal' | 'high' | 'urgent'
+                    linked_page_id?: string | null
+                    expires_at?: string | null
+                    created_at?: string
+                }
+            }
+            announcement_pages: {
+                Row: {
+                    id: string
+                    title: string
+                    content: string
+                    slug: string
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    title: string
+                    content: string
+                    slug: string
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    title?: string
+                    content?: string
+                    slug?: string
+                    created_at?: string
+                }
+            }
+            announcement_reads: {
+                Row: {
+                    id: string
+                    announcement_id: string
+                    user_id: string
+                    read_at: string
+                }
+                Insert: {
+                    id?: string
+                    announcement_id: string
+                    user_id: string
+                    read_at?: string
+                }
+                Update: {
+                    id?: string
+                    announcement_id?: string
+                    user_id?: string
+                    read_at?: string
+                }
+            }
+            quizzes: {
+                Row: {
+                    id: string
+                    unit_id: string
+                    title: string
+                    description: string | null
+                    created_at: string
+                    user_id: string
+                }
+                Insert: {
+                    id?: string
+                    unit_id: string
+                    title: string
+                    description?: string | null
+                    created_at?: string
+                    user_id: string
+                }
+                Update: {
+                    id?: string
+                    unit_id?: string
+                    title?: string
+                    description?: string | null
+                    created_at?: string
+                    user_id?: string
+                }
+            }
+            quiz_questions: {
+                Row: {
+                    id: string
+                    quiz_id: string
+                    question_text: string
+                    options: Json
+                    correct_option_index: number
+                    explanation: string | null
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    quiz_id: string
+                    question_text: string
+                    options: Json
+                    correct_option_index: number
+                    explanation?: string | null
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    quiz_id?: string
+                    question_text?: string
+                    options?: Json
+                    correct_option_index?: number
+                    explanation?: string | null
+                    created_at?: string
+                }
+            }
+            quiz_attempts: {
+                Row: {
+                    id: string
+                    quiz_id: string
+                    user_id: string
+                    score: number
+                    max_score: number
+                    completed_at: string
+                }
+                Insert: {
+                    id?: string
+                    quiz_id: string
+                    user_id: string
+                    score: number
+                    max_score: number
+                    completed_at?: string
+                }
+                Update: {
+                    id?: string
+                    quiz_id?: string
+                    user_id?: string
+                    score?: number
+                    max_score?: number
+                    completed_at?: string
+                }
+            }
+            system_settings: {
+                Row: {
+                    key: string
+                    value: Json
+                    updated_at: string
+                    updated_by: string | null
+                }
+                Insert: {
+                    key: string
+                    value: Json
+                    updated_at?: string
+                    updated_by?: string | null
+                }
+                Update: {
+                    key?: string
+                    value?: Json
+                    updated_at?: string
+                    updated_by?: string | null
+                }
+            }
+            admin_permission_settings: {
+                Row: {
+                    setting_key: string
+                    default_value: string
+                    setting_type: string
+                    description: string | null
+                    updated_at: string
+                }
+                Insert: {
+                    setting_key: string
+                    default_value: string
+                    setting_type?: string
+                    description?: string | null
+                    updated_at?: string
+                }
+                Update: {
+                    setting_key?: string
+                    default_value?: string
+                    setting_type?: string
+                    description?: string | null
+                    updated_at?: string
+                }
+            }
+            groups: {
+                Row: {
+                    id: string
+                    name: string
+                    description: string | null
+                    created_by: string
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    name: string
+                    description?: string | null
+                    created_by: string
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    name?: string
+                    description?: string | null
+                    created_by?: string
+                    created_at?: string
+                }
+            }
+        }
+        Views: {
+            [_ in never]: never
+        }
+        Functions: {
+            [_ in never]: never
+        }
+        Enums: {
+            [_ in never]: never
         }
     }
 }

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Bell, X, ExternalLink, AlertCircle, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import ErrorLogger from '@/lib/ErrorLogger';
 
 interface Announcement {
     id: string;
@@ -27,26 +28,28 @@ export default function NotificationMenu({ userId }: NotificationMenuProps) {
     const [loading, setLoading] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        if (userId) {
-            fetchAnnouncements();
-            fetchUnreadCount();
-
-            // Subscribe to new announcements
-            const channel = supabase
-                .channel('announcements')
-                .on('postgres_changes',
-                    { event: '*', schema: 'public', table: 'announcements' },
-                    () => {
-                        fetchAnnouncements();
-                        fetchUnreadCount();
-                    }
-                )
-                .subscribe();
-
-            return () => {
-                supabase.removeChannel(channel);
-            };
+    const fetchUnreadCount = useCallback(async (signal?: AbortSignal) => {
+        try {
+            const { count } = await (supabase
+                .from('announcement_reads') as any)
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', userId)
+                .abortSignal(signal as any);
+            
+            // This logic is simplified - we want unread count which is total announcements - read count
+            // Fetch total active announcements first
+            const { count: totalCount } = await (supabase
+                .from('announcements') as any)
+                .select('*', { count: 'exact', head: true })
+                .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
+                .abortSignal(signal as any);
+            
+            const dbReadCount = count || 0;
+            const dbUnreadCount = Math.max(0, (totalCount || 0) - dbReadCount);
+            setUnreadCount(dbUnreadCount);
+        } catch (error: any) {
+            if (error.name === 'AbortError') return;
+            // Silent error for unread count
         }
     }, [userId]);
 
@@ -66,67 +69,59 @@ export default function NotificationMenu({ userId }: NotificationMenuProps) {
         };
     }, [isOpen]);
 
-    const fetchUnreadCount = async () => {
-        const { data, error } = await supabase
-            .rpc('get_unread_count', { user_uuid: userId });
-
-        if (!error && data !== null) {
-            setUnreadCount(data);
-        }
-    };
-
-    const fetchAnnouncements = async () => {
+    const fetchAnnouncements = useCallback(async (signal?: AbortSignal) => {
         setLoading(true);
 
-        // Fetch announcements
-        const { data: announcementsData } = await supabase
-            .from('announcements')
-            .select('*')
-            .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
-            .order('created_at', { ascending: false })
-            .limit(10);
+        try {
+            // Fetch announcements
+            const { data: announcementsData } = await (supabase
+                .from('announcements') as any)
+                .select('*')
+                .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
+                .order('created_at', { ascending: false })
+                .limit(10)
+                .abortSignal(signal as any);
 
-        if (announcementsData) {
-            // Fetch read status for each announcement
-            const { data: readsData } = await supabase
-                .from('announcement_reads')
-                .select('announcement_id')
-                .eq('user_id', userId);
+            if (announcementsData) {
+                // Fetch read status for each announcement
+                const { data: readsData } = await (supabase
+                    .from('announcement_reads') as any)
+                    .select('announcement_id')
+                    .eq('user_id', userId)
+                    .abortSignal(signal as any);
 
-            const serverReadIds = new Set(readsData?.map(r => r.announcement_id) || []);
+                const serverReadIds = new Set((readsData as any[])?.map(r => r.announcement_id) || []);
 
-            // Get local read IDs
-            let localReadIds = new Set<string>();
-            try {
-                const stored = localStorage.getItem(`read_announcements_${userId}`);
-                if (stored) {
-                    localReadIds = new Set(JSON.parse(stored));
+                // Get local read IDs
+                let localReadIds = new Set<string>();
+                try {
+                    const stored = localStorage.getItem(`read_announcements_${userId}`);
+                    if (stored) {
+                        localReadIds = new Set(JSON.parse(stored));
+                    }
+                } catch (e) {
+                    ErrorLogger.error('Error reading from localStorage', e);
                 }
-            } catch (e) {
-                console.error('Error reading from localStorage', e);
+
+                setAnnouncements(
+                    (announcementsData as any[])
+                        .filter(a => a.priority !== null)  // Filter out null priorities
+                        .map(a => ({
+                            ...a,
+                            priority: a.priority as 'low' | 'normal' | 'high' | 'urgent',  // Type cast to literal union
+                            is_read: serverReadIds.has(a.id) || localReadIds.has(a.id)
+                        }))
+                );
             }
-
-            setAnnouncements(
-                announcementsData
-                    .filter(a => a.priority !== null)  // Filter out null priorities
-                    .map(a => ({
-                        ...a,
-                        priority: a.priority as 'low' | 'normal' | 'high' | 'urgent',  // Type cast to literal union
-                        is_read: serverReadIds.has(a.id) || localReadIds.has(a.id)
-                    }))
-            );
+        } catch (error: any) {
+            if (error.name === 'AbortError') return;
+            ErrorLogger.error('Error fetching notifications:', error);
+        } finally {
+            setLoading(false);
         }
+    }, [userId]);
 
-        setLoading(false);
-    };
-
-    useEffect(() => {
-        if (isOpen && announcements.length > 0 && unreadCount > 0) {
-            markAllAsRead();
-        }
-    }, [isOpen, announcements, unreadCount]);
-
-    const markAllAsRead = async () => {
+    const markAllAsRead = useCallback(async () => {
         const unreadAnnouncements = announcements.filter(a => !a.is_read);
         if (unreadAnnouncements.length === 0) return;
 
@@ -138,26 +133,56 @@ export default function NotificationMenu({ userId }: NotificationMenuProps) {
         try {
             const allReadIds = announcements.map(a => a.id);
             const stored = localStorage.getItem(`read_announcements_${userId}`);
-            let currentIds = stored ? JSON.parse(stored) : [];
+            const currentIds = stored ? JSON.parse(stored) : [];
             const newIds = [...new Set([...currentIds, ...allReadIds])];
             localStorage.setItem(`read_announcements_${userId}`, JSON.stringify(newIds));
         } catch (e) {
-            console.error('Error saving to localStorage', e);
+            ErrorLogger.error('Error saving to localStorage', e);
         }
 
         // Mark all as read in parallel for max speed
         try {
             await Promise.all(unreadAnnouncements.map(a =>
-                supabase.rpc('mark_announcement_read', {
+                (supabase.rpc as any)('mark_announcement_read', {
                     announcement_uuid: a.id,
                     user_uuid: userId
                 })
             ));
         } catch (error) {
-            console.error('Error marking announcements as read:', error);
+            ErrorLogger.error('Error marking announcements as read:', error);
             // Revert on error would be complex, assuming success for speed
         }
-    };
+    }, [announcements, userId]);
+
+    useEffect(() => {
+        if (userId) {
+            const controller = new AbortController();
+            fetchAnnouncements(controller.signal);
+            fetchUnreadCount(controller.signal);
+
+            const channel = supabase
+                .channel('announcements')
+                .on('postgres_changes',
+                    { event: '*', schema: 'public', table: 'announcements' },
+                    () => {
+                        fetchAnnouncements(controller.signal);
+                        fetchUnreadCount(controller.signal);
+                    }
+                )
+                .subscribe();
+
+            return () => {
+                supabase.removeChannel(channel);
+                controller.abort();
+            };
+        }
+    }, [userId, fetchAnnouncements, fetchUnreadCount]);
+
+    useEffect(() => {
+        if (isOpen && announcements.length > 0 && unreadCount > 0) {
+            markAllAsRead();
+        }
+    }, [isOpen, announcements, unreadCount, markAllAsRead]);
 
     const handleAnnouncementClick = (announcement: Announcement) => {
         // Navigate to linked page if exists

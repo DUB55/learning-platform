@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-01-24T14:20:36.029Z",
+  "success": true,
+  "counts": {
+    "subjects": 1,
+    "books": 1,
+    "chapters": 1,
+    "sections": 1,
+    "sets": 1,
+    "flashcards": 2,
+    "docs": 2,
+    "questions": 1,
+    "quizzes": 0,
+    "assets": 1
+  },
+  "coverage": {
+    "total_items_in_manifest": 8,
+    "items_processed": 8,
+    "unsupported_items": []
+  },
+  "errors": [],
+  "warnings": []
+}

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { BookOpen } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import WindowControls from '@/components/WindowControls';
 
 export default function Navbar() {
     const [scrolled, setScrolled] = useState(false);
@@ -17,12 +18,12 @@ export default function Navbar() {
 
     return (
         <nav
-            className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled
+            className={`fixed top-0 w-full z-50 transition-all duration-300 electron-drag ${scrolled
                     ? 'bg-[#0f172a]/80 backdrop-blur-md border-b border-white/10 py-4'
                     : 'bg-transparent py-6'
                 }`}
         >
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 electron-no-drag">
                 <div className="flex justify-between items-center">
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-3 group">
@@ -48,6 +49,11 @@ export default function Navbar() {
                         >
                             Start nu gratis
                         </Link>
+                        
+                        {/* Custom Electron Controls */}
+                        <div className="ml-2 h-10 flex items-center border-l border-white/10 pl-2">
+                            <WindowControls />
+                        </div>
                     </div>
                 </div>
             </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import ErrorLogger from '@/lib/ErrorLogger';
 
 /**
  * Custom hook to subscribe to admin permission settings with real-time updates
@@ -9,18 +10,25 @@ import { supabase } from '@/lib/supabase';
  * @param defaultValue - Fallback value if setting not found
  * @returns Current value of the setting
  */
-export function useAdminSetting<T = string>(settingKey: string, defaultValue: T): T {
+export function useAdminSetting<T = string | number | boolean>(settingKey: string, defaultValue: T): T {
     const [value, setValue] = useState<T>(defaultValue);
 
     useEffect(() => {
+        const controller = new AbortController();
+
         // Fetch initial value
-        const fetchSetting = async () => {
+        const fetchSetting = async (signal: AbortSignal) => {
             try {
-                const { data } = await (supabase
-                    .from('admin_permission_settings') as any)
+                const { data, error } = await supabase
+                    .from('admin_permission_settings')
                     .select('default_value, setting_type')
                     .eq('setting_key', settingKey)
                     .single();
+
+                if (error) {
+                    if (error.name === 'AbortError') return;
+                    throw error;
+                }
 
                 if (data) {
                     // Parse value based on type
@@ -28,11 +36,11 @@ export function useAdminSetting<T = string>(settingKey: string, defaultValue: T)
                     setValue(parsedValue as T);
                 }
             } catch (error) {
-                console.error(`Error fetching setting ${settingKey}:`, error);
+                ErrorLogger.error(`Error fetching setting ${settingKey}:`, error);
             }
         };
 
-        fetchSetting();
+        fetchSetting(controller.signal);
 
         // Subscribe to real-time changes
         const channel = supabase
@@ -46,9 +54,10 @@ export function useAdminSetting<T = string>(settingKey: string, defaultValue: T)
                     filter: `setting_key=eq.${settingKey}`
                 },
                 (payload) => {
+                    const newRow = payload.new as { default_value: string; setting_type: string };
                     const parsedValue = parseSettingValue(
-                        payload.new.default_value,
-                        payload.new.setting_type
+                        newRow.default_value,
+                        newRow.setting_type
                     );
                     setValue(parsedValue as T);
                 }
@@ -56,6 +65,7 @@ export function useAdminSetting<T = string>(settingKey: string, defaultValue: T)
             .subscribe();
 
         return () => {
+            controller.abort();
             supabase.removeChannel(channel);
         };
     }, [settingKey]);
@@ -66,7 +76,7 @@ export function useAdminSetting<T = string>(settingKey: string, defaultValue: T)
 /**
  * Parse setting value based on its type
  */
-function parseSettingValue(value: string, type: string): any {
+function parseSettingValue(value: string, type: string): string | number | boolean {
     switch (type) {
         case 'boolean':
             return value === 'true';
@@ -82,33 +92,41 @@ function parseSettingValue(value: string, type: string): any {
 /**
  * Hook to fetch multiple settings at once
  */
-export function useAdminSettings(settingKeys: string[]): Record<string, any> {
-    const [settings, setSettings] = useState<Record<string, any>>({});
+export function useAdminSettings(settingKeys: string[]): Record<string, string | number | boolean> {
+    const [settings, setSettings] = useState<Record<string, string | number | boolean>>({});
 
     useEffect(() => {
-        const fetchSettings = async () => {
+        const controller = new AbortController();
+
+        const fetchSettings = async (signal: AbortSignal) => {
             try {
-                const { data } = await (supabase
+                const { data, error } = await (supabase
                     .from('admin_permission_settings') as any)
                     .select('setting_key, default_value, setting_type')
-                    .in('setting_key', settingKeys);
+                    .in('setting_key', settingKeys)
+                    .abortSignal(signal as any);
+
+                if (error) {
+                    if (error.name === 'AbortError') return;
+                    throw error;
+                }
 
                 if (data) {
-                    const parsed = data.reduce((acc, setting) => {
+                    const parsed = data.reduce((acc: any, setting: any) => {
                         acc[setting.setting_key] = parseSettingValue(
                             setting.default_value,
                             setting.setting_type
                         );
                         return acc;
-                    }, {} as Record<string, any>);
+                    }, {} as Record<string, string | number | boolean>);
                     setSettings(parsed);
                 }
             } catch (error) {
-                console.error('Error fetching settings:', error);
+                ErrorLogger.error('Error fetching settings:', error);
             }
         };
 
-        fetchSettings();
+        fetchSettings(controller.signal);
 
         // Subscribe to changes for all settings
         const channel = supabase
@@ -122,11 +140,12 @@ export function useAdminSettings(settingKeys: string[]): Record<string, any> {
                     filter: `setting_key=in.(${settingKeys.join(',')})`
                 },
                 (payload) => {
+                    const newRow = payload.new as { setting_key: string; default_value: string; setting_type: string };
                     setSettings(prev => ({
                         ...prev,
-                        [payload.new.setting_key]: parseSettingValue(
-                            payload.new.default_value,
-                            payload.new.setting_type
+                        [newRow.setting_key]: parseSettingValue(
+                            newRow.default_value,
+                            newRow.setting_type
                         )
                     }));
                 }
@@ -134,6 +153,7 @@ export function useAdminSettings(settingKeys: string[]): Record<string, any> {
             .subscribe();
 
         return () => {
+            controller.abort();
             supabase.removeChannel(channel);
         };
     }, [settingKeys.join(',')]);

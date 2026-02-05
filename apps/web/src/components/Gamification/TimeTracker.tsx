@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import ErrorLogger from '@/lib/ErrorLogger';
 
 export default function TimeTracker() {
     const { user } = useAuth();
@@ -20,7 +21,7 @@ export default function TimeTracker() {
                         minutes: 1
                     });
                 } catch (error) {
-                    console.error('Failed to track time:', error);
+                    ErrorLogger.error('Failed to track time:', error);
                 }
             }
         }, 60000); // 1 minute

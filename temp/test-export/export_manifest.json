@@ -1,0 +1,69 @@
+{
+    "schema_version": "1.0",
+    "subjects": [
+        {
+            "subjectId": "subj_wiskunde_001",
+            "title": "Wiskunde B",
+            "userId": "00000000-0000-0000-0000-000000000000",
+            "books": [
+                {
+                    "bookId": "book_getal_ruimte_12",
+                    "title": "Getal & Ruimte 12e Editie",
+                    "author": "Epsteim et al.",
+                    "publisher": "Noordhoff",
+                    "chapters": [
+                        {
+                            "chapterIdOrIdx": "1",
+                            "path": "h1-functies",
+                            "title": "Hoofdstuk 1: Functies en Grafieken",
+                            "sections": [
+                                {
+                                    "sectionIdOrIdx": "1.1",
+                                    "path": "s1-1-lineaire-functies",
+                                    "title": "1.1 Lineaire functies",
+                                    "content": {
+                                        "summary": {
+                                            "html": "<p>Samenvatting van lineaire functies. Zie deze afbeelding: <img src=\"assets/lineair.png\"/></p>",
+                                            "sourcePath": "h1-functies/s1-1/summary.html"
+                                        },
+                                        "terms": [
+                                            {
+                                                "term": "Helling",
+                                                "definition": "De mate waarin een lijn stijgt of daalt."
+                                            },
+                                            {
+                                                "term": "Startgetal",
+                                                "definition": "De y-waarde waar de lijn de y-as snijdt."
+                                            }
+                                        ],
+                                        "theory": [
+                                            {
+                                                "theoryHash": "theory_hash_abc123",
+                                                "title": "De formule y = ax + b",
+                                                "html": "<div>In de formule y = ax + b is <b>a</b> de helling en <b>b</b> het startgetal.</div>",
+                                                "sourcePath": "h1-functies/s1-1/theory.html"
+                                            }
+                                        ],
+                                        "questions": [
+                                            {
+                                                "id": "q_001",
+                                                "prompt": "Wat is de helling in y = 3x + 5?",
+                                                "type": "mcq",
+                                                "options": [
+                                                    "3",
+                                                    "5",
+                                                    "x"
+                                                ],
+                                                "correctAnswer": "3"
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

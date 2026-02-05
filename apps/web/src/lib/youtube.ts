@@ -1,4 +1,5 @@
 import { YoutubeTranscript } from 'youtube-transcript';
+import ErrorLogger from './ErrorLogger';
 
 export interface VideoTranscript {
     text: string;
@@ -11,7 +12,7 @@ export async function fetchYoutubeTranscript(videoIdOrUrl: string): Promise<stri
         const transcriptItems = await YoutubeTranscript.fetchTranscript(videoIdOrUrl);
         return transcriptItems.map(item => item.text).join(' ');
     } catch (error) {
-        console.error('Error fetching YouTube transcript:', error);
+        ErrorLogger.error('Error fetching YouTube transcript:', error);
         throw new Error('Failed to fetch transcript. The video might not have captions enabled.');
     }
 }

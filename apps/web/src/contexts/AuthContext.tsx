@@ -1,18 +1,33 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import ErrorLogger from '@/lib/ErrorLogger';
+import { xpService } from '@/lib/xpService';
+
+interface Profile {
+    id: string;
+    full_name?: string;
+    bio?: string;
+    is_admin?: boolean;
+    avatar_url?: string;
+    xp?: number;
+    level?: number;
+    [key: string]: unknown;
+}
 
 interface AuthContextType {
     user: User | null;
     session: Session | null;
-    profile: any | null;
+    profile: Profile | null;
     loading: boolean;
     signIn: (email: string, password: string) => Promise<void>;
     signUp: (email: string, password: string, fullName?: string) => Promise<void>;
     signInWithGoogle: () => Promise<void>;
     signOut: () => Promise<void>;
+    updateXP: (amount: number, reason?: string) => Promise<void>;
+    refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -24,6 +39,8 @@ const AuthContext = createContext<AuthContextType>({
     signUp: async () => { },
     signInWithGoogle: async () => { },
     signOut: async () => { },
+    updateXP: async () => { },
+    refreshProfile: async () => { },
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -31,48 +48,75 @@ export const useAuth = () => useContext(AuthContext);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [session, setSession] = useState<Session | null>(null);
-    const [profile, setProfile] = useState<any | null>(null);
+    const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
+    const initTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
-        // Get initial session
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                fetchProfile(session.user.id);
-            } else {
-                setLoading(false);
-            }
-        });
-
-        // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                fetchProfile(session.user.id);
-            } else {
+        let unsub: { unsubscribe: () => void } | null = null;
+        const init = async () => {
+            try {
+                initTimeoutRef.current = setTimeout(() => {
+                    setLoading(false);
+                }, 6000);
+                const { data } = await supabase.auth.getSession();
+                const session = data?.session || null;
+                setSession(session);
+                setUser(session?.user ?? null);
+                if (session?.user) {
+                    await fetchProfile(session.user.id);
+                } else {
+                    if (initTimeoutRef.current) clearTimeout(initTimeoutRef.current);
+                    setLoading(false);
+                }
+            } catch {
+                setSession(null);
+                setUser(null);
                 setProfile(null);
+                if (initTimeoutRef.current) clearTimeout(initTimeoutRef.current);
                 setLoading(false);
             }
-        });
-
-        return () => subscription.unsubscribe();
+            try {
+                const sub = supabase.auth.onAuthStateChange((_event, session) => {
+                    setSession(session);
+                    setUser(session?.user ?? null);
+                    if (session?.user) {
+                        fetchProfile(session.user.id);
+                    } else {
+                        setProfile(null);
+                        if (initTimeoutRef.current) clearTimeout(initTimeoutRef.current);
+                        setLoading(false);
+                    }
+                });
+                unsub = sub.data.subscription;
+            } catch {
+                unsub = null;
+            }
+        };
+        init();
+        return () => {
+            try {
+                unsub?.unsubscribe();
+            } catch { }
+        };
     }, []);
 
     const fetchProfile = async (userId: string) => {
         try {
+            const timeoutId = setTimeout(() => {
+                setLoading(false);
+            }, 5000);
             const { data } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', userId)
                 .single();
-            console.log('👤 Profile loaded:', data);
-            console.log('🔐 Is Admin:', data?.is_admin);
-            setProfile(data);
+            clearTimeout(timeoutId);
+            if (initTimeoutRef.current) clearTimeout(initTimeoutRef.current);
+            setProfile((data ?? null) as Profile | null);
         } catch (error) {
-            console.error('Error fetching profile:', error);
+            ErrorLogger.error('Error fetching profile', error);
+            setProfile(null);
         } finally {
             setLoading(false);
         }
@@ -118,8 +162,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const updateXP = async (amount: number, reason: string = 'Activity reward') => {
+        if (!user) return;
+
+        const success = await xpService.awardXP(user.id, amount, reason);
+        
+        if (success) {
+            // Refresh profile to get updated XP and level
+            await fetchProfile(user.id);
+        }
+    };
+
+    const refreshProfile = async () => {
+        if (user) {
+            await fetchProfile(user.id);
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, session, profile, loading, signIn, signUp, signInWithGoogle, signOut }}>
+        <AuthContext.Provider value={{ user, session, profile, loading, signIn, signUp, signInWithGoogle, signOut, updateXP, refreshProfile }}>
             {children}
         </AuthContext.Provider>
     );

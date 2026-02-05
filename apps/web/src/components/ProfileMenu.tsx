@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { User, Settings, Shield, FileText, Lock, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -42,11 +43,14 @@ export default function ProfileMenu() {
                 className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 p-[2px] hover:scale-105 transition-transform"
             >
                 {profile?.avatar_url ? (
-                    <img
-                        src={profile.avatar_url}
-                        alt="Profile"
-                        className="w-full h-full rounded-full object-cover"
-                    />
+                    <div className="relative w-full h-full rounded-full overflow-hidden">
+                        <Image
+                            src={profile.avatar_url}
+                            alt="Profile"
+                            fill
+                            className="object-cover"
+                        />
+                    </div>
                 ) : (
                     <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center text-white font-medium text-sm">
                         {getInitials()}

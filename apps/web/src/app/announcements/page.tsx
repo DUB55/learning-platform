@@ -56,48 +56,49 @@ export default function AnnouncementsPage() {
 
     const fetchAnnouncements = async () => {
         setIsLoadingData(true);
+        if (!user) return;
 
-        // Fetch announcements with linked pages
-        const { data: announcementsData } = await supabase
+        // Fetch announcements with their linked page details
+        const { data: announcementsData, error: announcementsError } = await supabase
             .from('announcements')
             .select(`
                 *,
                 linked_page:announcement_pages!linked_page_id(slug, title)
             `)
-            .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
             .order('created_at', { ascending: false });
 
+        if (announcementsError) {
+            console.error('Error fetching announcements:', announcementsError);
+            setIsLoadingData(false);
+            return;
+        }
+
+        // Fetch read status for the current user
+        const { data: readData } = await supabase
+            .from('announcement_reads')
+            .select('announcement_id')
+            .eq('user_id', user.id);
+
+        const readIds = new Set(readData?.map(r => r.announcement_id) || []);
+
         if (announcementsData) {
-            // Fetch read status FIRST, then set announcements ONCE
-            const { data: readsData } = await supabase
-                .from('announcement_reads')
-                .select('announcement_id')
-                .eq('user_id', user!.id);
-
-            const readIds = new Set((readsData as any)?.map((r: any) => r.announcement_id) || []);
-
             setAnnouncements(
-                announcementsData
-                    .filter(a => a.priority !== null)  // Fix priority null error
-                    .map(a => ({
-                        ...a,
-                        priority: a.priority as 'low' | 'normal' | 'high' | 'urgent',  // Type cast to literal union
-                        linked_page: a.linked_page || undefined,  // Convert null to undefined
-                        is_read: readIds.has((a as any).id)
-                    }))
+                announcementsData.map(a => ({
+                    ...a,
+                    linked_page: a.linked_page || undefined,
+                    is_read: readIds.has(a.id)
+                }))
             );
         }
 
         setIsLoadingData(false);
     };
 
-    setIsLoadingData(false);
-
 
     const markAsRead = async (announcementId: string) => {
         if (!user) return;
 
-        await (supabase.rpc('mark_announcement_read') as any)({
+        await supabase.rpc('mark_announcement_read', {
             announcement_uuid: announcementId,
             user_uuid: user.id
         });
@@ -146,7 +147,7 @@ export default function AnnouncementsPage() {
     }
 
     return (
-        <div className="h-full overflow-y-auto p-8 relative">
+        <div className="h-full p-8 relative">
 
 
             <div className="max-w-4xl mx-auto">

@@ -4,10 +4,12 @@ import { useState } from 'react';
 import { X, Youtube, Loader2, FileText, Zap } from 'lucide-react';
 import { generateFromYoutube } from '@/app/actions/generate';
 
+type GeneratedData = Array<{ term: string; definition: string }> | string;
+
 interface YoutubeImportModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSuccess: (data: any, type: 'flashcards' | 'summary') => void;
+    onSuccess: (data: GeneratedData, type: 'flashcards' | 'summary') => void;
     allowedModes?: ('flashcards' | 'summary')[];
 }
 
@@ -37,7 +39,7 @@ export default function YoutubeImportModal({ isOpen, onClose, onSuccess, allowed
             } else {
                 setError(result.error || 'Failed to generate content');
             }
-        } catch (err) {
+        } catch {
             setError('Something went wrong. Please check the URL.');
         } finally {
             setLoading(false);

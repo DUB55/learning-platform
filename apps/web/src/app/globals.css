@@ -3,9 +3,17 @@
 @tailwind utilities;
 
 :root {
-    --foreground-rgb: 0, 0, 0;
-    --background-start-rgb: 214, 219, 220;
-    --background-end-rgb: 255, 255, 255;
+    /* Premium Light Mode Palette - Light Blue Theme */
+    --foreground-rgb: 15, 23, 42;
+    /* Slate 900 */
+    --background-start-rgb: 235, 242, 255;
+    /* Very Light Blue */
+    --background-end-rgb: 219, 234, 254;
+    /* Light Blue (blue-100) */
+
+    /* Card/Glass vars for light mode override */
+    --glass-border: 255, 255, 255;
+    --glass-bg: 255, 255, 255;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -14,6 +22,15 @@
         --background-start-rgb: 10, 10, 10;
         --background-end-rgb: 0, 0, 0;
     }
+}
+
+/* Electron Draggable Area */
+.electron-drag {
+    -webkit-app-region: drag;
+}
+
+.electron-no-drag {
+    -webkit-app-region: no-drag;
 }
 
 body {
@@ -58,4 +75,81 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #475569;
+}
+
+/* Elegant Sidebar Scrollbar */
+.sidebar-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    transition: background 0.3s;
+}
+
+.sidebar-scrollbar:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Hide scrollbar while preserving scroll behavior */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Accessibility: High Contrast Mode */
+.high-contrast {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+}
+
+.high-contrast body {
+    background: #000000 !important;
+    color: #ffffff !important;
+}
+
+.high-contrast .glass,
+.high-contrast .glass-card {
+    background: #000000 !important;
+    border: 2px solid #ffffff !important;
+    backdrop-filter: none !important;
+}
+
+.high-contrast .text-slate-400,
+.high-contrast .text-slate-500 {
+    color: #ffffff !important;
+    opacity: 0.9;
+}
+
+.high-contrast button {
+    border: 1px solid #ffffff !important;
+}
+
+.high-contrast input,
+.high-contrast textarea {
+    background: #000000 !important;
+    border: 2px solid #ffffff !important;
+    color: #ffffff !important;
+}
+
+/* Screen Reader Helpers */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
 }

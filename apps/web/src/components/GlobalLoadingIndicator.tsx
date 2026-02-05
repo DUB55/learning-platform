@@ -13,7 +13,7 @@ export default function GlobalLoadingIndicator() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const [enabled, setEnabled] = useState(false);
-    const [showSpinner, setShowSpinner] = useState(false);
+    type AdminSetting = { setting_key: 'ui.show_loading_indicator' | 'ui.show_loading_spinner'; default_value: string };
 
     useEffect(() => {
         // Load from local storage first for immediate effect
@@ -23,19 +23,18 @@ export default function GlobalLoadingIndicator() {
         const cachedSpinner = localStorage.getItem('ui.show_loading_spinner');
         if (cachedSpinner !== null) {
             const spin = cachedSpinner === 'true';
-            setShowSpinner(spin);
             NProgress.configure({ showSpinner: spin });
         }
 
         // Fetch the global setting for loading indicator
         const fetchSetting = async () => {
-            const { data } = await (supabase
-                .from('admin_permission_settings') as any)
+            const { data } = await supabase
+                .from('admin_permission_settings')
                 .select('setting_key, default_value')
                 .in('setting_key', ['ui.show_loading_indicator', 'ui.show_loading_spinner']);
 
             if (data) {
-                data.forEach((item: any) => {
+                (data as unknown as AdminSetting[]).forEach((item) => {
                     if (item.setting_key === 'ui.show_loading_indicator') {
                         const val = item.default_value === 'true';
                         setEnabled(val);
@@ -43,7 +42,6 @@ export default function GlobalLoadingIndicator() {
                     }
                     if (item.setting_key === 'ui.show_loading_spinner') {
                         const val = item.default_value === 'true';
-                        setShowSpinner(val);
                         localStorage.setItem('ui.show_loading_spinner', String(val));
                         NProgress.configure({ showSpinner: val });
                     }
@@ -64,7 +62,7 @@ export default function GlobalLoadingIndicator() {
                     table: 'admin_permission_settings',
                     filter: "setting_key=in.(ui.show_loading_indicator,ui.show_loading_spinner)"
                 },
-                (payload) => {
+                (payload: { new: AdminSetting }) => {
                     if (payload.new.setting_key === 'ui.show_loading_indicator') {
                         const val = payload.new.default_value === 'true';
                         setEnabled(val);
@@ -72,7 +70,6 @@ export default function GlobalLoadingIndicator() {
                     }
                     if (payload.new.setting_key === 'ui.show_loading_spinner') {
                         const val = payload.new.default_value === 'true';
-                        setShowSpinner(val);
                         localStorage.setItem('ui.show_loading_spinner', String(val));
                         NProgress.configure({ showSpinner: val });
                     }
@@ -87,6 +84,15 @@ export default function GlobalLoadingIndicator() {
 
     useEffect(() => {
         if (!enabled) return;
+
+        // Prevent showing on initial mount if not a real navigation
+        // and prevent showing on tab switches/focus
+        const isInitial = !pathname && !searchParams;
+        if (isInitial) return;
+
+        // Check if the tab is visible. If it just became visible, don't show the indicator
+        // because it's likely not a real navigation but a tab switch.
+        if (document.visibilityState !== 'visible') return;
 
         NProgress.start();
         const timer = setTimeout(() => {

@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
 import { Plus, Search, FileText, Link as LinkIcon, Video, Image as ImageIcon, MoreVertical, Trash2, ExternalLink } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Database } from '@/lib/database.types';
+import ErrorLogger from '@/lib/ErrorLogger';
 
 type Resource = Database['public']['Tables']['resources']['Row'];
 
@@ -20,24 +21,36 @@ export default function LibraryPage() {
     const [newTitle, setNewTitle] = useState('');
     const [newUrl, setNewUrl] = useState('');
     const [newType, setNewType] = useState<Resource['type']>('link');
+    const addControllerRef = useRef<AbortController | null>(null);
+    const deleteControllerRefs = useRef<Map<string, AbortController>>(new Map());
 
     useEffect(() => {
+        const controller = new AbortController();
         if (user) {
-            fetchResources();
+            fetchResources(controller.signal);
         }
+        return () => {
+            controller.abort();
+            addControllerRef.current?.abort();
+            deleteControllerRefs.current.forEach(c => c.abort());
+        };
     }, [user]);
 
-    const fetchResources = async () => {
+    const fetchResources = async (signal?: AbortSignal) => {
         try {
-            const { data, error } = await supabase
-                .from('resources')
+            const { data, error } = await (supabase
+                .from('resources') as any)
                 .select('*')
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                .abortSignal(signal as any);
 
-            if (error) throw error;
+            if (error) {
+                if (error.name === 'AbortError' || error.message?.includes('abort')) return;
+                throw error;
+            }
             if (data) setResources(data);
         } catch (error) {
-            console.error('Error fetching resources:', error);
+            ErrorLogger.error('Error fetching resources:', error);
         } finally {
             setLoading(false);
         }
@@ -47,9 +60,12 @@ export default function LibraryPage() {
         e.preventDefault();
         if (!user || !newTitle.trim() || !newUrl.trim()) return;
 
+        addControllerRef.current?.abort();
+        addControllerRef.current = new AbortController();
+
         try {
-            const { data, error } = await supabase
-                .from('resources')
+            const { data, error } = await (supabase
+                .from('resources') as any)
                 .insert([
                     {
                         user_id: user.id,
@@ -59,9 +75,13 @@ export default function LibraryPage() {
                     }
                 ])
                 .select()
-                .single();
+                .single()
+                .abortSignal(addControllerRef.current.signal as any);
 
-            if (error) throw error;
+            if (error) {
+                if (error.name === 'AbortError') return;
+                throw error;
+            }
 
             setResources([data, ...resources]);
             setIsAdding(false);
@@ -69,22 +89,34 @@ export default function LibraryPage() {
             setNewUrl('');
             setNewType('link');
         } catch (error) {
-            console.error('Error adding resource:', error);
+            ErrorLogger.error('Error adding resource:', error);
+        } finally {
+            addControllerRef.current = null;
         }
     };
 
     const handleDeleteResource = async (id: string) => {
         try {
-            const { error } = await supabase
-                .from('resources')
-                .delete()
-                .eq('id', id);
+            deleteControllerRefs.current.get(id)?.abort();
+            const controller = new AbortController();
+            deleteControllerRefs.current.set(id, controller);
 
-            if (error) throw error;
+            const { error } = await (supabase
+                .from('resources') as any)
+                .delete()
+                .eq('id', id)
+                .abortSignal(controller.signal as any);
+
+            if (error) {
+                if (error.name === 'AbortError') return;
+                throw error;
+            }
 
             setResources(resources.filter(r => r.id !== id));
         } catch (error) {
-            console.error('Error deleting resource:', error);
+            ErrorLogger.error('Error deleting resource:', error);
+        } finally {
+            deleteControllerRefs.current.delete(id);
         }
     };
 
@@ -102,8 +134,8 @@ export default function LibraryPage() {
     );
 
     return (
-        <div className="p-8 pb-32 relative">
-            <div className="max-w-6xl mx-auto">
+        <div className="flex-1 flex flex-col p-8 relative">
+            <div className="max-w-6xl mx-auto w-full flex-1 flex flex-col">
                 <header className="mb-10 flex justify-between items-end">
                     <div>
                         <h1 className="text-3xl font-serif font-bold text-white mb-2">Library</h1>

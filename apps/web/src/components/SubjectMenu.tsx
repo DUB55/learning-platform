@@ -23,7 +23,7 @@ export default function SubjectMenu({ subjectId, subjectTitle, isOwner, onEdit, 
     };
 
     return (
-        <div className="relative">
+        <div className="relative" data-subject-id={subjectId}>
             <button
                 onClick={(e) => {
                     e.stopPropagation();

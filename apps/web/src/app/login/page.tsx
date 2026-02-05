@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { BookOpen, Mail, Lock, User, ArrowRight, Github } from 'lucide-react';
 import { Toast, ToastType } from '@/components/ui/Toast';
+import ErrorLogger from '@/lib/ErrorLogger';
 
 export default function LoginPage() {
     const [isLogin, setIsLogin] = useState(true);
@@ -45,7 +46,7 @@ export default function LoginPage() {
                 showToast('Account created! Please check your email.', 'success');
             }
         } catch (error: any) {
-            console.error('Auth error:', error);
+            ErrorLogger.error('Auth error:', error);
             showToast(error.message || 'Authentication failed', 'error');
         } finally {
             setLoading(false);
@@ -56,7 +57,7 @@ export default function LoginPage() {
         try {
             await signInWithGoogle();
         } catch (error: any) {
-            console.error('Google auth error:', error);
+            ErrorLogger.error('Google auth error:', error);
             showToast(error.message || 'Google sign in failed', 'error');
         }
     };

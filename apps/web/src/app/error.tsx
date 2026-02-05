@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import ErrorLogger from '@/lib/ErrorLogger';
 
 export default function GlobalError({
     error,
@@ -15,7 +16,7 @@ export default function GlobalError({
 
     useEffect(() => {
         // Log the error to an error reporting service
-        console.error('Global Error:', error);
+        ErrorLogger.error('Global Error:', error);
     }, [error]);
 
     return (

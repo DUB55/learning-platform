@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 
-export type ToastType = 'success' | 'error' | 'info';
+export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 interface ToastProps {
     message: string;
@@ -28,12 +28,14 @@ export function Toast({ message, type, isVisible, onClose }: ToastProps) {
         success: <CheckCircle className="w-5 h-5 text-emerald-400" />,
         error: <AlertCircle className="w-5 h-5 text-red-400" />,
         info: <Info className="w-5 h-5 text-blue-400" />,
+        warning: <AlertCircle className="w-5 h-5 text-amber-400" />,
     };
 
     const bgColors = {
         success: 'bg-emerald-500/10 border-emerald-500/20',
         error: 'bg-red-500/10 border-red-500/20',
         info: 'bg-blue-500/10 border-blue-500/20',
+        warning: 'bg-amber-500/10 border-amber-500/20',
     };
 
     return (

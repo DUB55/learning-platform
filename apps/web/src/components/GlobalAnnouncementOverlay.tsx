@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, ElementType } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { X, AlertTriangle, AlertCircle, Lock, ShieldAlert, Info, Megaphone } from 'lucide-react';
@@ -15,7 +15,7 @@ interface Announcement {
     created_at: string;
 }
 
-const IconMap: Record<string, any> = {
+const IconMap: Record<string, ElementType> = {
     'alert-circle': AlertCircle,
     'alert-triangle': AlertTriangle,
     'lock': Lock,
@@ -31,59 +31,71 @@ export default function GlobalAnnouncementOverlay() {
     const searchParams = useSearchParams();
     const [blockingAnnouncement, setBlockingAnnouncement] = useState<Announcement | null>(null);
     const [modalAnnouncement, setModalAnnouncement] = useState<Announcement | null>(null);
-
-    // EMERGENCY SAFE MODE: Disable all overlays if ?safe_mode=true is present
-    if (searchParams.get('safe_mode')) return null;
+    const safeMode = Boolean(searchParams.get('safe_mode'));
 
     useEffect(() => {
-        // Initial fetch
-        fetchAnnouncements();
-
-        // Realtime subscription
+        const controller = new AbortController();
+        fetchAnnouncements(controller.signal);
+        
+        // Listen for announcements via Realtime
         const channel = supabase
-            .channel('global-announcements')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, () => {
-                fetchAnnouncements();
+            .channel('announcements_changes')
+            .on('postgres_changes', { 
+                event: '*', 
+                schema: 'public', 
+                table: 'announcements' 
+            }, () => {
+                fetchAnnouncements(controller.signal);
             })
             .subscribe();
 
-        return () => { supabase.removeChannel(channel); };
-    }, []);
+        return () => { 
+            supabase.removeChannel(channel); 
+            controller.abort();
+        };
+    }, [safeMode, profile?.is_admin]);
 
-    const fetchAnnouncements = async () => {
-        const { data } = await supabase
-            .from('announcements')
-            .select('*')
-            .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
-            .order('created_at', { ascending: false });
+    const fetchAnnouncements = async (signal?: AbortSignal) => {
+        try {
+            const { data } = await supabase
+                .from('announcements')
+                .select('*')
+                .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
+                .order('created_at', { ascending: false })
+                .abortSignal(signal);
 
-        if (data) {
-            // Find blocking (urgent) - Takes precedence
-            // We look for ANY active urgent announcement
-            const blocking = data.find((a: any) => a.priority === 'urgent');
+            if (data) {
+                // Find blocking (urgent) - Takes precedence
+                // We look for ANY active urgent announcement
+                const list = data as unknown as Announcement[];
+                const blocking = list.find((a) => a.priority === 'urgent');
 
-            if (blocking) {
-                setBlockingAnnouncement(blocking as Announcement);
-                setModalAnnouncement(null); // Hide modal if blocking is active
-            } else {
-                setBlockingAnnouncement(null);
+                if (blocking) {
+                    setBlockingAnnouncement(blocking);
+                    setModalAnnouncement(null); // Hide modal if blocking is active
+                } else {
+                    setBlockingAnnouncement(null);
 
-                // Find modal (high) - Only if no blocking
-                // We look for the most recent high priority announcement
-                const modal = data.find((a: any) => a.priority === 'high');
+                    // Find modal (high) - Only if no blocking
+                    // We look for the most recent high priority announcement
+                    const modal = list.find((a) => a.priority === 'high');
 
-                if (modal) {
-                    // Check local storage to see if already dismissed
-                    const seen = localStorage.getItem(`seen_announcement_${modal.id}`);
-                    if (!seen) {
-                        setModalAnnouncement(modal as Announcement);
+                    if (modal) {
+                        // Check local storage to see if already dismissed
+                        const seen = localStorage.getItem(`seen_announcement_${modal.id}`);
+                        if (!seen) {
+                            setModalAnnouncement(modal);
+                        } else {
+                            setModalAnnouncement(null);
+                        }
                     } else {
                         setModalAnnouncement(null);
                     }
-                } else {
-                    setModalAnnouncement(null);
                 }
             }
+        } catch (error: any) {
+            if (error.name === 'AbortError') return;
+            console.error('Error fetching announcements:', error);
         }
     };
 
@@ -95,7 +107,7 @@ export default function GlobalAnnouncementOverlay() {
     };
 
     // BLOCKING OVERLAY (Urgent)
-    if (blockingAnnouncement) {
+    if (blockingAnnouncement && profile?.is_admin) {
         const IconComponent = IconMap[blockingAnnouncement.icon || 'alert-circle'] || AlertCircle;
 
         return (
@@ -137,7 +149,7 @@ export default function GlobalAnnouncementOverlay() {
     }
 
     // MODAL OVERLAY (High)
-    if (modalAnnouncement) {
+    if (modalAnnouncement && profile?.is_admin) {
         return (
             <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
                 <div className="bg-slate-900 border border-white/10 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative animate-in zoom-in-95 duration-200">
@@ -178,5 +190,7 @@ export default function GlobalAnnouncementOverlay() {
         );
     }
 
+    if (safeMode) return null;
+    if (!profile?.is_admin) return null;
     return null;
 }

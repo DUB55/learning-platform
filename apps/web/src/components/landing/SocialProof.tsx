@@ -63,7 +63,7 @@ function TestimonialCard({ name, role, text, rating }: { name: string, role: str
                     <Star key={i} className="w-4 h-4 text-amber-400 fill-amber-400" />
                 ))}
             </div>
-            <p className="text-slate-300 mb-6 leading-relaxed">"{text}"</p>
+            <p className="text-slate-300 mb-6 leading-relaxed">&quot;{text}&quot;</p>
             <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-white">
                     {name.charAt(0)}

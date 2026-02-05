@@ -8,8 +8,10 @@ import { ArrowLeft, Sparkles, FileText, Download, Trash2, Edit3 } from 'lucide-r
 import { dub5ai } from '@/lib/dub5ai';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/useToast';
-import Toast from '@/components/Toast';
+import { Toast } from '@/components/ui/Toast';
 import { createPresentation } from '@/lib/presentation-generator';
+import Link from 'next/link';
+import ErrorLogger from '@/lib/ErrorLogger';
 
 
 type SavedPowerpointInsert = {
@@ -19,6 +21,19 @@ type SavedPowerpointInsert = {
 };
 
 
+interface Slide {
+    title: string;
+    subtitle?: string;
+    content: string[];
+    image_prompt?: string;
+    type: 'title' | 'content' | 'section';
+}
+
+interface GeneratedPPT {
+    title: string;
+    slides: Slide[];
+}
+
 export default function AIPPTGeneratorPage() {
     const { user } = useAuth();
     const router = useRouter();
@@ -27,7 +42,7 @@ export default function AIPPTGeneratorPage() {
     const [step, setStep] = useState<'input' | 'generating' | 'preview'>('input');
     const [topic, setTopic] = useState('');
     const [context, setContext] = useState('');
-    const [generatedPPT, setGeneratedPPT] = useState<any>(null);
+    const [generatedPPT, setGeneratedPPT] = useState<GeneratedPPT | null>(null);
     const [editingSlide, setEditingSlide] = useState<number | null>(null);
     const [savedPowerpoints, setSavedPowerpoints] = useState<any[]>([]);
     const [showSavedList, setShowSavedList] = useState(false);
@@ -43,8 +58,20 @@ export default function AIPPTGeneratorPage() {
             const ppt = await dub5ai.generatePresentation(topic, context);
             setGeneratedPPT(ppt);
             setStep('preview');
+            try {
+                const local = JSON.parse(localStorage.getItem('local_ppts') || '[]');
+                const entry = {
+                    id: crypto.randomUUID(),
+                    title: String(ppt.title),
+                    slides: ppt.slides,
+                    createdAt: new Date().toISOString()
+                };
+                local.unshift(entry);
+                localStorage.setItem('local_ppts', JSON.stringify(local.slice(0, 20)));
+                setSavedPowerpoints(local.slice(0, 20));
+            } catch {}
         } catch (err: any) {
-            console.error('Generation error:', err);
+            ErrorLogger.error('Generation error', err);
             showError('Failed to generate presentation. Please try again.');
             setStep('input');
         }
@@ -54,23 +81,21 @@ export default function AIPPTGeneratorPage() {
         if (!generatedPPT || !user) return;
 
         try {
-            // Type assertion to bypass Vercel TS strictness
-            const { error } = await (supabase
-                .from('saved_powerpoints') as any)
+            const { error } = await supabase
+                .from('saved_powerpoints')
                 .insert([
                     {
-                        user_id: user.id as string,
+                        user_id: user.id,
                         title: String(generatedPPT.title),
-                        slides: generatedPPT.slides as any,
+                        slides: generatedPPT.slides,
                     },
                 ]);
 
             if (error) throw error;
 
             showToast('PowerPoint saved successfully!', 'success');
-            // fetchSavedPowerpoints();
         } catch (err: any) {
-            console.error('Save error:', err);
+            ErrorLogger.error('Save error', err);
             showError('Failed to save PowerPoint.');
         }
     };
@@ -88,9 +113,40 @@ export default function AIPPTGeneratorPage() {
             const pres = await createPresentation(generatedPPT);
             await pres.writeFile({ fileName: `${generatedPPT.title.replace(/[^a-z0-9]/gi, '_')}.pptx` });
             showToast('Presentation downloaded successfully!', 'success');
+            try {
+                const local = JSON.parse(localStorage.getItem('local_ppts') || '[]');
+                const entry = {
+                    id: crypto.randomUUID(),
+                    title: String(generatedPPT.title),
+                    slides: generatedPPT.slides,
+                    createdAt: new Date().toISOString()
+                };
+                local.unshift(entry);
+                localStorage.setItem('local_ppts', JSON.stringify(local.slice(0, 20)));
+            } catch {}
         } catch (err: any) {
-            console.error('Download error:', err);
+            ErrorLogger.error('Download error', err);
             showError('Failed to download presentation.');
+        }
+    };
+
+    const handleSaveLocal = () => {
+        if (!generatedPPT) return;
+        try {
+            const local = JSON.parse(localStorage.getItem('local_ppts') || '[]');
+            const entry = {
+                id: crypto.randomUUID(),
+                title: String(generatedPPT.title),
+                slides: generatedPPT.slides,
+                createdAt: new Date().toISOString()
+            };
+            local.unshift(entry);
+            const next = local.slice(0, 20);
+            localStorage.setItem('local_ppts', JSON.stringify(next));
+            setSavedPowerpoints(next);
+            showToast('Saved locally', 'success');
+        } catch {
+            showError('Failed to save locally.');
         }
     };
 
@@ -99,18 +155,28 @@ export default function AIPPTGeneratorPage() {
         setEditingSlide(index);
     };
 
-    const handleUpdateSlide = (index: number, field: string, value: any) => {
+    const handleUpdateSlide = (index: number, field: keyof Slide, value: any) => {
+        if (!generatedPPT) return;
         const updatedSlides = [...generatedPPT.slides];
-        updatedSlides[index][field] = value;
+        (updatedSlides[index] as any)[field] = value;
         setGeneratedPPT({ ...generatedPPT, slides: updatedSlides });
     };
 
     const handleDeleteSlide = (index: number) => {
-        if (!confirm('Delete this slide?')) return;
-        const updatedSlides = generatedPPT.slides.filter((_: any, i: number) => i !== index);
+        if (!confirm('Delete this slide?') || !generatedPPT) return;
+        const updatedSlides = generatedPPT.slides.filter((_, i: number) => i !== index);
         setGeneratedPPT({ ...generatedPPT, slides: updatedSlides });
         showToast('Slide deleted', 'success');
     };
+
+    useEffect(() => {
+        try {
+            const local = JSON.parse(localStorage.getItem('local_ppts') || '[]');
+            setSavedPowerpoints(local);
+        } catch {
+            setSavedPowerpoints([]);
+        }
+    }, []);
 
     return (
         <div className="p-8 pb-32 relative">
@@ -128,10 +194,64 @@ export default function AIPPTGeneratorPage() {
                         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
                             <FileText className="w-5 h-5 text-white" />
                         </div>
-                        <h1 className="text-3xl font-serif font-bold text-white">AI PowerPoint Generator</h1>
+                        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400 flex items-center gap-3">
+                            <Sparkles className="w-8 h-8 text-blue-400" />
+                            AI PPT Generator
+                        </h1>
                     </div>
                     <p className="text-slate-400">Create professional presentations instantly with AI.</p>
                 </div>
+
+                {savedPowerpoints.length > 0 && step === 'input' && (
+                    <div className="glass-card p-6 mb-8">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-white font-bold">Recent PowerPoints</h3>
+                            <button
+                                className="text-slate-400 text-sm hover:text-white"
+                                onClick={() => {
+                                    try {
+                                        localStorage.removeItem('local_ppts');
+                                    } catch {}
+                                    setSavedPowerpoints([]);
+                                }}
+                            >
+                                Clear List
+                            </button>
+                        </div>
+                        <div className="space-y-2">
+                            {savedPowerpoints.slice(0, 6).map((ppt) => (
+                                <div key={ppt.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded bg-orange-500/10 flex items-center justify-center text-orange-400">
+                                            <FileText className="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <p className="text-white font-medium">{ppt.title}</p>
+                                            <p className="text-slate-500 text-xs">{new Date(ppt.createdAt).toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            className="text-slate-400 hover:text-white text-sm px-3 py-1 rounded bg-white/5"
+                                            onClick={() => setGeneratedPPT({ title: ppt.title, slides: ppt.slides }) || setStep('preview')}
+                                        >
+                                            Open
+                                        </button>
+                                        <button
+                                            className="text-slate-400 hover:text-white text-sm px-3 py-1 rounded bg-white/5"
+                                            onClick={async () => {
+                                                const pres = await createPresentation({ title: ppt.title, slides: ppt.slides });
+                                                await pres.writeFile({ fileName: `${String(ppt.title).replace(/[^a-z0-9]/gi, '_')}.pptx` });
+                                            }}
+                                        >
+                                            Download
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {step === 'input' && (
                     <div className="space-y-6 animate-fade-in">
@@ -192,6 +312,12 @@ export default function AIPPTGeneratorPage() {
                                     Discard & Try Again
                                 </button>
                                 <button
+                                    onClick={handleSaveLocal}
+                                    className="bg-white/10 hover:bg-white/20 text-white px-8 py-3 rounded-xl transition-all border border-white/10"
+                                >
+                                    Save Locally
+                                </button>
+                                <button
                                     onClick={handleDownload}
                                     className="bg-green-600 hover:bg-green-500 text-white px-8 py-3 rounded-xl transition-all shadow-lg shadow-green-500/25 flex items-center gap-2"
                                 >
@@ -204,7 +330,7 @@ export default function AIPPTGeneratorPage() {
                         <div className="space-y-4">
                             <h3 className="text-lg font-medium text-slate-400 ml-2">Slide Preview</h3>
 
-                            {generatedPPT.slides.map((slide: any, i: number) => (
+                            {generatedPPT.slides.map((slide, i: number) => (
                                 <div key={i} className="glass-card p-6 group relative">
                                     <div className="flex gap-4">
                                         <div className="w-12 h-12 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-400 font-bold flex-shrink-0">
@@ -287,6 +413,7 @@ export default function AIPPTGeneratorPage() {
                     key={toast.id}
                     message={toast.message}
                     type={toast.type}
+                    isVisible={true}
                     onClose={() => hideToast(toast.id)}
                 />
             ))}

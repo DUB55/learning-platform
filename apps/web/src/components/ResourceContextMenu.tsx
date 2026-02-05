@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Globe, Lock, Edit2, Link2, Trash2 } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import { Globe, Lock } from 'lucide-react';
 
 interface ResourceMenuItem {
     icon: React.ReactNode;

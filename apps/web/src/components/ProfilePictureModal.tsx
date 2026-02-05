@@ -1,15 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { X, Check, User } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import ErrorLogger from '@/lib/ErrorLogger';
 
 interface ProfilePicture {
     id: string;
     name: string;
     url: string;
     sort_order: number;
+}
+
+interface AdminSetting {
+    setting_key: string;
+    default_value: string;
 }
 
 // Fallback pictures if database is empty
@@ -60,12 +67,12 @@ export default function ProfilePictureModal({ isOpen, onClose, currentAvatarUrl,
 
     const fetchSettings = async () => {
         try {
-            const { data } = await (supabase
-                .from('admin_permission_settings') as any)
+            const { data } = await supabase
+                .from('admin_permission_settings')
                 .select('setting_key, default_value');
 
             if (data) {
-                data.forEach((setting: any) => {
+                data.forEach((setting: AdminSetting) => {
                     if (setting.setting_key === 'ui.profile_pic_columns') {
                         setGridColumns(parseInt(setting.default_value) || 5);
                     }
@@ -75,15 +82,15 @@ export default function ProfilePictureModal({ isOpen, onClose, currentAvatarUrl,
                 });
             }
         } catch (error) {
-            console.error('Error fetching settings:', error);
+            ErrorLogger.error('Error fetching settings:', error);
         }
     };
 
     const fetchPictures = async () => {
         setLoadingPictures(true);
         try {
-            const { data, error } = await (supabase
-                .from('profile_pictures') as any)
+            const { data, error } = await supabase
+                .from('profile_pictures')
                 .select('*')
                 .order('sort_order', { ascending: true });
 
@@ -95,7 +102,7 @@ export default function ProfilePictureModal({ isOpen, onClose, currentAvatarUrl,
                 setPictures(FALLBACK_PICTURES);
             }
         } catch (error) {
-            console.error('Error fetching profile pictures:', error);
+            ErrorLogger.error('Error fetching profile pictures:', error);
             setPictures(FALLBACK_PICTURES);
         } finally {
             setLoadingPictures(false);
@@ -114,8 +121,8 @@ export default function ProfilePictureModal({ isOpen, onClose, currentAvatarUrl,
 
         setSaving(true);
         try {
-            const { error } = await supabase
-                .from('profiles')
+            const { error } = await (supabase
+                .from('profiles') as any)
                 .update({ avatar_url: selectedUrl })
                 .eq('id', user.id);
 
@@ -124,7 +131,7 @@ export default function ProfilePictureModal({ isOpen, onClose, currentAvatarUrl,
             onUpdate();
             onClose();
         } catch (error) {
-            console.error('Error updating profile picture:', error);
+            ErrorLogger.error('Error updating profile picture', error);
             alert('Failed to update profile picture');
         } finally {
             setSaving(false);
@@ -140,18 +147,7 @@ export default function ProfilePictureModal({ isOpen, onClose, currentAvatarUrl,
             ...pictures
         ];
 
-    // Generate grid column class based on setting
-    const getGridClass = () => {
-        switch (gridColumns) {
-            case 3: return 'grid-cols-3';
-            case 4: return 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4';
-            case 5: return 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5';
-            case 6: return 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6';
-            case 7: return 'grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7';
-            case 8: return 'grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8';
-            default: return 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5';
-        }
-    };
+ 
 
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
@@ -203,11 +199,14 @@ export default function ProfilePictureModal({ isOpen, onClose, currentAvatarUrl,
                                                 : 'border-white/10 hover:border-white/30 bg-slate-800/50'
                                                 }`}
                                         >
-                                            <img
-                                                src={googleAvatarUrl}
-                                                alt="Google"
-                                                className="w-10 h-10 rounded-full object-cover"
-                                            />
+                                            <div className="relative w-10 h-10 rounded-full overflow-hidden">
+                                                <Image
+                                                    src={googleAvatarUrl}
+                                                    alt="Google"
+                                                    fill
+                                                    className="object-cover"
+                                                />
+                                            </div>
                                             <div className="text-left">
                                                 <p className="text-white font-medium text-sm">Google</p>
                                                 <p className="text-xs text-slate-400">From account</p>
@@ -240,13 +239,13 @@ export default function ProfilePictureModal({ isOpen, onClose, currentAvatarUrl,
                                         }`}
                                 >
                                     {/* Image */}
-                                    <div className="aspect-square w-full overflow-hidden bg-slate-800">
+                                    <div className="aspect-square w-full relative overflow-hidden bg-slate-800">
                                         {pic.url ? (
-                                            <img
+                                            <Image
                                                 src={pic.url}
                                                 alt={pic.name}
-                                                className="w-full h-full object-cover"
-                                                loading="lazy"
+                                                fill
+                                                className="object-cover"
                                             />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center">

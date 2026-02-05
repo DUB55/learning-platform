@@ -19,14 +19,14 @@ export default function DynamicFontProvider() {
 
         // Initial fetch
         const fetchFontSetting = async () => {
-            const { data } = await (supabase
-                .from('admin_permission_settings') as any)
+            const { data } = await supabase
+                .from('admin_permission_settings')
                 .select('default_value')
                 .eq('setting_key', 'ui.font_family')
                 .single();
 
-            if (data) {
-                applyFont(data.default_value);
+            if (data && 'default_value' in data) {
+                applyFont(data.default_value as string);
             } else {
                 applyFont('inter');
             }
@@ -46,7 +46,8 @@ export default function DynamicFontProvider() {
                     filter: "setting_key=eq.ui.font_family"
                 },
                 (payload) => {
-                    applyFont(payload.new.default_value);
+                    const newData = payload.new as { default_value: string };
+                    applyFont(newData.default_value);
                 }
             )
             .subscribe();

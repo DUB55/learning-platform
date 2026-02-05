@@ -1,7 +1,5 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-
 interface ToggleSwitchProps {
     checked: boolean;
     onChange: (checked: boolean) => void;
@@ -19,7 +17,6 @@ export default function ToggleSwitch({
     label,
     description
 }: ToggleSwitchProps) {
-    const inputRef = useRef<HTMLInputElement>(null);
 
     const sizes = {
         sm: {

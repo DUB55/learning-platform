@@ -1,4 +1,5 @@
 import { generatePollinationsUrl } from '@/lib/pollinations';
+import ErrorLogger from '@/lib/ErrorLogger';
 
 export interface SlideData {
     title: string;
@@ -14,9 +15,20 @@ export interface PresentationData {
 }
 
 export async function createPresentation(data: PresentationData) {
-    // Dynamic import to avoid SSR issues
-    const pptxgen = (await import('pptxgenjs')).default;
-    const pres = new pptxgen();
+    if (typeof window === 'undefined') {
+        throw new Error('createPresentation must run in the browser');
+    }
+    let PptxGenJS: any;
+    try {
+        const mod = await import('pptxgenjs');
+        PptxGenJS = mod.default || mod;
+    } catch (err) {
+        ErrorLogger.error('Failed to load pptxgenjs', err);
+        throw new Error('Could not load presentation library');
+    }
+
+    // @ts-expect-error - Constructor type mismatch in some versions
+    const pres = new PptxGenJS();
 
     // Set Metadata
     pres.title = data.title;
@@ -39,64 +51,55 @@ export async function createPresentation(data: PresentationData) {
         ]
     });
 
-    // Helper to fetch image as base64 (to avoid CORS issues in some viewers)
-    const fetchImageBase64 = async (url: string): Promise<string> => {
-        try {
-            const response = await fetch(url);
-            const blob = await response.blob();
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            });
-        } catch (error) {
-            console.warn('Failed to fetch image:', error);
-            return '';
-        }
-    };
-
-
     // Create Slides
     for (const slideData of data.slides) {
         const slide = pres.addSlide({ masterName: 'MASTER_SLIDE' });
 
         if (slideData.type === 'title') {
-            slide.addText(slideData.title, {
-                x: 1, y: 1.5, w: '80%', h: 1,
-                fontSize: 44, bold: true, color: '363636', align: 'center'
-            });
-            if (slideData.subtitle) {
-                slide.addText(slideData.subtitle, {
-                    x: 1, y: 2.5, w: '80%', h: 1,
-                    fontSize: 24, color: '757575', align: 'center'
+            try {
+                slide.addText(slideData.title, {
+                    x: 1, y: 1.5, w: '80%', h: 1,
+                    fontSize: 44, bold: true, color: '363636', align: 'center'
                 });
-            }
+                if (slideData.subtitle) {
+                    slide.addText(slideData.subtitle, {
+                        x: 1, y: 2.5, w: '80%', h: 1,
+                        fontSize: 24, color: '757575', align: 'center'
+                    });
+                }
+            } catch {}
         }
         else if (slideData.type === 'section') {
             slide.background = { color: 'EEF2FF' }; // Light blue for sections
-            slide.addText(slideData.title, {
-                x: 1, y: '40%', w: '80%', h: 1,
-                fontSize: 36, bold: true, color: '1E3A8A', align: 'center'
-            });
+            try {
+                slide.addText(slideData.title, {
+                    x: 1, y: '40%', w: '80%', h: 1,
+                    fontSize: 36, bold: true, color: '1E3A8A', align: 'center'
+                });
+            } catch {}
         }
         else {
             // Content Slide
-            slide.addText(slideData.title, {
-                x: 0.5, y: 0.5, w: '90%', h: 0.8,
-                fontSize: 32, bold: true, color: '363636'
-            });
+            try {
+                slide.addText(slideData.title, {
+                    x: 0.5, y: 0.5, w: '90%', h: 0.8,
+                    fontSize: 32, bold: true, color: '363636'
+                });
+            } catch {}
 
             // Add bullet points
-            const bullets = slideData.content.map(text => ({ text, options: { fontSize: 18, breakLine: true } }));
+            const contentArray = Array.isArray(slideData.content) ? slideData.content : [];
+            const bullets = contentArray.map(text => ({ text, options: { fontSize: 18, breakLine: true } }));
 
             // If there's an image, split layout
             if (slideData.image_prompt) {
                 // Text on left
-                slide.addText(bullets, {
-                    x: 0.5, y: 1.5, w: 4.5, h: 4,
-                    color: '505050', bullet: true, lineSpacing: 28
-                });
+                try {
+                    slide.addText(bullets, {
+                        x: 0.5, y: 1.5, w: 4.5, h: 4,
+                        color: '505050', bullet: true, lineSpacing: 28
+                    });
+                } catch {}
 
                 // Image on right
                 const imageUrl = generatePollinationsUrl(slideData.image_prompt, { width: 800, height: 600 });
@@ -109,15 +112,15 @@ export async function createPresentation(data: PresentationData) {
                         path: imageUrl,
                         x: 5.2, y: 1.5, w: 4.5, h: 3.5
                     });
-                } catch (e) {
-                    console.log('Could not add image directly, skipping image for this slide');
-                }
+                } catch {}
             } else {
                 // Full width text
-                slide.addText(bullets, {
-                    x: 0.5, y: 1.5, w: '90%', h: 4,
-                    color: '505050', bullet: true, lineSpacing: 32
-                });
+                try {
+                    slide.addText(bullets, {
+                        x: 0.5, y: 1.5, w: '90%', h: 4,
+                        color: '505050', bullet: true, lineSpacing: 32
+                    });
+                } catch {}
             }
         }
     }

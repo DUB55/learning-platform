@@ -1,0 +1,1759 @@
+'use client';
+
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { 
+    Plus, Save, Play, Square, MousePointer2, 
+    Box, User as UserIcon, Trophy, Skull, 
+    Settings, Trash2, Download, Upload, 
+    LayoutGrid, Move, Layers, Palette,
+    ChevronRight, ChevronDown, Rocket,
+    Zap, Heart, Coins, ArrowLeft, Home,
+    BoxSelect, Sun, Ghost, Target,
+    Gamepad2, Cuboid as Cube, Globe,
+    Info, HelpCircle, AlertCircle,
+    Maximize, Minimize, Eye, EyeOff,
+    CloudRain, CloudSnow, Wind, Sunrise,
+    Mountain, Trees, Building2, Car,
+    RotateCw, Scaling, Move as MoveIcon,
+    Sparkles, Lightbulb, Menu, CircleDot,
+    User, TreePine
+} from 'lucide-react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { 
+    OrbitControls, TransformControls, Sky, 
+    Environment, Stars, PerspectiveCamera,
+    Grid, ContactShadows, Float, Text,
+    useGLTF
+} from '@react-three/drei';
+import * as THREE from 'three';
+import { motion, AnimatePresence } from 'framer-motion';
+import GameRenderer from '@/components/admin/GameRenderer';
+import { supabase } from '@/lib/supabase';
+import { useToast } from '@/hooks/useToast';
+import Toast from '@/components/ui/Toast';
+
+// --- Types ---
+
+type GameMode = '2d' | '3d';
+type ObjectType = 'player' | 'platform' | 'enemy' | 'goal' | 'coin' | 'hazard' | 'trigger' | 'light' | 'model' | 'character' | 'car' | 'house' | 'tree' | 'building' | 'fence' | 'rock' | 'crate' | 'lamp' | 'particle';
+
+interface GameObject {
+    id: string;
+    type: ObjectType;
+    x: number;
+    y: number;
+    z?: number; // 3D
+    width: number;
+    height: number;
+    depth?: number; // 3D
+    rotation?: [number, number, number]; // 3D
+    color: string;
+    properties: Record<string, any>;
+}
+
+interface GameLogic {
+    id: string;
+    trigger: 'onStart' | 'onUpdate' | 'onCollision' | 'onTriggerEnter' | 'onTriggerExit' | 'onInteract' | 'onPointsReached' | 'onTimer';
+    action: 'message' | 'teleport' | 'spawn' | 'destroy' | 'win' | 'lose' | 'score' | 'changeWeather' | 'changeTime' | 'playEffect';
+    targetId?: string;
+    params: Record<string, any>;
+}
+
+interface GameDesign {
+    id: string;
+    title: string;
+    mode: GameMode;
+    objects: GameObject[];
+    logic: GameLogic[];
+    settings: {
+        gravity: number | [number, number, number];
+        jumpForce: number;
+        moveSpeed: number;
+        backgroundColor: string;
+        viewportWidth: number;
+        viewportHeight: number;
+        // 3D Specific
+        skybox?: string;
+        fogColor?: string;
+        fogDensity?: number;
+        ambientLightIntensity?: number;
+        weather?: 'none' | 'rain' | 'snow' | 'sun' | 'storm';
+        groundType?: 'grass' | 'snow' | 'sand' | 'concrete' | 'dirt' | 'water';
+        environment?: 'empty' | 'city' | 'forest' | 'jungle' | 'mountains' | 'ocean';
+        timeOfDay?: number; // 0-24
+        dayNightCycle?: boolean;
+    };
+}
+
+const DEFAULT_GAME_2D: GameDesign = {
+    id: 'new-game-2d-' + Date.now(),
+    title: 'My 2D Adventure',
+    mode: '2d',
+    objects: [],
+    logic: [],
+    settings: {
+        gravity: 0.8,
+        jumpForce: 12,
+        moveSpeed: 5,
+        backgroundColor: '#0f172a',
+        viewportWidth: 800,
+        viewportHeight: 600,
+    }
+};
+
+const DEFAULT_GAME_3D: GameDesign = {
+    id: 'new-game-3d-' + Date.now(),
+    title: 'My 3D World',
+    mode: '3d',
+    objects: [],
+    logic: [],
+    settings: {
+        gravity: [0, -9.81, 0],
+        jumpForce: 5,
+        moveSpeed: 10,
+        backgroundColor: '#000000',
+        viewportWidth: 1280,
+        viewportHeight: 720,
+        skybox: 'sunset',
+        ambientLightIntensity: 0.5,
+        weather: 'none',
+        groundType: 'grass',
+        environment: 'empty',
+        timeOfDay: 12,
+        dayNightCycle: false,
+    }
+};
+
+const OBJECT_TEMPLATES: Record<ObjectType, Partial<GameObject>> = {
+    player: { width: 40, height: 40, depth: 40, color: '#3b82f6', properties: { health: 100, lives: 3, mass: 1 } },
+    platform: { width: 100, height: 20, depth: 100, color: '#475569', properties: { friction: 0.8, static: true } },
+    enemy: { width: 40, height: 40, depth: 40, color: '#ef4444', properties: { damage: 10, patrol: true, speed: 2 } },
+    goal: { width: 50, height: 50, depth: 50, color: '#fbbf24', properties: { nextLevel: true, interactionRadius: 2 } },
+    coin: { width: 20, height: 20, depth: 20, color: '#fbbf24', properties: { value: 10, rotate: true } },
+    hazard: { width: 40, height: 40, depth: 40, color: '#991b1b', properties: { damage: 100 } },
+    trigger: { width: 50, height: 50, depth: 50, color: '#10b981', properties: { onEnter: 'none', invisible: true } },
+    light: { width: 10, height: 10, depth: 10, color: '#fff', properties: { intensity: 1, range: 10, type: 'point' } },
+    model: { width: 50, height: 50, depth: 50, color: '#8b5cf6', properties: { modelUrl: '', scale: 1 } },
+    character: { width: 40, height: 80, depth: 40, color: '#ec4899', properties: { npc: true, dialogue: 'Hello!', speed: 2 } },
+    car: { width: 80, height: 40, depth: 160, color: '#ef4444', properties: { drivable: true, speed: 20 } },
+    house: { width: 400, height: 300, depth: 400, color: '#92400e', properties: { interior: false } },
+    tree: { width: 100, height: 200, depth: 100, color: '#15803d', properties: { type: 'pine' } },
+    building: { width: 600, height: 1200, depth: 600, color: '#475569', properties: { floors: 5 } },
+    fence: { width: 100, height: 50, depth: 10, color: '#78350f', properties: { length: 100 } },
+    rock: { width: 60, height: 40, depth: 60, color: '#57534e', properties: { scale: 1 } },
+    crate: { width: 50, height: 50, depth: 50, color: '#92400e', properties: { physics: true, mass: 2 } },
+    lamp: { width: 20, height: 250, depth: 20, color: '#1e293b', properties: { lightColor: '#fbbf24', lightIntensity: 2 } },
+    particle: { width: 10, height: 10, depth: 10, color: '#fff', properties: { system: 'fire', active: true } },
+};
+
+const ENVIRONMENT_PRESETS = {
+    empty: { label: 'Empty Plain', skybox: 'sunset', groundType: 'grass', weather: 'none', fogDensity: 0, ambientLightIntensity: 0.5, fogColor: '#000000' },
+    forest: { label: 'Deep Forest', skybox: 'forest', groundType: 'grass', weather: 'none', fogDensity: 0.001, ambientLightIntensity: 0.4, fogColor: '#064e3b' },
+    city: { label: 'Metro City', skybox: 'city', groundType: 'concrete', weather: 'none', fogDensity: 0.0005, ambientLightIntensity: 0.6, fogColor: '#334155' },
+    desert: { label: 'Sand Dunes', skybox: 'dawn', groundType: 'sand', weather: 'none', fogDensity: 0.0002, ambientLightIntensity: 0.8, fogColor: '#78350f' },
+    arctic: { label: 'Arctic Waste', skybox: 'night', groundType: 'snow', weather: 'snow', fogDensity: 0.002, ambientLightIntensity: 0.3, fogColor: '#f8fafc' },
+    ocean: { label: 'Open Ocean', skybox: 'sunset', groundType: 'water', weather: 'rain', fogDensity: 0.001, ambientLightIntensity: 0.5, fogColor: '#0c4a6e' },
+    storm: { label: 'Lightning Storm', skybox: 'night', groundType: 'dirt', weather: 'storm', fogDensity: 0.003, ambientLightIntensity: 0.2, fogColor: '#1e293b' },
+};
+
+export default function GameMakerPage() {
+    const { user, profile, loading: authLoading } = useAuth();
+    const router = useRouter();
+    
+    const [gameMode, setGameMode] = useState<GameMode | null>(null);
+    const [game, setGame] = useState<GameDesign>(DEFAULT_GAME_2D);
+    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<'properties' | 'logic' | 'world' | 'help'>('properties');
+    const [activeTool, setActiveTool] = useState<ObjectType | 'select'>('select');
+    const [transformMode, setTransformMode] = useState<'translate' | 'rotate' | 'scale'>('translate');
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [zoom, setZoom] = useState(1);
+    const [showLogicEditor, setShowLogicEditor] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isDeploying, setIsDeploying] = useState(false);
+    const [history, setHistory] = useState<GameDesign[]>([]);
+    const [historyIndex, setHistoryIndex] = useState(-1);
+    const { toast, showToast } = useToast();
+
+    // History System (Undo/Redo)
+    const addToHistory = useCallback((newState: GameDesign) => {
+        setHistory(prev => {
+            const newHistory = prev.slice(0, historyIndex + 1);
+            newHistory.push(JSON.parse(JSON.stringify(newState)));
+            // Limit history to 50 steps
+            if (newHistory.length > 50) newHistory.shift();
+            setHistoryIndex(newHistory.length - 1);
+            return newHistory;
+        });
+    }, [historyIndex]);
+
+    const undo = () => {
+        if (historyIndex > 0) {
+            const newIndex = historyIndex - 1;
+            setHistoryIndex(newIndex);
+            setGame(JSON.parse(JSON.stringify(history[newIndex])));
+        }
+    };
+
+    const redo = () => {
+        if (historyIndex < history.length - 1) {
+            const newIndex = historyIndex + 1;
+            setHistoryIndex(newIndex);
+            setGame(JSON.parse(JSON.stringify(history[newIndex])));
+        }
+    };
+
+    // Initialize history
+    useEffect(() => {
+        if (history.length === 0 && game) {
+            setHistory([JSON.parse(JSON.stringify(game))]);
+            setHistoryIndex(0);
+        }
+    }, []);
+
+    // Hotkeys
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+            
+            // Undo/Redo hotkeys
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key === 'z') {
+                    e.preventDefault();
+                    if (e.shiftKey) redo();
+                    else undo();
+                    return;
+                }
+                if (e.key === 'y') {
+                    e.preventDefault();
+                    redo();
+                    return;
+                }
+            }
+
+            switch (e.key.toLowerCase()) {
+                case 'v': setActiveTool('select'); break;
+                case 'w': setTransformMode('translate'); break;
+                case 'e': setTransformMode('rotate'); break;
+                case 'r': setTransformMode('scale'); break;
+                case 'delete': 
+                case 'backspace':
+                    if (selectedId) {
+                        setGame(prev => ({
+                            ...prev,
+                            objects: prev.objects.filter(o => o.id !== selectedId)
+                        }));
+                        setSelectedId(null);
+                    }
+                    break;
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [selectedId]);
+    useEffect(() => {
+        if (!authLoading) {
+            if (!user || !profile?.is_admin) {
+                router.push('/dashboard');
+            }
+        }
+    }, [user, profile, authLoading, router]);
+
+    // Load saved game if exists
+    useEffect(() => {
+        const saved = localStorage.getItem('admin_current_game');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                setGame(parsed);
+                setGameMode(parsed.mode);
+            } catch (e) {
+                // Silently fail or use a logger
+            }
+        }
+    }, []);
+
+    const startNewGame = (mode: GameMode) => {
+        setGameMode(mode);
+        setGame(mode === '2d' ? { ...DEFAULT_GAME_2D, id: 'game-' + Date.now() } : { ...DEFAULT_GAME_3D, id: 'game-' + Date.now() });
+    };
+
+    // Save to local storage on change
+    useEffect(() => {
+        localStorage.setItem('admin_current_game', JSON.stringify(game));
+    }, [game]);
+
+    // Handle Canvas Clicks (2D)
+    const handleCanvasClick = (e: React.MouseEvent) => {
+        if (gameMode !== '2d' || activeTool === 'select' || !canvasRef.current) return;
+
+        const rect = canvasRef.current.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / zoom;
+        const y = (e.clientY - rect.top) / zoom;
+
+        const template = OBJECT_TEMPLATES[activeTool];
+        const newObject: GameObject = {
+            id: Math.random().toString(36).substr(2, 9),
+            type: activeTool,
+            x: Math.round(x - (template.width || 40) / 2),
+            y: Math.round(y - (template.height || 40) / 2),
+            width: template.width || 40,
+            height: template.height || 40,
+            color: template.color || '#fff',
+            properties: { ...template.properties },
+        };
+
+        const updatedGame = {
+            ...game,
+            objects: [...game.objects, newObject]
+        };
+        setGame(updatedGame);
+        addToHistory(updatedGame);
+        setSelectedId(newObject.id);
+        setActiveTool('select');
+    };
+
+    // Handle 3D Object Addition
+    const addObject3D = (type: ObjectType) => {
+        const template = OBJECT_TEMPLATES[type];
+        const newObject: GameObject = {
+            id: Math.random().toString(36).substr(2, 9),
+            type: type,
+            x: 0,
+            y: (template.height || 40) / 2, // Place on ground
+            z: 0,
+            width: template.width || 40,
+            height: template.height || 40,
+            depth: template.depth || 40,
+            rotation: [0, 0, 0],
+            color: template.color || '#fff',
+            properties: { ...template.properties },
+        };
+
+        const updatedGame = {
+            ...game,
+            objects: [...game.objects, newObject]
+        };
+        setGame(updatedGame);
+        addToHistory(updatedGame);
+        setSelectedId(newObject.id);
+        setActiveTool('select');
+    };
+
+    // Save Game
+    const saveGame = async () => {
+        setIsSaving(true);
+        // Save to localStorage
+        const savedGames = JSON.parse(localStorage.getItem('admin_games') || '[]');
+        const existingIndex = savedGames.findIndex((g: any) => g.id === game.id);
+        
+        if (existingIndex >= 0) {
+            savedGames[existingIndex] = game;
+        } else {
+            savedGames.push(game);
+        }
+        
+        localStorage.setItem('admin_games', JSON.stringify(savedGames));
+        
+        // Simulate network delay
+        await new Promise(r => setTimeout(r, 1000));
+        setIsSaving(false);
+        showToast('Game saved to local storage!', 'success');
+    };
+
+    const deployGame = async () => {
+        setIsDeploying(true);
+        try {
+            // Here we would normally save to a 'custom_games' table in Supabase
+            // For now, we'll simulate a deployment and provide the config
+            await new Promise(r => setTimeout(r, 1500));
+            
+            // Deployment logic would go here
+            
+            // Generate a unique slug
+            const slug = game.title.toLowerCase().replace(/\s+/g, '-');
+            
+            showToast(`Successfully deployed "${game.title}" to Arcade!`, 'success');
+        } catch (e) {
+            showToast('Deployment failed. Check console for details.', 'error');
+        } finally {
+            setIsDeploying(false);
+        }
+    };
+
+    const exportCode = () => {
+        const json = JSON.stringify(game, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${game.title.toLowerCase().replace(/\s+/g, '-')}.json`;
+        a.click();
+        showToast('Game configuration exported as JSON!', 'success');
+    };
+
+    const selectedObject = game.objects.find(o => o.id === selectedId);
+
+    if (authLoading || !profile?.is_admin) {
+        return (
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    <p className="text-slate-400 font-medium">Verifying Admin Access...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!gameMode) {
+        return (
+            <div className="min-h-screen bg-[#0a0f1e] text-white flex items-center justify-center p-6">
+                <div className="max-w-4xl w-full">
+                    <div className="text-center mb-12">
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="inline-flex p-3 bg-blue-500/20 rounded-2xl mb-6"
+                        >
+                            <Rocket className="w-10 h-10 text-blue-400" />
+                        </motion.div>
+                        <h1 className="text-4xl font-black tracking-tight mb-4">Choose Your Engine</h1>
+                        <p className="text-slate-400 text-lg">Select the dimension for your next masterpiece</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <ModeCard 
+                            title="2D Engine" 
+                            description="Classic side-scrollers, platformers, and top-down puzzles. Lightweight and fast."
+                            icon={<LayoutGrid className="w-12 h-12 text-emerald-400" />}
+                            onClick={() => startNewGame('2d')}
+                            color="emerald"
+                        />
+                        <ModeCard 
+                            title="3D Engine" 
+                            description="Immersive worlds, first-person experiences, and complex environments. Powered by Three.js."
+                            icon={<Globe className="w-12 h-12 text-blue-400" />}
+                            onClick={() => startNewGame('3d')}
+                            color="blue"
+                        />
+                    </div>
+
+                    <div className="mt-12 text-center">
+                        <button 
+                            onClick={() => router.push('/admin')}
+                            className="text-slate-500 hover:text-white transition-colors flex items-center gap-2 mx-auto"
+                        >
+                            <ArrowLeft className="w-4 h-4" />
+                            Back to Dashboard
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="h-screen bg-[#0a0f1e] text-white flex flex-col overflow-hidden">
+            {/* Top Navigation Bar */}
+            <header className="h-14 border-b border-white/10 flex items-center justify-between px-6 bg-[#0f172a]/80 backdrop-blur-md z-30">
+                <div className="flex items-center gap-4">
+                    <button 
+                        onClick={() => setGameMode(null)}
+                        className="p-2 hover:bg-white/5 rounded-lg transition-colors text-slate-400 hover:text-white"
+                        title="Switch Engine"
+                    >
+                        <ArrowLeft className="w-5 h-5" />
+                    </button>
+                    <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-blue-500/20 rounded-lg">
+                            <Rocket className="w-5 h-5 text-blue-400" />
+                        </div>
+                        <h1 className="font-bold text-lg tracking-tight">Game Maker <span className="text-blue-500">PRO</span></h1>
+                    </div>
+                    <div className="h-6 w-px bg-white/10 mx-2" />
+                    <input 
+                        type="text" 
+                        value={game.title}
+                        onChange={(e) => setGame(prev => ({ ...prev, title: e.target.value }))}
+                        className="bg-transparent border-none focus:ring-0 font-medium text-slate-300 hover:text-white transition-colors w-48"
+                    />
+                </div>
+
+                <div className="flex items-center gap-3">
+                    {gameMode === '3d' && (
+                        <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 mr-4">
+                            <button 
+                                onClick={undo}
+                                disabled={historyIndex <= 0}
+                                className="p-1.5 rounded-lg transition-all text-slate-400 hover:text-white disabled:opacity-30"
+                                title="Undo (Ctrl+Z)"
+                            >
+                                <ArrowLeft className="w-4 h-4" />
+                            </button>
+                            <button 
+                                onClick={redo}
+                                disabled={historyIndex >= history.length - 1}
+                                className="p-1.5 rounded-lg transition-all text-slate-400 hover:text-white disabled:opacity-30 rotate-180"
+                                title="Redo (Ctrl+Y)"
+                            >
+                                <ArrowLeft className="w-4 h-4" />
+                            </button>
+                            <div className="w-px h-4 bg-white/10 mx-1 self-center" />
+                            <button 
+                                onClick={() => setTransformMode('translate')}
+                                className={`p-1.5 rounded-lg transition-all ${transformMode === 'translate' ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                                title="Translate (W)"
+                            >
+                                <MoveIcon className="w-4 h-4" />
+                            </button>
+                            <button 
+                                onClick={() => setTransformMode('rotate')}
+                                className={`p-1.5 rounded-lg transition-all ${transformMode === 'rotate' ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                                title="Rotate (E)"
+                            >
+                                <RotateCw className="w-4 h-4" />
+                            </button>
+                            <button 
+                                onClick={() => setTransformMode('scale')}
+                                className={`p-1.5 rounded-lg transition-all ${transformMode === 'scale' ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                                title="Scale (R)"
+                            >
+                                <Scaling className="w-4 h-4" />
+                            </button>
+                        </div>
+                    )}
+                    <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
+                        <button 
+                            onClick={() => setIsPlaying(!isPlaying)}
+                            className={`px-4 py-1.5 rounded-lg flex items-center gap-2 text-sm font-bold transition-all ${isPlaying ? 'bg-red-500 text-white' : 'bg-green-500 text-white hover:bg-green-600'}`}
+                        >
+                            {isPlaying ? <Square className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
+                            {isPlaying ? 'Stop' : 'Play Test'}
+                        </button>
+                    </div>
+                    <button 
+                        onClick={exportCode}
+                        className="p-2 hover:bg-white/5 rounded-lg transition-colors text-slate-400 hover:text-white"
+                        title="Export JSON"
+                    >
+                        <Download className="w-5 h-5" />
+                    </button>
+                    <button 
+                        onClick={saveGame}
+                        disabled={isSaving}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-xl font-bold text-sm transition-all shadow-lg shadow-blue-500/20"
+                    >
+                        {isSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
+                        {isSaving ? 'Saving...' : 'Save Locally'}
+                    </button>
+                    <button 
+                        onClick={deployGame}
+                        disabled={isDeploying}
+                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 rounded-xl font-bold text-sm transition-all shadow-lg shadow-purple-500/20"
+                    >
+                        {isDeploying ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Rocket className="w-4 h-4" />}
+                        {isDeploying ? 'Deploying...' : 'Deploy to Arcade'}
+                    </button>
+                </div>
+            </header>
+
+            <AnimatePresence>
+                {isPlaying && (
+                    <GameRenderer 
+                        game={game} 
+                        onExit={() => setIsPlaying(false)} 
+                    />
+                )}
+            </AnimatePresence>
+
+            <div className="flex-1 flex overflow-hidden">
+                {/* Left Sidebar: Tools */}
+                <aside className="w-72 border-r border-white/10 bg-[#0f172a]/50 flex flex-col z-20">
+                    <div className="p-4 space-y-6 overflow-y-auto custom-scrollbar">
+                        <div className="space-y-6">
+                            {/* Selection Tool */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] text-slate-500 font-bold uppercase px-2">Selection</label>
+                                <ToolButton 
+                                    active={activeTool === 'select'} 
+                                    onClick={() => setActiveTool('select')}
+                                    icon={<MousePointer2 className="w-4 h-4" />}
+                                    label="Select"
+                                    tooltip="Select and move objects in the viewport. (Hotkey: V)"
+                                />
+                            </div>
+
+                            {gameMode === '2d' ? (
+                                <div className="space-y-4">
+                                    <label className="text-[10px] text-slate-500 font-bold uppercase px-2">2D Game Objects</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <ToolButton active={activeTool === 'player'} onClick={() => setActiveTool('player')} icon={<UserIcon className="w-4 h-4" />} label="Player" tooltip="The protagonist of your game." />
+                                        <ToolButton active={activeTool === 'platform'} onClick={() => setActiveTool('platform')} icon={<Box className="w-4 h-4" />} label="Platform" tooltip="Solid terrain." />
+                                        <ToolButton active={activeTool === 'enemy'} onClick={() => setActiveTool('enemy')} icon={<Skull className="w-4 h-4" />} label="Enemy" tooltip="Hazardous entity." />
+                                        <ToolButton active={activeTool === 'coin'} onClick={() => setActiveTool('coin')} icon={<Coins className="w-4 h-4" />} label="Coin" tooltip="Collectible item." />
+                                        <ToolButton active={activeTool === 'goal'} onClick={() => setActiveTool('goal')} icon={<Trophy className="w-4 h-4" />} label="Goal" tooltip="Win condition objective." />
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-6 pb-20">
+                                    {/* Core Assets */}
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] text-slate-500 font-bold uppercase px-2">Core Entities</label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <ToolButton active={activeTool === 'player'} onClick={() => addObject3D('player')} icon={<User className="w-4 h-4" />} label="Player" tooltip="Spawn the main player character." />
+                                            <ToolButton active={activeTool === 'platform'} onClick={() => addObject3D('platform')} icon={<Square className="w-4 h-4" />} label="Platform" tooltip="Add a static 3D platform." />
+                                            <ToolButton active={activeTool === 'enemy'} onClick={() => addObject3D('enemy')} icon={<Zap className="w-4 h-4" />} label="Enemy" tooltip="Spawn an enemy AI entity." />
+                                            <ToolButton active={activeTool === 'coin'} onClick={() => addObject3D('coin')} icon={<CircleDot className="w-4 h-4" />} label="Coin" tooltip="Add a floating collectible item." />
+                                        </div>
+                                    </div>
+
+                                    {/* Nature Assets */}
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] text-slate-500 font-bold uppercase px-2">Nature</label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <ToolButton active={activeTool === 'tree'} onClick={() => addObject3D('tree')} icon={<TreePine className="w-4 h-4" />} label="Tree" tooltip="Natural 3D tree model." />
+                                            <ToolButton active={activeTool === 'rock'} onClick={() => addObject3D('rock')} icon={<Mountain className="w-4 h-4" />} label="Rock" tooltip="Natural stone formation." />
+                                        </div>
+                                    </div>
+
+                                    {/* Urban Assets */}
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] text-slate-500 font-bold uppercase px-2">Structures</label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <ToolButton active={activeTool === 'house'} onClick={() => addObject3D('house')} icon={<Home className="w-4 h-4" />} label="House" tooltip="Residential building prefab." />
+                                            <ToolButton active={activeTool === 'building'} onClick={() => addObject3D('building')} icon={<Building2 className="w-4 h-4" />} label="Skyscraper" tooltip="Large urban structure." />
+                                            <ToolButton active={activeTool === 'car'} onClick={() => addObject3D('car')} icon={<Car className="w-4 h-4" />} label="Vehicle" tooltip="3D car (drivable/static)." />
+                                            <ToolButton active={activeTool === 'lamp'} onClick={() => addObject3D('lamp')} icon={<Lightbulb className="w-4 h-4" />} label="Street Lamp" tooltip="Urban lighting pole." />
+                                            <ToolButton active={activeTool === 'fence'} onClick={() => addObject3D('fence')} icon={<Menu className="w-4 h-4" />} label="Fence" tooltip="Barrier/Boundary object." />
+                                            <ToolButton active={activeTool === 'crate'} onClick={() => addObject3D('crate')} icon={<Box className="w-4 h-4" />} label="Crate" tooltip="Moveable physics prop." />
+                                        </div>
+                                    </div>
+
+                                    {/* Special Assets */}
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] text-slate-500 font-bold uppercase px-2">VFX & Systems</label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <ToolButton active={activeTool === 'trigger'} onClick={() => addObject3D('trigger')} icon={<Target className="w-4 h-4" />} label="Trigger" tooltip="Invisible event zone." />
+                                            <ToolButton active={activeTool === 'light'} onClick={() => addObject3D('light')} icon={<Sun className="w-4 h-4" />} label="Light" tooltip="Dynamic light emitter." />
+                                            <ToolButton active={activeTool === 'particle'} onClick={() => addObject3D('particle')} icon={<Sparkles className="w-4 h-4" />} label="Particles" tooltip="Special effect system." />
+                                            <ToolButton active={activeTool === 'model'} onClick={() => addObject3D('model')} icon={<Cube className="w-4 h-4" />} label="Custom GLB" tooltip="Import your own 3D model." />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    </div>
+                </aside>
+
+                {/* Main Editor Area */}
+                <main className="flex-1 bg-[#0a0f1e] relative overflow-hidden flex items-center justify-center">
+                    {gameMode === '2d' ? (
+                        <div className="w-full h-full overflow-auto scrollbar-hide flex items-center justify-center p-12">
+                            <div 
+                                ref={canvasRef}
+                                onClick={handleCanvasClick}
+                                className="relative shadow-2xl transition-all duration-300"
+                                style={{
+                                    width: game.settings.viewportWidth * zoom,
+                                    height: game.settings.viewportHeight * zoom,
+                                    backgroundColor: game.settings.backgroundColor,
+                                    backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
+                                    backgroundSize: `${20 * zoom}px ${20 * zoom}px`,
+                                }}
+                            >
+                                {game.objects.map((obj) => (
+                                    <div
+                                        key={obj.id}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedId(obj.id);
+                                            setActiveTool('select');
+                                        }}
+                                        className={`absolute cursor-pointer transition-all ${selectedId === obj.id ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#0a0f1e] z-10' : ''}`}
+                                        style={{
+                                            left: obj.x * zoom,
+                                            top: obj.y * zoom,
+                                            width: obj.width * zoom,
+                                            height: obj.height * zoom,
+                                            backgroundColor: obj.color,
+                                            borderRadius: obj.type === 'player' || obj.type === 'enemy' ? '8px' : '4px',
+                                        }}
+                                    >
+                                        {obj.type === 'player' && <UserIcon className="w-full h-full p-1 opacity-50" />}
+                                        {obj.type === 'goal' && <Trophy className="w-full h-full p-1 opacity-50 text-black" />}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="w-full h-full relative">
+                            <Canvas shadows dpr={[1, 2]}>
+                                <Scene3D 
+                                    game={game} 
+                                    setGame={setGame} 
+                                    selectedId={selectedId} 
+                                    setSelectedId={setSelectedId}
+                                    transformMode={transformMode}
+                                    onUpdate={(updates) => {
+                                        if (!selectedId) return;
+                                        const updatedGame = {
+                                            ...game,
+                                            objects: game.objects.map(o => o.id === selectedId ? { ...o, ...updates } : o)
+                                        };
+                                        setGame(updatedGame);
+                                        addToHistory(updatedGame);
+                                    }}
+                                />
+                            </Canvas>
+                            
+                            {/* 3D View Controls Overlay */}
+                            <div className="absolute top-6 left-6 flex flex-col gap-2">
+                                <div className="bg-[#0f172a]/80 backdrop-blur-md border border-white/10 p-2 rounded-xl flex items-center gap-4 shadow-xl">
+                                    <div className="flex items-center gap-2 px-2">
+                                        <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                                        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">3D Viewport</span>
+                                    </div>
+                                    <div className="h-4 w-px bg-white/10" />
+                                    <div className="flex items-center gap-1">
+                                        <button className="p-1.5 hover:bg-white/5 rounded-lg text-slate-400" title="Top View"><Layers className="w-4 h-4" /></button>
+                                        <button className="p-1.5 hover:bg-white/5 rounded-lg text-slate-400" title="Free Camera"><Globe className="w-4 h-4" /></button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="absolute bottom-6 right-6">
+                                <div className="bg-blue-500/10 border border-blue-500/20 backdrop-blur-md p-4 rounded-2xl max-w-xs shadow-2xl">
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 bg-blue-500 rounded-lg">
+                                            <HelpCircle className="w-4 h-4 text-white" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xs font-bold text-white mb-1">3D Controls</h4>
+                                            <p className="text-[10px] text-slate-400 leading-relaxed">
+                                                • Left Click + Drag to rotate view<br/>
+                                                • Right Click + Drag to pan<br/>
+                                                • Scroll to zoom in/out<br/>
+                                                • Click object to select & move
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Zoom Controls (2D Only) */}
+                    {gameMode === '2d' && (
+                        <div className="absolute bottom-6 left-6 flex bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-1">
+                            <button onClick={() => setZoom(z => Math.max(0.2, z - 0.1))} className="p-2 hover:bg-white/5 rounded-lg text-slate-400">-</button>
+                            <div className="px-3 flex items-center text-[11px] font-bold text-slate-300">{Math.round(zoom * 100)}%</div>
+                            <button onClick={() => setZoom(z => Math.min(2, z + 0.1))} className="p-2 hover:bg-white/5 rounded-lg text-slate-400">+</button>
+                        </div>
+                    )}
+                </main>
+
+                {/* Right Sidebar: Properties & Logic */}
+                <aside className="w-80 border-l border-white/10 bg-[#0f172a]/50 flex flex-col z-20">
+                    <div className="flex border-b border-white/10">
+                        <button 
+                            onClick={() => setActiveTab('properties')}
+                            className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors ${activeTab === 'properties' ? 'text-blue-400 bg-blue-500/5' : 'text-slate-500 hover:text-slate-300'}`}
+                        >
+                            Properties
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('logic')}
+                            className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors ${activeTab === 'logic' ? 'text-purple-400 bg-purple-500/5' : 'text-slate-500 hover:text-slate-300'}`}
+                        >
+                            Logic
+                        </button>
+                        {gameMode === '3d' && (
+                            <button 
+                                onClick={() => setActiveTab('world')}
+                                className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors ${activeTab === 'world' ? 'text-emerald-400 bg-emerald-500/5' : 'text-slate-500 hover:text-slate-300'}`}
+                            >
+                                World
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="p-4 flex-1 overflow-auto">
+                        {selectedObject ? (
+                            activeTab === 'properties' ? (
+                                <div className="space-y-6">
+                                    <div className="p-3 bg-white/5 rounded-xl border border-white/10 space-y-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                                <Settings className="w-4 h-4 text-blue-400" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-bold capitalize">{selectedObject.type}</p>
+                                                <p className="text-[10px] text-slate-500">ID: {selectedObject.id}</p>
+                                            </div>
+                                            <button 
+                                                onClick={() => {
+                                                    setGame(prev => ({ ...prev, objects: prev.objects.filter(o => o.id !== selectedId) }));
+                                                    setSelectedId(null);
+                                                }}
+                                                className="ml-auto p-1.5 hover:bg-red-500/20 text-slate-500 hover:text-red-400 rounded-lg transition-colors"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] text-slate-500 font-bold uppercase">X Position</label>
+                                                <input 
+                                                    type="number" 
+                                                    value={selectedObject.x}
+                                                    onChange={(e) => {
+                                                        const val = parseInt(e.target.value);
+                                                        setGame(prev => ({
+                                                            ...prev,
+                                                            objects: prev.objects.map(o => o.id === selectedId ? { ...o, x: val } : o)
+                                                        }));
+                                                    }}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-blue-500"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] text-slate-500 font-bold uppercase">Y Position</label>
+                                                <input 
+                                                    type="number" 
+                                                    value={selectedObject.y}
+                                                    onChange={(e) => {
+                                                        const val = parseInt(e.target.value);
+                                                        setGame(prev => ({
+                                                            ...prev,
+                                                            objects: prev.objects.map(o => o.id === selectedId ? { ...o, y: val } : o)
+                                                        }));
+                                                    }}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-blue-500"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {gameMode === '3d' && (
+                                            <>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] text-slate-500 font-bold uppercase">Z Position</label>
+                                                        <input 
+                                                            type="number" 
+                                                            value={selectedObject.z || 0}
+                                                            onChange={(e) => {
+                                                                const val = parseInt(e.target.value);
+                                                                setGame(prev => ({
+                                                                    ...prev,
+                                                                    objects: prev.objects.map(o => o.id === selectedId ? { ...o, z: val } : o)
+                                                                }));
+                                                            }}
+                                                            className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-blue-500"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] text-slate-500 font-bold uppercase">Depth</label>
+                                                        <input 
+                                                            type="number" 
+                                                            value={selectedObject.depth || 40}
+                                                            onChange={(e) => {
+                                                                const val = parseInt(e.target.value);
+                                                                setGame(prev => ({
+                                                                    ...prev,
+                                                                    objects: prev.objects.map(o => o.id === selectedId ? { ...o, depth: val } : o)
+                                                                }));
+                                                            }}
+                                                            className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-blue-500"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] text-slate-500 font-bold uppercase">Rotation (X, Y, Z)</label>
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        {[0, 1, 2].map((i) => (
+                                                            <input 
+                                                                key={i}
+                                                                type="number" 
+                                                                step="0.1"
+                                                                value={selectedObject.rotation?.[i] || 0}
+                                                                onChange={(e) => {
+                                                                    const val = parseFloat(e.target.value);
+                                                                    const newRot = [...(selectedObject.rotation || [0, 0, 0])] as [number, number, number];
+                                                                    newRot[i] = val;
+                                                                    setGame(prev => ({
+                                                                        ...prev,
+                                                                        objects: prev.objects.map(o => o.id === selectedId ? { ...o, rotation: newRot } : o)
+                                                                    }));
+                                                                }}
+                                                                className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-blue-500"
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] text-slate-500 font-bold uppercase">Width</label>
+                                                <input 
+                                                    type="number" 
+                                                    value={selectedObject.width}
+                                                    onChange={(e) => {
+                                                        const val = parseInt(e.target.value);
+                                                        setGame(prev => ({
+                                                            ...prev,
+                                                            objects: prev.objects.map(o => o.id === selectedId ? { ...o, width: val } : o)
+                                                        }));
+                                                    }}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-blue-500"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] text-slate-500 font-bold uppercase">Height</label>
+                                                <input 
+                                                    type="number" 
+                                                    value={selectedObject.height}
+                                                    onChange={(e) => {
+                                                        const val = parseInt(e.target.value);
+                                                        setGame(prev => ({
+                                                            ...prev,
+                                                            objects: prev.objects.map(o => o.id === selectedId ? { ...o, height: val } : o)
+                                                        }));
+                                                    }}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-blue-500"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] text-slate-500 font-bold uppercase">Color</label>
+                                            <div className="flex gap-2">
+                                                <input 
+                                                    type="color" 
+                                                    value={selectedObject.color}
+                                                    onChange={(e) => {
+                                                        setGame(prev => ({
+                                                            ...prev,
+                                                            objects: prev.objects.map(o => o.id === selectedId ? { ...o, color: e.target.value } : o)
+                                                        }));
+                                                    }}
+                                                    className="w-10 h-8 bg-transparent border-none p-0 cursor-pointer"
+                                                />
+                                                <input 
+                                                    type="text" 
+                                                    value={selectedObject.color}
+                                                    onChange={(e) => {
+                                                        setGame(prev => ({
+                                                            ...prev,
+                                                            objects: prev.objects.map(o => o.id === selectedId ? { ...o, color: e.target.value } : o)
+                                                        }));
+                                                    }}
+                                                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 text-xs focus:ring-1 focus:ring-blue-500"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {selectedObject.type === 'light' && (
+                                            <div className="p-3 bg-yellow-500/5 rounded-xl border border-yellow-500/20 space-y-3 mt-4">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <Sun className="w-3 h-3 text-yellow-500" />
+                                                    <span className="text-[10px] font-bold text-yellow-500 uppercase tracking-tight">Light Settings</span>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] text-slate-500 font-bold uppercase">Type</label>
+                                                    <select 
+                                                        value={selectedObject.properties.type || 'point'}
+                                                        onChange={(e) => {
+                                                            setGame(prev => ({
+                                                                ...prev,
+                                                                objects: prev.objects.map(o => o.id === selectedId ? { 
+                                                                    ...o, 
+                                                                    properties: { ...o.properties, type: e.target.value } 
+                                                                } : o)
+                                                            }));
+                                                        }}
+                                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-yellow-500"
+                                                    >
+                                                        <option value="point" className="bg-[#0a0f1e]">Point Light</option>
+                                                        <option value="directional" className="bg-[#0a0f1e]">Directional Light</option>
+                                                        <option value="spot" className="bg-[#0a0f1e]">Spot Light</option>
+                                                    </select>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] text-slate-500 font-bold uppercase">Intensity</label>
+                                                    <input 
+                                                        type="range" min="0" max="10" step="0.1"
+                                                        value={selectedObject.properties.intensity || 1}
+                                                        onChange={(e) => {
+                                                            setGame(prev => ({
+                                                                ...prev,
+                                                                objects: prev.objects.map(o => o.id === selectedId ? { 
+                                                                    ...o, 
+                                                                    properties: { ...o.properties, intensity: parseFloat(e.target.value) } 
+                                                                } : o)
+                                                            }));
+                                                        }}
+                                                        className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-yellow-500"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {selectedObject.type === 'model' && (
+                                            <div className="p-3 bg-purple-500/5 rounded-xl border border-purple-500/20 space-y-3 mt-4">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <Cube className="w-3 h-3 text-purple-500" />
+                                                    <span className="text-[10px] font-bold text-purple-500 uppercase tracking-tight">Model Settings</span>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] text-slate-500 font-bold uppercase">Model URL (.glb/.gltf)</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={selectedObject.properties.modelUrl || ''}
+                                                        placeholder="https://example.com/model.glb"
+                                                        onChange={(e) => {
+                                                            setGame(prev => ({
+                                                                ...prev,
+                                                                objects: prev.objects.map(o => o.id === selectedId ? { 
+                                                                    ...o, 
+                                                                    properties: { ...o.properties, modelUrl: e.target.value } 
+                                                                } : o)
+                                                            }));
+                                                        }}
+                                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-purple-500"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    {/* Per-Object Logic Editor */}
+                                    <div className="p-4 bg-purple-500/5 rounded-2xl border border-purple-500/20 space-y-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-purple-500/20 rounded-lg">
+                                                    <Zap className="w-4 h-4 text-purple-400" />
+                                                </div>
+                                                <h4 className="text-xs font-bold uppercase tracking-tight">Interactive Logic</h4>
+                                            </div>
+                                            <div className="px-2 py-0.5 bg-purple-500/20 rounded text-[9px] font-bold text-purple-400 uppercase">
+                                                {selectedObject.type}
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="space-y-4">
+                                            {/* Interaction Type */}
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] text-slate-500 font-bold uppercase">Trigger Event</label>
+                                                <select 
+                                                    value={selectedObject.properties.triggerType || 'onCollision'}
+                                                    onChange={(e) => {
+                                                        setGame(prev => ({
+                                                            ...prev,
+                                                            objects: prev.objects.map(o => o.id === selectedId ? { 
+                                                                ...o, 
+                                                                properties: { ...o.properties, triggerType: e.target.value } 
+                                                            } : o)
+                                                        }));
+                                                    }}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-purple-500 appearance-none"
+                                                >
+                                                    <option value="onCollision" className="bg-[#0a0f1e]">On Collision (Touch)</option>
+                                                    <option value="onTriggerEnter" className="bg-[#0a0f1e]">On Trigger Enter (Zone)</option>
+                                                    <option value="onTriggerExit" className="bg-[#0a0f1e]">On Trigger Exit (Zone)</option>
+                                                    <option value="onInteract" className="bg-[#0a0f1e]">On Interaction (Press E)</option>
+                                                    <option value="onSpawn" className="bg-[#0a0f1e]">On Object Spawn</option>
+                                                    <option value="onDestroy" className="bg-[#0a0f1e]">On Object Destroyed</option>
+                                                </select>
+                                            </div>
+
+                                            {/* Action Type */}
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] text-slate-500 font-bold uppercase">Resulting Action</label>
+                                                <select 
+                                                    value={selectedObject.properties.actionType || 'none'}
+                                                    onChange={(e) => {
+                                                        setGame(prev => ({
+                                                            ...prev,
+                                                            objects: prev.objects.map(o => o.id === selectedId ? { 
+                                                                ...o, 
+                                                                properties: { ...o.properties, actionType: e.target.value } 
+                                                            } : o)
+                                                        }));
+                                                    }}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-purple-500 appearance-none"
+                                                >
+                                                    <option value="none" className="bg-[#0a0f1e]">No Action</option>
+                                                    <option value="message" className="bg-[#0a0f1e]">Display Message/Dialogue</option>
+                                                    <option value="score" className="bg-[#0a0f1e]">Modify Score/Points</option>
+                                                    <option value="damage" className="bg-[#0a0f1e]">Damage/Heal Player</option>
+                                                    <option value="teleport" className="bg-[#0a0f1e]">Teleport Player</option>
+                                                    <option value="spawn" className="bg-[#0a0f1e]">Spawn New Object</option>
+                                                    <option value="changeWeather" className="bg-[#0a0f1e]">Change World Weather</option>
+                                                    <option value="win" className="bg-[#0a0f1e]">Win Level</option>
+                                                    <option value="lose" className="bg-[#0a0f1e]">Kill Player/Lose</option>
+                                                </select>
+                                            </div>
+
+                                            {/* Action Parameters */}
+                                            {selectedObject.properties.actionType === 'message' && (
+                                                <div className="space-y-2 p-3 bg-white/5 rounded-xl border border-white/10 animate-in fade-in slide-in-from-top-2">
+                                                    <label className="text-[10px] text-slate-500 font-bold uppercase">Dialogue Text</label>
+                                                    <textarea 
+                                                        value={selectedObject.properties.message || ''}
+                                                        onChange={(e) => {
+                                                            setGame(prev => ({
+                                                                ...prev,
+                                                                objects: prev.objects.map(o => o.id === selectedId ? { 
+                                                                    ...o, 
+                                                                    properties: { ...o.properties, message: e.target.value } 
+                                                                } : o)
+                                                            }));
+                                                        }}
+                                                        placeholder="Enter dialogue or system message..."
+                                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-purple-500 min-h-[80px]"
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {selectedObject.properties.actionType === 'score' && (
+                                                <div className="space-y-2 p-3 bg-white/5 rounded-xl border border-white/10 animate-in fade-in slide-in-from-top-2">
+                                                    <label className="text-[10px] text-slate-500 font-bold uppercase">Score Adjustment</label>
+                                                    <input 
+                                                        type="number"
+                                                        value={selectedObject.properties.scoreValue || 0}
+                                                        onChange={(e) => {
+                                                            setGame(prev => ({
+                                                                ...prev,
+                                                                objects: prev.objects.map(o => o.id === selectedId ? { 
+                                                                    ...o, 
+                                                                    properties: { ...o.properties, scoreValue: parseInt(e.target.value) } 
+                                                                } : o)
+                                                            }));
+                                                        }}
+                                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-purple-500"
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {selectedObject.properties.actionType === 'teleport' && (
+                                                <div className="space-y-3 p-3 bg-white/5 rounded-xl border border-white/10 animate-in fade-in slide-in-from-top-2">
+                                                    <label className="text-[10px] text-slate-500 font-bold uppercase">Destination (X, Y, Z)</label>
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        {['x', 'y', 'z'].map((axis) => (
+                                                            <input 
+                                                                key={axis}
+                                                                type="number"
+                                                                placeholder={axis.toUpperCase()}
+                                                                value={selectedObject.properties[`teleport${axis.toUpperCase()}`] || 0}
+                                                                onChange={(e) => {
+                                                                    setGame(prev => ({
+                                                                        ...prev,
+                                                                        objects: prev.objects.map(o => o.id === selectedId ? { 
+                                                                            ...o, 
+                                                                            properties: { ...o.properties, [`teleport${axis.toUpperCase()}`]: parseFloat(e.target.value) } 
+                                                                        } : o)
+                                                                    }));
+                                                                }}
+                                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-2 py-2 text-xs focus:ring-2 focus:ring-purple-500"
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Advanced Logic Hint */}
+                                    <div className="p-4 bg-slate-800/50 rounded-2xl border border-white/5 space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <Info className="w-3 h-3 text-slate-400" />
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Scripting Tip</span>
+                                        </div>
+                                        <p className="text-[10px] text-slate-500 leading-relaxed italic">
+                                            Triggers and actions allow you to create complex gameplay without coding. 
+                                            Combine "On Interaction" with "Display Message" to create NPCs, or "On Trigger Enter" with "Teleport" for portals!
+                                        </p>
+                                    </div>
+                                </div>
+                            )
+                        ) : (
+                            <div className="space-y-6">
+                                {activeTab === 'world' ? (
+                                    <div className="space-y-6">
+                                        {/* Environment Section */}
+                                        <div className="p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/20 space-y-4">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <div className="p-2 bg-emerald-500/20 rounded-lg">
+                                                    <Globe className="w-4 h-4 text-emerald-400" />
+                                                </div>
+                                                <h4 className="text-xs font-bold uppercase tracking-tight">World Atmosphere</h4>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] text-slate-500 font-bold uppercase">Environment Preset</label>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        {Object.entries(ENVIRONMENT_PRESETS).map(([id, preset]) => (
+                                                            <button
+                                                                key={id}
+                                                                onClick={() => {
+                                                                    const newState = {
+                                                                        ...game,
+                                                                        settings: {
+                                                                            ...game.settings,
+                                                                            environment: id,
+                                                                            skybox: preset.skybox,
+                                                                            groundType: preset.groundType as any,
+                                                                            weather: preset.weather as any,
+                                                                            fogDensity: preset.fogDensity,
+                                                                            fogColor: preset.fogColor,
+                                                                            ambientLightIntensity: preset.ambientLightIntensity,
+                                                                        }
+                                                                    };
+                                                                    setGame(newState);
+                                                                    addToHistory(newState);
+                                                                }}
+                                                                className={`p-2 rounded-lg border transition-all text-[10px] font-bold text-center ${game.settings.environment === id ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
+                                                            >
+                                                                {preset.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] text-slate-500 font-bold uppercase">Skybox & Lighting</label>
+                                                    <select 
+                                                        value={game.settings.skybox || 'sunset'}
+                                                        onChange={(e) => setGame(prev => ({ ...prev, settings: { ...prev.settings, skybox: e.target.value } }))}
+                                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500 appearance-none"
+                                                    >
+                                                        <option value="sunset" className="bg-[#0a0f1e]">Sunset</option>
+                                                        <option value="dawn" className="bg-[#0a0f1e]">Dawn</option>
+                                                        <option value="night" className="bg-[#0a0f1e]">Night</option>
+                                                        <option value="warehouse" className="bg-[#0a0f1e]">Warehouse</option>
+                                                        <option value="forest" className="bg-[#0a0f1e]">Forest</option>
+                                                        <option value="apartment" className="bg-[#0a0f1e]">Apartment</option>
+                                                        <option value="city" className="bg-[#0a0f1e]">City</option>
+                                                    </select>
+                                                </div>
+
+                                                <div className="flex items-center justify-between p-2 bg-white/5 rounded-xl border border-white/10">
+                                                    <div className="flex items-center gap-2">
+                                                        <Sunrise className="w-4 h-4 text-emerald-400" />
+                                                        <span className="text-[10px] font-bold uppercase text-slate-400">Day/Night Cycle</span>
+                                                    </div>
+                                                    <button 
+                                                        onClick={() => setGame(prev => ({ ...prev, settings: { ...prev.settings, dayNightCycle: !prev.settings.dayNightCycle } }))}
+                                                        className={`w-10 h-5 rounded-full transition-all relative ${game.settings.dayNightCycle ? 'bg-emerald-500' : 'bg-slate-700'}`}
+                                                    >
+                                                        <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${game.settings.dayNightCycle ? 'left-6' : 'left-1'}`} />
+                                                    </button>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between items-center">
+                                                        <label className="text-[10px] text-slate-500 font-bold uppercase">Time of Day</label>
+                                                        <span className="text-[10px] text-emerald-400 font-mono">{Math.floor(game.settings.timeOfDay || 12)}:00</span>
+                                                    </div>
+                                                    <input 
+                                                        type="range" min="0" max="24" step="0.1"
+                                                        value={game.settings.timeOfDay || 12}
+                                                        onChange={(e) => setGame(prev => ({ ...prev, settings: { ...prev.settings, timeOfDay: parseFloat(e.target.value) } }))}
+                                                        className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                                                    />
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] text-slate-500 font-bold uppercase">Weather Effects</label>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        {[
+                                                            { id: 'none', icon: <Sun className="w-3 h-3" />, label: 'Clear' },
+                                                            { id: 'rain', icon: <CloudRain className="w-3 h-3" />, label: 'Rain' },
+                                                            { id: 'snow', icon: <CloudSnow className="w-3 h-3" />, label: 'Snow' },
+                                                            { id: 'storm', icon: <Wind className="w-3 h-3" />, label: 'Storm' },
+                                                        ].map(w => (
+                                                            <button
+                                                                key={w.id}
+                                                                onClick={() => setGame(prev => ({ ...prev, settings: { ...prev.settings, weather: w.id as any } }))}
+                                                                className={`flex items-center gap-2 p-2 rounded-lg border transition-all text-[10px] font-bold ${game.settings.weather === w.id ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
+                                                            >
+                                                                {w.icon}
+                                                                {w.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Ground & Terrain Section */}
+                                        <div className="p-4 bg-blue-500/5 rounded-2xl border border-blue-500/20 space-y-4">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <div className="p-2 bg-blue-500/20 rounded-lg">
+                                                    <Mountain className="w-4 h-4 text-blue-400" />
+                                                </div>
+                                                <h4 className="text-xs font-bold uppercase tracking-tight">Terrain & Ground</h4>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] text-slate-500 font-bold uppercase">Ground Type</label>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        {[
+                                                            { id: 'grass', label: 'Lush Grass' },
+                                                            { id: 'snow', label: 'Deep Snow' },
+                                                            { id: 'sand', label: 'Desert Sand' },
+                                                            { id: 'concrete', label: 'Urban Concrete' },
+                                                            { id: 'dirt', label: 'Muddy Dirt' },
+                                                            { id: 'water', label: 'Ocean Water' },
+                                                        ].map(g => (
+                                                            <button
+                                                                key={g.id}
+                                                                onClick={() => setGame(prev => ({ ...prev, settings: { ...prev.settings, groundType: g.id as any } }))}
+                                                                className={`p-2 rounded-lg border transition-all text-[10px] font-bold text-center ${game.settings.groundType === g.id ? 'bg-blue-500/20 border-blue-500 text-blue-400' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
+                                                            >
+                                                                {g.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Fog Section */}
+                                        <div className="p-4 bg-purple-500/5 rounded-2xl border border-purple-500/20 space-y-4">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <div className="p-2 bg-purple-500/20 rounded-lg">
+                                                    <Ghost className="w-4 h-4 text-purple-400" />
+                                                </div>
+                                                <h4 className="text-xs font-bold uppercase tracking-tight">Mist & Fog</h4>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] text-slate-500 font-bold uppercase">Fog Density</label>
+                                                    <input 
+                                                        type="range" min="0" max="0.005" step="0.0001"
+                                                        value={game.settings.fogDensity || 0}
+                                                        onChange={(e) => setGame(prev => ({ ...prev, settings: { ...prev.settings, fogDensity: parseFloat(e.target.value) } }))}
+                                                        className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] text-slate-500 font-bold uppercase">Fog Color</label>
+                                                    <div className="flex gap-2">
+                                                        <input 
+                                                            type="color" 
+                                                            value={game.settings.fogColor || '#000000'}
+                                                            onChange={(e) => setGame(prev => ({ ...prev, settings: { ...prev.settings, fogColor: e.target.value } }))}
+                                                            className="w-10 h-10 bg-transparent border-none cursor-pointer"
+                                                        />
+                                                        <input 
+                                                            type="text"
+                                                            value={game.settings.fogColor || '#000000'}
+                                                            onChange={(e) => setGame(prev => ({ ...prev, settings: { ...prev.settings, fogColor: e.target.value } }))}
+                                                            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="h-40 flex flex-col items-center justify-center text-center p-6 bg-white/5 rounded-2xl border border-white/5 border-dashed">
+                                        <MousePointer2 className="w-8 h-8 text-slate-600 mb-2" />
+                                        <p className="text-xs text-slate-500 font-medium leading-relaxed">Select an object on the viewport to edit its properties or switch to the World tab for global settings.</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </aside>
+            </div>
+
+            {toast && (
+                <Toast 
+                    message={toast.message} 
+                    type={toast.type} 
+                    onClose={() => showToast('', 'info')} 
+                />
+            )}
+        </div>
+    );
+}
+
+function ToolButton({ active, onClick, icon, label, tooltip }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string, tooltip?: string }) {
+    return (
+        <div className="group relative">
+            <button 
+                onClick={onClick}
+                className={`w-full flex flex-col items-center justify-center p-3 rounded-xl border transition-all gap-2 ${active ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10 hover:border-white/10 hover:text-white'}`}
+            >
+                {icon}
+                <span className="text-[10px] font-bold">{label}</span>
+            </button>
+            {tooltip && (
+                <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 w-48 p-2 bg-slate-800 text-slate-200 text-[10px] rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 border border-white/10 shadow-xl">
+                    {tooltip}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function ModeCard({ title, description, icon, onClick, color }: { title: string, description: string, icon: React.ReactNode, onClick: () => void, color: 'emerald' | 'blue' }) {
+    return (
+        <motion.div
+            whileHover={{ scale: 1.02, translateY: -4 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={onClick}
+            className={`cursor-pointer p-8 rounded-3xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all group relative overflow-hidden`}
+        >
+            <div className={`absolute top-0 right-0 w-32 h-32 bg-${color}-500/10 blur-3xl -mr-16 -mt-16 group-hover:bg-${color}-500/20 transition-colors`} />
+            <div className="relative z-10">
+                <div className={`mb-6 p-4 bg-${color}-500/20 rounded-2xl inline-block`}>
+                    {icon}
+                </div>
+                <h3 className="text-2xl font-bold mb-3">{title}</h3>
+                <p className="text-slate-400 text-sm leading-relaxed mb-6">
+                    {description}
+                </p>
+                <div className={`inline-flex items-center gap-2 text-${color}-400 font-bold text-sm`}>
+                    Get Started <ChevronRight className="w-4 h-4" />
+                </div>
+            </div>
+        </motion.div>
+    );
+}
+
+function WeatherSystem({ type }: { type?: string }) {
+    const points = useRef<THREE.Points>(null);
+    const flashRef = useRef<THREE.PointLight>(null);
+    const count = 3000;
+    const positions = new Float32Array(count * 3);
+    
+    useEffect(() => {
+        for(let i=0; i<count; i++) {
+            positions[i*3] = (Math.random() - 0.5) * 2000;
+            positions[i*3+1] = Math.random() * 1000;
+            positions[i*3+2] = (Math.random() - 0.5) * 2000;
+        }
+    }, []);
+
+    useFrame((state, delta) => {
+        if (!points.current) return;
+        const pos = points.current.geometry.attributes.position.array as Float32Array;
+        for(let i=0; i<count; i++) {
+            pos[i*3+1] -= type === 'rain' || type === 'storm' ? 15 : 2;
+            if (pos[i*3+1] < 0) pos[i*3+1] = 1000;
+        }
+        points.current.geometry.attributes.position.needsUpdate = true;
+
+        if (type === 'storm' && flashRef.current) {
+            if (Math.random() > 0.99) {
+                flashRef.current.intensity = 50 + Math.random() * 100;
+            } else {
+                flashRef.current.intensity *= 0.8;
+            }
+        }
+    });
+
+    if (type === 'none' || !type) return null;
+
+    return (
+        <>
+            <points ref={points}>
+                <bufferGeometry>
+                    <bufferAttribute
+                        attach="attributes-position"
+                        count={count}
+                        array={positions}
+                        itemSize={3}
+                    />
+                </bufferGeometry>
+                <pointsMaterial 
+                    size={type === 'rain' || type === 'storm' ? 1.5 : 4} 
+                    color={type === 'rain' || type === 'storm' ? '#9ab' : '#fff'} 
+                    transparent 
+                    opacity={0.6} 
+                />
+            </points>
+            {type === 'storm' && (
+                <pointLight 
+                    ref={flashRef} 
+                    position={[0, 500, 0]} 
+                    color="#fff" 
+                    intensity={0} 
+                    distance={2000} 
+                />
+            )}
+        </>
+    );
+}
+
+function Terrain({ type }: { type?: string }) {
+    const color = {
+        grass: '#15803d',
+        snow: '#f8fafc',
+        sand: '#fde047',
+        concrete: '#475569',
+        dirt: '#78350f',
+        water: '#0369a1'
+    }[type || 'grass'];
+    
+    return (
+        <group>
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]} receiveShadow>
+                <planeGeometry args={[10000, 10000]} />
+                <meshStandardMaterial 
+                    color={color} 
+                    roughness={type === 'water' ? 0.1 : 0.8} 
+                    metalness={type === 'water' ? 0.4 : 0.1}
+                    transparent={type === 'water'}
+                    opacity={type === 'water' ? 0.8 : 1}
+                />
+            </mesh>
+            {type === 'water' && (
+                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -5, 0]}>
+                    <planeGeometry args={[10000, 10000]} />
+                    <meshStandardMaterial color="#0c4a6e" />
+                </mesh>
+            )}
+        </group>
+    );
+}
+
+function Scene3D({ game, setGame, selectedId, setSelectedId, transformMode, onUpdate }: { 
+    game: GameDesign, 
+    setGame: React.Dispatch<React.SetStateAction<GameDesign>>, 
+    selectedId: string | null, 
+    setSelectedId: (id: string | null) => void,
+    transformMode: 'translate' | 'rotate' | 'scale',
+    onUpdate: (updates: Partial<GameObject>) => void
+}) {
+    const { camera } = useThree();
+    const [currentTime, setCurrentTime] = useState(game.settings.timeOfDay || 12);
+
+    useFrame((state, delta) => {
+        if (game.settings.dayNightCycle) {
+            setCurrentTime(prev => {
+                const next = (prev + delta * 0.1) % 24;
+                return next;
+            });
+        }
+    });
+
+    // Update global game state occasionally or when cycle stops
+    useEffect(() => {
+        if (game.settings.dayNightCycle) {
+            const timer = setInterval(() => {
+                setGame(prev => ({ ...prev, settings: { ...prev.settings, timeOfDay: currentTime } }));
+            }, 5000);
+            return () => clearInterval(timer);
+        }
+    }, [game.settings.dayNightCycle, currentTime]);
+
+    const sunPosition: [number, number, number] = [
+        Math.cos((currentTime / 24) * Math.PI * 2) * 500,
+        Math.sin((currentTime / 24) * Math.PI * 2) * 500,
+        200
+    ];
+
+    return (
+        <>
+            <OrbitControls makeDefault />
+            <PerspectiveCamera makeDefault position={[500, 500, 500]} far={10000} />
+            
+            {/* Environment */}
+            <Sky 
+                sunPosition={sunPosition} 
+                inclination={currentTime / 24} 
+                mieCoefficient={0.005}
+                mieDirectionalG={0.8}
+                rayleigh={3}
+                turbidity={10}
+            />
+            <Environment preset={(game.settings.skybox as any) || 'sunset'} />
+            <Stars 
+                radius={100} 
+                depth={50} 
+                count={5000} 
+                factor={4} 
+                saturation={0} 
+                fade 
+                speed={1} 
+                opacity={currentTime > 18 || currentTime < 6 ? 1 : 0}
+            />
+            <ambientLight intensity={game.settings.ambientLightIntensity || (currentTime > 18 || currentTime < 6 ? 0.2 : 0.5)} />
+            <directionalLight position={sunPosition} castShadow intensity={currentTime > 18 || currentTime < 6 ? 0.1 : 1} />
+            
+            <WeatherSystem type={game.settings.weather} />
+            <Terrain type={game.settings.groundType} />
+            
+            {game.settings.fogDensity && game.settings.fogDensity > 0 && (
+                <fogExp2 attach="fog" color={game.settings.fogColor || '#000'} density={game.settings.fogDensity} />
+            )}
+            
+            <Grid 
+                infiniteGrid 
+                fadeDistance={2000} 
+                fadeStrength={5} 
+                cellSize={100} 
+                sectionSize={500} 
+                sectionColor="#3b82f6" 
+                cellColor="#1e293b" 
+            />
+
+            {game.objects.map((obj) => (
+                <Object3D 
+                    key={obj.id} 
+                    obj={obj} 
+                    isSelected={selectedId === obj.id}
+                    onSelect={() => setSelectedId(obj.id)}
+                    onUpdate={(updates) => onUpdate(updates)}
+                    transformMode={transformMode}
+                />
+            ))}
+
+            <ContactShadows position={[0, -0.5, 0]} opacity={0.4} scale={20} blur={2} far={4.5} />
+        </>
+    );
+}
+
+function Model({ url, color }: { url: string, color: string }) {
+    try {
+        const { scene } = useGLTF(url);
+        return <primitive object={scene.clone()} />;
+    } catch (e) {
+        return (
+            <mesh>
+                <boxGeometry args={[40, 40, 40]} />
+                <meshStandardMaterial color={color} wireframe />
+            </mesh>
+        );
+    }
+}
+
+function Object3D({ obj, isSelected, onSelect, onUpdate, transformMode }: { 
+    obj: GameObject, 
+    isSelected: boolean, 
+    onSelect: () => void,
+    onUpdate: (updates: Partial<GameObject>) => void,
+    transformMode: 'translate' | 'rotate' | 'scale'
+}) {
+    const meshRef = useRef<THREE.Mesh>(null);
+
+    const handleTransform = (e: any) => {
+        if (!meshRef.current) return;
+        const { position, rotation, scale } = meshRef.current;
+        onUpdate({
+            x: position.x,
+            y: position.y,
+            z: position.z,
+            width: scale.x * 40,
+            height: scale.y * 40,
+            depth: scale.z * 40,
+            rotation: [rotation.x, rotation.y, rotation.z]
+        });
+    };
+
+    const getGeometry = () => {
+        if (obj.type === 'model' && obj.properties.modelUrl) {
+            return <Model url={obj.properties.modelUrl} color={obj.color} />;
+        }
+
+        switch (obj.type) {
+            case 'player': return <capsuleGeometry args={[obj.width/2, obj.height, 4, 8]} />;
+            case 'enemy': return <boxGeometry args={[obj.width, obj.height, obj.depth || 40]} />;
+            case 'coin': return <cylinderGeometry args={[obj.width/2, obj.width/2, 5, 32]} rotation={[Math.PI/2, 0, 0]} />;
+            case 'goal': return <torusGeometry args={[obj.width/2, 5, 16, 100]} />;
+            case 'light': return <sphereGeometry args={[5, 16, 16]} />;
+            default: return <boxGeometry args={[obj.width, obj.height, obj.depth || 40]} />;
+        }
+    };
+
+    return (
+        <>
+            <mesh
+                ref={meshRef}
+                position={[obj.x, obj.y, obj.z || 0]}
+                rotation={obj.rotation || [0, 0, 0]}
+                scale={[obj.width / 40, obj.height / 40, (obj.depth || 40) / 40]}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onSelect();
+                }}
+            >
+                {obj.type === 'model' && obj.properties.modelUrl ? (
+                    <Model url={obj.properties.modelUrl} color={obj.color} />
+                ) : (
+                    <>
+                        {getGeometry()}
+                        <meshStandardMaterial 
+                            color={obj.color} 
+                            emissive={obj.type === 'light' ? obj.color : '#000'}
+                            emissiveIntensity={obj.type === 'light' ? 2 : 0}
+                            transparent={obj.type === 'trigger'}
+                            opacity={obj.type === 'trigger' ? 0.3 : 1}
+                        />
+                    </>
+                )}
+            </mesh>
+            
+            {isSelected && (
+                <TransformControls 
+                    object={meshRef.current as any} 
+                    onMouseUp={handleTransform}
+                    mode={transformMode}
+                />
+            )}
+
+            {obj.type === 'light' && (
+                <>
+                    {obj.properties.type === 'directional' ? (
+                        <directionalLight 
+                            position={[obj.x, obj.y, obj.z || 0]} 
+                            intensity={obj.properties.intensity || 1} 
+                            color={obj.color} 
+                        />
+                    ) : obj.properties.type === 'spot' ? (
+                        <spotLight 
+                            position={[obj.x, obj.y, obj.z || 0]} 
+                            intensity={obj.properties.intensity || 1} 
+                            color={obj.color} 
+                            angle={0.3}
+                            penumbra={1}
+                        />
+                    ) : (
+                        <pointLight 
+                            position={[obj.x, obj.y, obj.z || 0]} 
+                            intensity={obj.properties.intensity || 1} 
+                            color={obj.color} 
+                            distance={obj.properties.range || 500}
+                        />
+                    )}
+                </>
+            )}
+
+            <Text
+                position={[obj.x, obj.y + obj.height + 10, obj.z || 0]}
+                fontSize={12}
+                color="white"
+                anchorX="center"
+                anchorY="middle"
+            >
+                {obj.type}
+            </Text>
+        </>
+    );
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2, Moon, Smartphone, Zap } from 'lucide-react';
+import { Moon, Smartphone, Zap } from 'lucide-react';
 
 const BENEFITS = [
     {

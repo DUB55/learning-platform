@@ -1,7 +1,9 @@
+import ErrorLogger from './ErrorLogger';
+
 export interface DUB5StreamOptions {
     input: string;
     task?: string;
-    params?: Record<string, any>;
+    params?: Record<string, unknown>;
     onChunk?: (text: string) => void;
     onComplete?: (fullText: string) => void;
     onError?: (error: Error) => void;
@@ -11,7 +13,7 @@ export interface DUB5StreamOptions {
 export async function streamDub5AI(options: DUB5StreamOptions): Promise<string> {
     const { input, task, params, onChunk, onComplete, onError, signal } = options;
 
-    const body: any = { input };
+    const body: { input: string; task?: string; params?: Record<string, unknown> } = { input };
     if (task) body.task = task;
     if (params) body.params = params;
 
@@ -55,21 +57,22 @@ export async function streamDub5AI(options: DUB5StreamOptions): Promise<string> 
                         onChunk?.(obj.content);
                     }
                 } catch (err) {
-                    console.error('Parse error:', err);
+                    ErrorLogger.error('Parse error:', err);
                 }
             }
         }
 
         onComplete?.(fullText);
         return fullText;
-    } catch (error: any) {
-        onError?.(error);
-        throw error;
+    } catch (error: unknown) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        onError?.(err);
+        throw err;
     }
 }
 
 // Non-streaming call for simple tasks
-export async function callDub5AI(input: string, task?: string, params?: Record<string, any>): Promise<string> {
+export async function callDub5AI(input: string, task?: string, params?: Record<string, unknown>): Promise<string> {
     let result = '';
     await streamDub5AI({
         input,

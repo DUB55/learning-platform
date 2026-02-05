@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
+import ErrorLogger from '@/lib/ErrorLogger';
 
 interface SiteContent {
     selector: string;
@@ -21,7 +22,7 @@ const applyChangesToDOM = (contentMap: Map<string, string>) => {
                     }
                 }
             });
-        } catch (e) {
+        } catch {
             // Ignore invalid selectors
         }
     });
@@ -36,7 +37,7 @@ export default function SiteContentLoader() {
                 try {
                     return new Map(JSON.parse(cached));
                 } catch (e) {
-                    console.error('Failed to parse site content cache', e);
+                    ErrorLogger.error('Failed to parse site content cache', e);
                 }
             }
         }
@@ -75,7 +76,7 @@ export default function SiteContentLoader() {
     }, []);
 
     const fetchContent = async () => {
-        const { data } = await (supabase.from('site_content') as any).select('selector, text');
+        const { data } = await supabase.from('site_content').select('selector, text');
         if (data) {
             const map = new Map<string, string>();
             data.forEach((item: SiteContent) => map.set(item.selector, item.text));

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Brain, Zap, Calendar, MessageCircle } from 'lucide-react';
+import { Zap, Calendar, MessageCircle } from 'lucide-react';
 
 const FEATURES = [
     {

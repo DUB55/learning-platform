@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Edit3, Save, RotateCcw, RotateCw, X, Megaphone } from 'lucide-react';
+import { Edit3, Save, RotateCcw, RotateCw, X, Megaphone, Database as DatabaseIcon, Lightbulb, Layout } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { importStudyGoData } from '@/app/actions/importData';
+import ErrorLogger from '@/lib/ErrorLogger';
 
 interface EditAction {
     elementId: string; // XPath or unique selector
@@ -25,6 +27,64 @@ export default function AdminControls() {
     const [broadcastPriority, setBroadcastPriority] = useState<'normal' | 'high' | 'urgent'>('normal');
     const [broadcastIcon, setBroadcastIcon] = useState('alert-circle');
     const [broadcastBadgeText, setBroadcastBadgeText] = useState('System Locked by Administrator');
+
+    // Landing Page Toggle State
+    const [landingVersion, setLandingVersion] = useState<'classic' | 'modern'>('modern');
+    const [isUpdatingLanding, setIsUpdatingLanding] = useState(false);
+
+    // Fetch landing version on mount
+    useEffect(() => {
+        const fetchLandingVersion = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('system_settings')
+                    .select('value')
+                    .eq('key', 'landing_page_version')
+                    .single();
+
+                if (data && data.value) {
+                    const cleanValue = typeof data.value === 'string' ? data.value.replace(/"/g, '') : data.value;
+                    setLandingVersion(cleanValue as 'classic' | 'modern');
+                }
+            } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            ErrorLogger.error('Error fetching landing version for admin', error);
+        }
+        };
+
+        if (profile?.is_admin) {
+            fetchLandingVersion();
+        }
+    }, [profile]);
+
+    const handleLandingToggle = async () => {
+        const nextVersion = landingVersion === 'modern' ? 'classic' : 'modern';
+        setIsUpdatingLanding(true);
+
+        try {
+            const { error } = await supabase
+                .from('system_settings')
+                .upsert({
+                    key: 'landing_page_version',
+                    value: nextVersion,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'key' });
+
+            if (error) throw error;
+            setLandingVersion(nextVersion);
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            ErrorLogger.error('Error toggling landing page version', error);
+            alert(`Failed to toggle landing page: ${errorMessage}`);
+        } finally {
+            setIsUpdatingLanding(false);
+        }
+    };
+
+    // Import State
+    const [showImportModal, setShowImportModal] = useState(false);
+    const [importPath, setImportPath] = useState('c:\\Users\\Mohammed\\OneDrive - St Michaël College\\2025-2026\\Wiskunde\\Uitwerkingen\\Projects\\Projects\\auto-export-studygo\\export_golden_sample');
+    const [isImporting, setIsImporting] = useState(false);
 
     const toggleEditMode = () => {
         setIsEditing(!isEditing);
@@ -152,7 +212,7 @@ export default function AdminControls() {
                 updated_by: user?.id
             }));
 
-            const { error } = await (supabase.from('site_content') as any)
+            const { error } = await supabase.from('site_content')
                 .upsert(updates, { onConflict: 'selector' });
 
             if (error) throw error;
@@ -161,9 +221,10 @@ export default function AdminControls() {
             setPendingChanges(new Map());
             setHistory([]);
             setFuture([]);
-        } catch (error: any) {
-            console.error('Error saving changes:', error);
-            alert(`Failed to save changes: ${error.message}`);
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            ErrorLogger.error('Error saving changes:', error);
+            alert(`Failed to save changes: ${errorMessage}`);
         }
     };
 
@@ -192,9 +253,32 @@ export default function AdminControls() {
             setBroadcastPriority('normal');
             setBroadcastIcon('alert-circle');
             setBroadcastBadgeText('System Locked by Administrator');
-        } catch (error: any) {
-            console.error('Error broadcasting:', error);
-            alert(`Failed to broadcast: ${error.message}`);
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            ErrorLogger.error('Error broadcasting:', error);
+            alert(`Failed to broadcast: ${errorMessage}`);
+        }
+    };
+
+    const handleImport = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!importPath || !user) return;
+
+        setIsImporting(true);
+        try {
+            const result = await importStudyGoData(importPath, user.id);
+            if (result.success) {
+                alert(result.message);
+                setShowImportModal(false);
+            } else {
+                alert(`Import failed: ${result.message}`);
+            }
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            ErrorLogger.error('Import Error:', error);
+            alert(`Unexpected error: ${errorMessage}`);
+        } finally {
+            setIsImporting(false);
         }
     };
 
@@ -339,11 +423,40 @@ export default function AdminControls() {
             {isEditing && (
                 <div className="flex gap-2 mb-2 animate-fade-in">
                     <button
+                        onClick={handleLandingToggle}
+                        disabled={isUpdatingLanding}
+                        className={`p-3 text-white rounded-full shadow-lg transition-all ${landingVersion === 'modern' ? 'bg-orange-600 hover:bg-orange-500' : 'bg-cyan-600 hover:bg-cyan-500'} ${isUpdatingLanding ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={`Switch to ${landingVersion === 'modern' ? 'Classic' : 'Modern'} Landing`}
+                    >
+                        {isUpdatingLanding ? (
+                            <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                        ) : (
+                            <Layout size={20} />
+                        )}
+                    </button>
+                    <button
+                        onClick={() => {
+                            // Dispatch custom event to open tip editor in Dashboard
+                            window.dispatchEvent(new CustomEvent('open-tip-editor'));
+                        }}
+                        className="p-3 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-400 transition-all"
+                        title="Edit DUB5 Tip"
+                    >
+                        <Lightbulb size={20} />
+                    </button>
+                    <button
                         onClick={() => setShowBroadcastModal(true)}
                         className="p-3 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-500 transition-all"
                         title="Broadcast Announcement"
                     >
                         <Megaphone size={20} />
+                    </button>
+                    <button
+                        onClick={() => setShowImportModal(true)}
+                        className="p-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-500 transition-all"
+                        title="Import StudyGo Data"
+                    >
+                        <DatabaseIcon size={20} />
                     </button>
                     <button
                         onClick={handleUndo}
@@ -382,6 +495,54 @@ export default function AdminControls() {
             >
                 {isEditing ? <X size={24} /> : <Edit3 size={24} />}
             </button>
+            {/* Import Modal */}
+            {showImportModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000] p-4">
+                    <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                <DatabaseIcon className="w-5 h-5 text-indigo-400" />
+                                Import StudyGo Data
+                            </h3>
+                            <button onClick={() => setShowImportModal(false)} className="text-slate-400 hover:text-white">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleImport} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-300 mb-1">Export Directory Path</label>
+                                <input
+                                    type="text"
+                                    value={importPath}
+                                    onChange={(e) => setImportPath(e.target.value)}
+                                    className="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono text-xs"
+                                    placeholder="C:\path\to\export"
+                                    required
+                                />
+                                <p className="text-[10px] text-slate-500 mt-1">
+                                    Ensure this path is accessible by the server.
+                                </p>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={isImporting}
+                                className={`w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 ${isImporting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                                {isImporting ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                        Importing...
+                                    </>
+                                ) : (
+                                    'Start Import'
+                                )}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

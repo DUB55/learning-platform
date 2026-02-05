@@ -1,6 +1,7 @@
 'use client';
 
 import { supabase } from './supabase';
+import ErrorLogger from './ErrorLogger';
 
 export interface ChatMessage {
     id: string;
@@ -58,12 +59,12 @@ function extractKeyPoints(messages: ChatMessage[]): string {
  */
 export async function saveChatSummary(chatId: string, summary: string): Promise<void> {
     try {
-        await supabase
-            .from('ai_chat_sessions')
+        await (supabase
+            .from('ai_chat_sessions') as any)
             .update({ chat_summary: summary })
             .eq('id', chatId);
     } catch (error) {
-        console.error('Error saving chat summary:', error);
+        ErrorLogger.error('Error saving chat summary:', error);
     }
 }
 
@@ -72,15 +73,15 @@ export async function saveChatSummary(chatId: string, summary: string): Promise<
  */
 export async function getChatSummary(chatId: string): Promise<string | null> {
     try {
-        const { data } = await supabase
-            .from('ai_chat_sessions')
+        const { data } = await (supabase
+            .from('ai_chat_sessions') as any)
             .select('chat_summary')
             .eq('id', chatId)
             .single();
 
-        return data?.chat_summary || null;
+        return (data as any)?.chat_summary || null;
     } catch (error) {
-        console.error('Error fetching chat summary:', error);
+        ErrorLogger.error('Error fetching chat summary:', error);
         return null;
     }
 }

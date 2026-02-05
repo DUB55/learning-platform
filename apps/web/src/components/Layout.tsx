@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { Home, Book, Calendar, Settings, LogOut, Moon, Sun } from 'lucide-react';
+import { Home, Book, Calendar, LogOut, Moon, Sun } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 import RoutePrefetcher from './RoutePrefetcher';

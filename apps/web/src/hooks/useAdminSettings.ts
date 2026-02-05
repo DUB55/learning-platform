@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 type AdminSetting = {
     id: string;
     setting_key: string;
-    setting_value: any;
+    setting_value: string | number | boolean;
     description: string | null;
     category: string;
     updated_at: string;
@@ -47,16 +47,16 @@ export function useAdminSettings() {
             .order('setting_key', { ascending: true });
 
         if (!error && data) {
-            setSettings(data);
+            setSettings(data as AdminSetting[]);
         }
         setLoading(false);
     };
 
-    const updateSetting = async (settingKey: string, value: any) => {
+    const updateSetting = async (settingKey: string, value: string | number | boolean) => {
         const { error } = await supabase
             .from('admin_settings')
             .update({
-                setting_value: value,
+                setting_value: value as any,
                 updated_at: new Date().toISOString(),
                 updated_by: profile?.id
             })
@@ -69,7 +69,7 @@ export function useAdminSettings() {
         return false;
     };
 
-    const getSetting = (key: string): any => {
+    const getSetting = (key: string): string | number | boolean | undefined => {
         const setting = settings.find(s => s.setting_key === key);
         return setting?.setting_value;
     };

@@ -1,59 +1,55 @@
+import { supabase } from './supabase';
+
 type ErrorSeverity = 'info' | 'warning' | 'error' | 'critical';
 
 interface ErrorLogParams {
     message: string;
-    error?: any;
+    error?: unknown;
     severity?: ErrorSeverity;
-    context?: Record<string, any>;
+    context?: Record<string, unknown>;
 }
 
 class ErrorLogger {
-    static log({ message, error, severity = 'error', context = {} }: ErrorLogParams) {
-        const timestamp = new Date().toISOString();
-
-        // In development, log to console with rich formatting
+    static async log({ message, error, severity = 'error', context = {} }: ErrorLogParams) {
+        // Log to console in development
         if (process.env.NODE_ENV === 'development') {
-            const colorMap = {
-                info: '\x1b[36m', // Cyan
-                warning: '\x1b[33m', // Yellow
-                error: '\x1b[31m', // Red
-                critical: '\x1b[41m\x1b[37m', // White on Red
-            };
-            const reset = '\x1b[0m';
-
-            console.group(`${colorMap[severity]}[${severity.toUpperCase()}] ${message}${reset}`);
-            console.log('Timestamp:', timestamp);
-            if (error) console.error('Error:', error);
-            if (Object.keys(context).length > 0) console.log('Context:', context);
-            console.groupEnd();
+             console.log(`[${severity.toUpperCase()}] ${message}`, error, context);
         }
 
-        // In production, this would send to Sentry, LogRocket, etc.
-        // For now, we'll just log to console as well but formatted for ingestion
-        if (process.env.NODE_ENV === 'production') {
-            console.log(JSON.stringify({
-                timestamp,
-                severity,
-                message,
-                error: error instanceof Error ? {
-                    name: error.name,
-                    message: error.message,
-                    stack: error.stack
-                } : error,
-                context
-            }));
+        try {
+            // Log to Supabase error_logs table
+            const { error: dbError } = await supabase.from('error_logs').insert([{
+                level: severity === 'warning' ? 'warn' : severity,
+                message: message,
+                details: {
+                    error: error instanceof Error ? {
+                        message: error.message,
+                        stack: error.stack,
+                        name: error.name
+                    } : error,
+                    context: context
+                },
+                created_at: new Date().toISOString()
+            }]);
+
+            if (dbError) {
+                // Fail silently to avoid infinite loops or blocking the UI
+                console.error('Error logging to database:', dbError);
+            }
+        } catch (e) {
+            console.error('Critical failure in ErrorLogger:', e);
         }
     }
 
-    static error(message: string, error?: any, context?: Record<string, any>) {
+    static error(message: string, error?: unknown, context?: Record<string, unknown>) {
         this.log({ message, error, severity: 'error', context });
     }
 
-    static warning(message: string, context?: Record<string, any>) {
+    static warning(message: string, context?: Record<string, unknown>) {
         this.log({ message, severity: 'warning', context });
     }
 
-    static info(message: string, context?: Record<string, any>) {
+    static info(message: string, context?: Record<string, unknown>) {
         this.log({ message, severity: 'info', context });
     }
 }

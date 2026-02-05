@@ -4,16 +4,18 @@ import { useState, useRef } from 'react';
 import { X, FileText, Loader2, UploadCloud, Zap } from 'lucide-react';
 import { generateFromFile } from '@/app/actions/generate';
 
+type GeneratedData = any;
+
 interface FileImportModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSuccess: (data: any, type: 'flashcards' | 'summary') => void;
-    allowedModes?: ('flashcards' | 'summary')[];
+    onSuccess: (data: GeneratedData, type: 'flashcards' | 'summary' | 'quiz' | 'smart-notes') => void;
+    allowedModes?: ('flashcards' | 'summary' | 'quiz' | 'smart-notes')[];
 }
 
-export default function FileImportModal({ isOpen, onClose, onSuccess, allowedModes = ['flashcards', 'summary'] }: FileImportModalProps) {
+export default function FileImportModal({ isOpen, onClose, onSuccess, allowedModes = ['flashcards', 'summary', 'quiz', 'smart-notes'] }: FileImportModalProps) {
     const [file, setFile] = useState<File | null>(null);
-    const [mode, setMode] = useState<'flashcards' | 'summary'>(allowedModes[0]);
+    const [mode, setMode] = useState<'flashcards' | 'summary' | 'quiz' | 'smart-notes'>(allowedModes[0]);
     const [summaryType, setSummaryType] = useState<'long' | 'normal' | 'short'>('normal');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -50,7 +52,7 @@ export default function FileImportModal({ isOpen, onClose, onSuccess, allowedMod
             } else {
                 setError(result.error || 'Failed to process file');
             }
-        } catch (err) {
+        } catch {
             setError('Something went wrong. Please try again.');
         } finally {
             setLoading(false);
@@ -84,7 +86,7 @@ export default function FileImportModal({ isOpen, onClose, onSuccess, allowedMod
                             type="file"
                             onChange={handleFileChange}
                             className="hidden"
-                            accept=".pdf,.txt"
+                            accept=".pdf,.txt,.png,.jpg,.jpeg"
                         />
                         {file ? (
                             <div className="text-center">
@@ -95,37 +97,64 @@ export default function FileImportModal({ isOpen, onClose, onSuccess, allowedMod
                         ) : (
                             <div className="text-center">
                                 <UploadCloud className="w-10 h-10 text-slate-500 mx-auto mb-2" />
-                                <p className="font-medium text-slate-300">Click to upload PDF or Text</p>
-                                <p className="text-xs text-slate-500 mt-1">PDF, TXT supported</p>
+                                <p className="font-medium text-slate-300">Click to upload PDF, Text, or Image</p>
+                                <p className="text-xs text-slate-500 mt-1">PDF, TXT, PNG, JPG (Max 10MB)</p>
                             </div>
                         )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    {/* Generation Mode */}
+                    <div className="grid grid-cols-2 gap-3">
                         {allowedModes.includes('flashcards') && (
                             <button
                                 type="button"
                                 onClick={() => setMode('flashcards')}
-                                className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all ${mode === 'flashcards'
-                                        ? 'bg-red-600 text-white border-red-500 shadow-lg shadow-red-900/20'
-                                        : 'bg-[#0f172a] text-slate-400 border-white/10 hover:border-white/20'
+                                className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all ${mode === 'flashcards'
+                                    ? 'bg-blue-600/20 border-blue-500 text-white'
+                                    : 'bg-slate-800/50 border-white/5 text-slate-400 hover:bg-slate-800'
                                     }`}
                             >
-                                <Zap className="w-6 h-6" />
-                                <span className="font-bold text-sm">Flashcards</span>
+                                <Zap className="w-5 h-5" />
+                                <span className="text-xs font-medium">Flashcards</span>
                             </button>
                         )}
                         {allowedModes.includes('summary') && (
                             <button
                                 type="button"
                                 onClick={() => setMode('summary')}
-                                className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all ${mode === 'summary'
-                                        ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-900/20'
-                                        : 'bg-[#0f172a] text-slate-400 border-white/10 hover:border-white/20'
+                                className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all ${mode === 'summary'
+                                    ? 'bg-blue-600/20 border-blue-500 text-white'
+                                    : 'bg-slate-800/50 border-white/5 text-slate-400 hover:bg-slate-800'
                                     }`}
                             >
-                                <FileText className="w-6 h-6" />
-                                <span className="font-bold text-sm">Summary</span>
+                                <FileText className="w-5 h-5" />
+                                <span className="text-xs font-medium">Summary</span>
+                            </button>
+                        )}
+                        {allowedModes.includes('quiz') && (
+                            <button
+                                type="button"
+                                onClick={() => setMode('quiz')}
+                                className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all ${mode === 'quiz'
+                                    ? 'bg-blue-600/20 border-blue-500 text-white'
+                                    : 'bg-slate-800/50 border-white/5 text-slate-400 hover:bg-slate-800'
+                                    }`}
+                            >
+                                <Zap className="w-5 h-5" />
+                                <span className="text-xs font-medium">Quiz</span>
+                            </button>
+                        )}
+                        {allowedModes.includes('smart-notes') && (
+                            <button
+                                type="button"
+                                onClick={() => setMode('smart-notes')}
+                                className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all ${mode === 'smart-notes'
+                                    ? 'bg-blue-600/20 border-blue-500 text-white'
+                                    : 'bg-slate-800/50 border-white/5 text-slate-400 hover:bg-slate-800'
+                                    }`}
+                            >
+                                <FileText className="w-5 h-5" />
+                                <span className="text-xs font-medium">Smart Notes</span>
                             </button>
                         )}
                     </div>

@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import ErrorLogger from './ErrorLogger';
 
 export interface UserXP {
     id: string;
@@ -34,11 +35,12 @@ class XPService {
     /**
      * Get or create user XP record
      */
-    async getUserXP(userId: string): Promise<UserXP | null> {
+    async getUserXP(userId: string, signal?: AbortSignal): Promise<UserXP | null> {
         const { data, error } = await supabase
             .from('user_xp')
             .select('*')
             .eq('user_id', userId)
+            .abortSignal(signal!)
             .single();
 
         if (error && error.code === 'PGRST116') {
@@ -47,21 +49,24 @@ class XPService {
                 .from('user_xp')
                 .insert([{ user_id: userId }])
                 .select()
+                .abortSignal(signal!)
                 .single();
 
             if (insertError) {
-                console.error('Error creating user XP:', insertError);
+                if (insertError.name === 'AbortError') return null;
+                ErrorLogger.error('Error creating user XP:', insertError);
                 return null;
             }
-            return newData;
+            return newData as UserXP;
         }
 
         if (error) {
-            console.error('Error fetching user XP:', error);
+            if (error.name === 'AbortError') return null;
+            ErrorLogger.error('Error fetching user XP:', error);
             return null;
         }
 
-        return data;
+        return data as UserXP;
     }
 
     /**
@@ -87,7 +92,7 @@ class XPService {
                 .eq('user_id', userId);
 
             if (updateError) {
-                console.error('Error updating XP:', updateError);
+                ErrorLogger.error('Error updating XP', updateError);
                 return false;
             }
 
@@ -102,17 +107,17 @@ class XPService {
                 }]);
 
             if (transactionError) {
-                console.error('Error recording XP transaction:', transactionError);
+                ErrorLogger.error('Error recording XP transaction', transactionError);
             }
 
             // Check for level-up achievements
             if (newLevel > currentXP.level) {
-                await this.checkLevelUpAchievements(userId, newLevel);
+                await this.checkLevelUpAchievements(userId);
             }
 
             return true;
         } catch (error) {
-            console.error('Error in awardXP:', error);
+            ErrorLogger.error('Error in awardXP', error);
             return false;
         }
     }
@@ -159,7 +164,7 @@ class XPService {
                 }]);
 
             if (insertError) {
-                console.error('Error inserting streak:', insertError);
+                ErrorLogger.error('Error inserting streak', insertError);
                 return false;
             }
 
@@ -179,7 +184,7 @@ class XPService {
                     .eq('user_id', userId);
 
                 if (updateError) {
-                    console.error('Error updating streak:', updateError);
+                    ErrorLogger.error('Error updating streak:', updateError);
                 }
 
                 // Check streak achievements
@@ -188,7 +193,7 @@ class XPService {
 
             return true;
         } catch (error) {
-            console.error('Error in updateStreak:', error);
+            ErrorLogger.error('Error in updateStreak', error);
             return false;
         }
     }
@@ -208,7 +213,7 @@ class XPService {
         }
 
         let streak = 0;
-        let expectedDate = new Date();
+        const expectedDate = new Date();
         expectedDate.setHours(0, 0, 0, 0);
 
         for (const record of data) {
@@ -239,7 +244,7 @@ class XPService {
                 .single();
 
             if (achError || !achievement) {
-                console.error('Achievement not found:', achievementKey);
+                ErrorLogger.error('Achievement not found:', achievementKey);
                 return false;
             }
 
@@ -264,7 +269,7 @@ class XPService {
                 }]);
 
             if (unlockError) {
-                console.error('Error unlocking achievement:', unlockError);
+                ErrorLogger.error('Error unlocking achievement', unlockError);
                 return false;
             }
 
@@ -275,7 +280,7 @@ class XPService {
 
             return true;
         } catch (error) {
-            console.error('Error in unlockAchievement:', error);
+            ErrorLogger.error('Error in unlockAchievement', error);
             return false;
         }
     }
@@ -283,36 +288,122 @@ class XPService {
     /**
      * Get user's unlocked achievements
      */
-    async getUserAchievements(userId: string): Promise<UserAchievement[]> {
+    async getUserAchievements(userId: string, signal?: AbortSignal): Promise<UserAchievement[]> {
         const { data, error } = await supabase
             .from('user_achievements')
             .select('*, achievement:achievements(*)')
             .eq('user_id', userId)
-            .order('unlocked_at', { ascending: false });
+            .order('unlocked_at', { ascending: false })
+            .abortSignal(signal!);
 
         if (error) {
-            console.error('Error fetching achievements:', error);
+            if (error.name === 'AbortError') return [];
+            ErrorLogger.error('Error fetching achievements', error);
             return [];
         }
 
-        return data as any;
+        return data as unknown as UserAchievement[];
     }
 
     /**
      * Get all achievements
      */
-    async getAllAchievements(): Promise<Achievement[]> {
-        const { data, error } = await supabase
-            .from('achievements')
+    async getAllAchievements(signal?: AbortSignal): Promise<Achievement[]> {
+        const { data, error } = await (supabase
+            .from('achievements') as any)
             .select('*')
-            .order('category, xp_reward');
+            .order('category, xp_reward')
+            .abortSignal(signal as any);
 
         if (error) {
-            console.error('Error fetching all achievements:', error);
+            if (error.name === 'AbortError') return [];
+            ErrorLogger.error('Error fetching all achievements:', error);
             return [];
         }
 
+        if (!data || data.length === 0) {
+            // Seed default achievements if none exist
+            await this.seedAchievements();
+            return this.getAllAchievements(signal);
+        }
+
         return data;
+    }
+
+    /**
+     * Seed default achievements
+     */
+    private async seedAchievements(): Promise<void> {
+        const defaultAchievements = [
+            {
+                key: 'study_time_1h',
+                name: 'Focused Hour',
+                description: 'Study for a total of 1 hour.',
+                icon: 'Timer',
+                xp_reward: 100,
+                category: 'Study Time',
+                requirement_type: 'study_minutes',
+                requirement_value: 60
+            },
+            {
+                key: 'study_time_10h',
+                name: 'Study Marathon',
+                description: 'Study for a total of 10 hours.',
+                icon: 'Clock',
+                xp_reward: 500,
+                category: 'Study Time',
+                requirement_type: 'study_minutes',
+                requirement_value: 600
+            },
+            {
+                key: 'task_first',
+                name: 'Getting Started',
+                description: 'Complete your first task.',
+                icon: 'CheckCircle',
+                xp_reward: 50,
+                category: 'Tasks',
+                requirement_type: 'tasks_completed',
+                requirement_value: 1
+            },
+            {
+                key: 'task_50',
+                name: 'Task Master',
+                description: 'Complete 50 tasks.',
+                icon: 'CheckSquare',
+                xp_reward: 1000,
+                category: 'Tasks',
+                requirement_type: 'tasks_completed',
+                requirement_value: 50
+            },
+            {
+                key: 'study_streak_7',
+                name: 'Week on Fire',
+                description: 'Maintain a 7-day study streak.',
+                icon: 'Zap',
+                xp_reward: 300,
+                category: 'Streaks',
+                requirement_type: 'streak',
+                requirement_value: 7
+            },
+            {
+                key: 'study_streak_30',
+                name: 'Unstoppable',
+                description: 'Maintain a 30-day study streak.',
+                icon: 'Flame',
+                xp_reward: 2000,
+                category: 'Streaks',
+                requirement_type: 'streak',
+                requirement_value: 30
+            }
+        ];
+
+        const { error } = await supabase
+            .from('achievements')
+            .insert(defaultAchievements);
+
+        if (error) {
+            ErrorLogger.error('Error seeding achievements:', error);
+        }
     }
 
     /**
@@ -357,7 +448,7 @@ class XPService {
     /**
      * Check level-up achievements (can be extended)
      */
-    private async checkLevelUpAchievements(userId: string, newLevel: number): Promise<void> {
+    private async checkLevelUpAchievements(userId: string): Promise<void> {
         // Can add level-based achievements here
         // e.g., "Reached Level 10", "Reached Level 50", etc.
     }

@@ -1,8 +1,9 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './AuthContext';
+import ErrorLogger from '@/lib/ErrorLogger';
 
 interface UISettings {
     iconStyle: 'colored' | 'monochrome';
@@ -15,6 +16,10 @@ interface UISettings {
     highContrast: boolean;
     notifications: boolean;
     soundEnabled: boolean;
+    language: 'en' | 'nl' | 'de' | 'fr' | 'es';
+    timezone: string;
+    enabledWidgets: string[];
+    widgetOrder: string[];
 }
 
 interface UISettingsContextType {
@@ -35,6 +40,10 @@ const defaultSettings: UISettings = {
     highContrast: false,
     notifications: true,
     soundEnabled: true,
+    language: 'nl',
+    timezone: 'UTC+1',
+    enabledWidgets: ['stats', 'tip', 'quick-tools', 'subjects', 'upcoming', 'review', 'next-test', 'proof'],
+    widgetOrder: ['next-test', 'stats', 'proof', 'tip', 'subjects', 'review', 'quick-tools', 'upcoming'],
 };
 
 const UISettingsContext = createContext<UISettingsContextType>({
@@ -50,6 +59,29 @@ export function UISettingsProvider({ children }: { children: ReactNode }) {
     const [settings, setSettings] = useState<UISettings>(defaultSettings);
     const [loading, setLoading] = useState(true);
 
+    const loadSettings = useCallback(async () => {
+        if (!user) return;
+
+        try {
+            const { data } = await supabase
+                .from('user_settings')
+                .select('*')
+                .eq('user_id', user.id)
+                .single();
+
+            if (data && typeof data === 'object' && 'ui_preferences' in data) {
+                const prefs = (data as Record<string, unknown>)['ui_preferences'] as Record<string, unknown> | null;
+                if (prefs && typeof prefs === 'object') {
+                    setSettings({ ...defaultSettings, ...(prefs as Partial<UISettings>) });
+                }
+            }
+        } catch (error) {
+            ErrorLogger.error('Failed to load UI settings:', error);
+        } finally {
+            setLoading(false);
+        }
+    }, [user]);
+
     useEffect(() => {
         if (user) {
             loadSettings();
@@ -61,31 +93,7 @@ export function UISettingsProvider({ children }: { children: ReactNode }) {
             }
             setLoading(false);
         }
-    }, [user]);
-
-    const loadSettings = async () => {
-        if (!user) return;
-
-        try {
-            const { data, error } = await supabase
-                .from('user_settings')
-                .select('*')
-                .eq('user_id', user.id)
-                .single();
-
-            // Parse ui_preferences if it exists
-            if (data && typeof data === 'object' && 'ui_preferences' in data) {
-                const prefs = data.ui_preferences;
-                if (prefs && typeof prefs === 'object') {
-                    setSettings({ ...defaultSettings, ...prefs });
-                }
-            }
-        } catch (error) {
-            console.error('Failed to load UI settings:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    }, [user, loadSettings]);
 
     const updateSettings = async (newSettings: Partial<UISettings>) => {
         const updated = { ...settings, ...newSettings };
@@ -100,13 +108,13 @@ export function UISettingsProvider({ children }: { children: ReactNode }) {
                         user_id: user.id,
                         ui_preferences: updated,
                         updated_at: new Date().toISOString(),
-                    } as any);
+                    });
 
                 if (error) {
-                    console.error('Failed to save UI settings:', error);
+                    ErrorLogger.error('Failed to save UI settings:', error);
                 }
             } catch (error) {
-                console.error('Failed to save UI settings:', error);
+                ErrorLogger.error('Failed to save UI settings:', error);
             }
         } else {
             // Save to localStorage
@@ -124,9 +132,9 @@ export function UISettingsProvider({ children }: { children: ReactNode }) {
                         user_id: user.id,
                         ui_preferences: defaultSettings,
                         updated_at: new Date().toISOString(),
-                    } as any);
+                    });
             } catch (error) {
-                console.error('Failed to reset UI settings:', error);
+                ErrorLogger.error('Failed to reset UI settings:', error);
             }
         } else {
             localStorage.setItem('ui_settings', JSON.stringify(defaultSettings));

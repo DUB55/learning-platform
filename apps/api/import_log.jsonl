@@ -1,0 +1,94 @@
+{"timestamp":"2026-01-24T12:23:51.226Z","level":"info","message":"Starting StudyGo import","path":"C:\\Users\\Mohammed\\OneDrive - St Michaël College\\2025-2026\\Wiskunde\\Uitwerkingen\\Projects\\Projects\\Complete Learning Platform\\apps\\api\\temp\\test-export","dryRun":true}
+{"timestamp":"2026-01-24T12:23:51.241Z","level":"error","message":"Import failed: Manifest not found at C:\\Users\\Mohammed\\OneDrive - St Michaël College\\2025-2026\\Wiskunde\\Uitwerkingen\\Projects\\Projects\\Complete Learning Platform\\apps\\api\\temp\\test-export\\export_manifest.json","stack":"Error: Manifest not found at C:\\Users\\Mohammed\\OneDrive - St Michaël College\\2025-2026\\Wiskunde\\Uitwerkingen\\Projects\\Projects\\Complete Learning Platform\\apps\\api\\temp\\test-export\\export_manifest.json\n    at StudyGoImporter.run (C:\\Users\\Mohammed\\OneDrive - St Michaël College\\2025-2026\\Wiskunde\\Uitwerkingen\\Projects\\Projects\\Complete Learning Platform\\apps\\api\\src\\services\\studygo-importer.ts:72:23)\n    at async Command.<anonymous> (C:\\Users\\Mohammed\\OneDrive - St Michaël College\\2025-2026\\Wiskunde\\Uitwerkingen\\Projects\\Projects\\Complete Learning Platform\\apps\\api\\src\\cli\\import-studygo.ts:45:28)"}
+{"timestamp":"2026-01-24T13:56:25.770Z","level":"info","message":"Starting StudyGo import","path":"c:\\Users\\Mohammed\\OneDrive - St Michaël College\\2025-2026\\Wiskunde\\Uitwerkingen\\Projects\\Projects\\Complete Learning Platform\\temp\\test-export","dryRun":true}
+{"timestamp":"2026-01-24T13:56:25.777Z","level":"info","message":"Processing subject: Wiskunde B","sourceId":"subj_wiskunde_001"}
+{"timestamp":"2026-01-24T13:56:25.777Z","level":"info","message":"Processing book: Getal & Ruimte 12e Editie","sourceId":"book_getal_ruimte_12"}
+{"timestamp":"2026-01-24T13:56:25.777Z","level":"info","message":"Processing chapter: Hoofdstuk 1: Functies en Grafieken","sourceId":"1_h1-functies"}
+{"timestamp":"2026-01-24T13:56:25.778Z","level":"info","message":"Processing section: 1.1 Lineaire functies","sourceId":"1.1_s1-1-lineaire-functies"}
+{"timestamp":"2026-01-24T13:56:25.778Z","level":"info","message":"Processing 2 terms"}
+{"timestamp":"2026-01-24T13:56:25.778Z","level":"info","message":"Processing summary"}
+{"timestamp":"2026-01-24T13:56:25.782Z","level":"info","message":"Processing 1 theory blocks"}
+{"timestamp":"2026-01-24T13:56:25.782Z","level":"info","message":"Processing 1 questions"}
+{"timestamp":"2026-01-24T13:56:25.782Z","level":"info","message":"Import completed successfully"}
+{"timestamp":"2026-01-24T14:08:07.010Z","node":"root","status":"info","message":"Starting StudyGo import","path":"C:\\Users\\Mohammed\\OneDrive - St Michaël College\\2025-2026\\Wiskunde\\Uitwerkingen\\Projects\\Projects\\Complete Learning Platform\\apps\\api\\temp\\test-export","dryRun":true}
+{"timestamp":"2026-01-24T14:08:07.021Z","node":"root","status":"error","message":"Fatal error: Manifest not found at C:\\Users\\Mohammed\\OneDrive - St Michaël College\\2025-2026\\Wiskunde\\Uitwerkingen\\Projects\\Projects\\Complete Learning Platform\\apps\\api\\temp\\test-export\\export_manifest.json","stack":"Error: Manifest not found at C:\\Users\\Mohammed\\OneDrive - St Michaël College\\2025-2026\\Wiskunde\\Uitwerkingen\\Projects\\Projects\\Complete Learning Platform\\apps\\api\\temp\\test-export\\export_manifest.json\n    at StudyGoImporter.run (C:\\Users\\Mohammed\\OneDrive - St Michaël College\\2025-2026\\Wiskunde\\Uitwerkingen\\Projects\\Projects\\Complete Learning Platform\\apps\\api\\src\\services\\studygo-importer.ts:113:23)\n    at async Command.<anonymous> (C:\\Users\\Mohammed\\OneDrive - St Michaël College\\2025-2026\\Wiskunde\\Uitwerkingen\\Projects\\Projects\\Complete Learning Platform\\apps\\api\\src\\cli\\import-studygo.ts:45:28)"}
+{"timestamp":"2026-01-24T14:12:32.648Z","node":"root","status":"info","message":"Starting StudyGo import","path":"c:\\Users\\Mohammed\\OneDrive - St Michaël College\\2025-2026\\Wiskunde\\Uitwerkingen\\Projects\\Projects\\Complete Learning Platform\\temp\\test-export","dryRun":true}
+{"timestamp":"2026-01-24T14:12:32.656Z","node":"studygo:subject:subj_wiskunde_001","status":"started","message":"Subject: Wiskunde B"}
+{"timestamp":"2026-01-24T14:12:32.657Z","node":"studygo:book:book_getal_ruimte_12","status":"started","message":"Book: Getal & Ruimte 12e Editie"}
+{"timestamp":"2026-01-24T14:12:32.657Z","node":"studygo:chapter:h1-functies","status":"started","message":"Chapter: Hoofdstuk 1: Functies en Grafieken"}
+{"timestamp":"2026-01-24T14:12:32.657Z","node":"studygo:section:s1-1-lineaire-functies","status":"started","message":"Section: 1.1 Lineaire functies"}
+{"timestamp":"2026-01-24T14:12:32.657Z","node":"studygo:leerset:terms_dry-run","status":"started","message":"Terms: 2 items"}
+{"timestamp":"2026-01-24T14:12:32.657Z","node":"studygo:leerset:terms_dry-run","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:12:32.657Z","node":"studygo:doc:h1-functies/s1-1/summary.html","status":"started","message":"Document: Summary"}
+{"timestamp":"2026-01-24T14:12:32.661Z","node":"studygo:doc:h1-functies/s1-1/summary.html","status":"error","message":"File missing: c:\\Users\\Mohammed\\OneDrive - St Michaël College\\2025-2026\\Wiskunde\\Uitwerkingen\\Projects\\Projects\\Complete Learning Platform\\temp\\test-export\\h1-functies\\s1-1\\summary.html","relativePath":"h1-functies/s1-1/summary.html"}
+{"timestamp":"2026-01-24T14:12:32.661Z","node":"studygo:doc:theory_hash_abc123","status":"started","message":"Document: De formule y = ax + b"}
+{"timestamp":"2026-01-24T14:12:32.661Z","node":"studygo:doc:theory_hash_abc123","status":"error","message":"File missing: c:\\Users\\Mohammed\\OneDrive - St Michaël College\\2025-2026\\Wiskunde\\Uitwerkingen\\Projects\\Projects\\Complete Learning Platform\\temp\\test-export\\h1-functies\\s1-1\\theory.html","relativePath":"h1-functies/s1-1/theory.html"}
+{"timestamp":"2026-01-24T14:12:32.662Z","node":"studygo:question:q_001","status":"started","message":"Practice Question"}
+{"timestamp":"2026-01-24T14:12:32.662Z","node":"studygo:question:q_001","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:12:32.662Z","node":"studygo:section:s1-1-lineaire-functies","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:12:32.662Z","node":"studygo:chapter:h1-functies","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:12:32.662Z","node":"studygo:book:book_getal_ruimte_12","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:12:32.662Z","node":"studygo:subject:subj_wiskunde_001","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:12:32.662Z","node":"root","status":"info","message":"Import process finished"}
+{"timestamp":"2026-01-24T14:12:59.984Z","node":"root","status":"info","message":"Starting StudyGo import","path":"c:\\Users\\Mohammed\\OneDrive - St Michaël College\\2025-2026\\Wiskunde\\Uitwerkingen\\Projects\\Projects\\Complete Learning Platform\\temp\\test-export","dryRun":true}
+{"timestamp":"2026-01-24T14:12:59.993Z","node":"studygo:subject:subj_wiskunde_001","status":"started","message":"Subject: Wiskunde B"}
+{"timestamp":"2026-01-24T14:12:59.994Z","node":"studygo:book:book_getal_ruimte_12","status":"started","message":"Book: Getal & Ruimte 12e Editie"}
+{"timestamp":"2026-01-24T14:12:59.994Z","node":"studygo:chapter:h1-functies","status":"started","message":"Chapter: Hoofdstuk 1: Functies en Grafieken"}
+{"timestamp":"2026-01-24T14:12:59.994Z","node":"studygo:section:s1-1-lineaire-functies","status":"started","message":"Section: 1.1 Lineaire functies"}
+{"timestamp":"2026-01-24T14:12:59.994Z","node":"studygo:leerset:terms_dry-run","status":"started","message":"Terms: 2 items"}
+{"timestamp":"2026-01-24T14:12:59.994Z","node":"studygo:leerset:terms_dry-run","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:12:59.994Z","node":"studygo:doc:h1-functies/s1-1/summary.html","status":"started","message":"Document: Summary"}
+{"timestamp":"2026-01-24T14:12:59.998Z","node":"studygo:doc:h1-functies/s1-1/summary.html","status":"info","message":"Asset copied: lineair.png"}
+{"timestamp":"2026-01-24T14:12:59.998Z","node":"studygo:doc:h1-functies/s1-1/summary.html","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:12:59.998Z","node":"studygo:doc:theory_hash_abc123","status":"started","message":"Document: De formule y = ax + b"}
+{"timestamp":"2026-01-24T14:12:59.999Z","node":"studygo:doc:theory_hash_abc123","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:12:59.999Z","node":"studygo:question:q_001","status":"started","message":"Practice Question"}
+{"timestamp":"2026-01-24T14:12:59.999Z","node":"studygo:question:q_001","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:12:59.999Z","node":"studygo:section:s1-1-lineaire-functies","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:12:59.999Z","node":"studygo:chapter:h1-functies","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:12:59.999Z","node":"studygo:book:book_getal_ruimte_12","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:12:59.999Z","node":"studygo:subject:subj_wiskunde_001","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:12:59.999Z","node":"root","status":"info","message":"Import process finished"}
+{"timestamp":"2026-01-24T14:13:17.012Z","node":"root","status":"info","message":"Starting StudyGo import","path":"c:\\Users\\Mohammed\\OneDrive - St Michaël College\\2025-2026\\Wiskunde\\Uitwerkingen\\Projects\\Projects\\Complete Learning Platform\\temp\\test-export","dryRun":false}
+{"timestamp":"2026-01-24T14:13:17.020Z","node":"studygo:subject:subj_wiskunde_001","status":"started","message":"Subject: Wiskunde B"}
+{"timestamp":"2026-01-24T14:13:17.226Z","node":"studygo:subject:subj_wiskunde_001","status":"error","message":"Invalid API key"}
+{"timestamp":"2026-01-24T14:13:17.226Z","node":"root","status":"warn","message":"Coverage gap: processed 0/7 items."}
+{"timestamp":"2026-01-24T14:13:17.226Z","node":"root","status":"info","message":"Import process finished"}
+{"timestamp":"2026-01-24T14:17:44.510Z","node":"root","status":"info","message":"Starting StudyGo import","path":"c:\\Users\\Mohammed\\OneDrive - St Michaël College\\2025-2026\\Wiskunde\\Uitwerkingen\\Projects\\Projects\\Complete Learning Platform\\temp\\test-export","dryRun":true}
+{"timestamp":"2026-01-24T14:17:44.519Z","node":"studygo:subject:subj_wiskunde_001","status":"started","message":"Subject: Wiskunde B"}
+{"timestamp":"2026-01-24T14:17:44.520Z","node":"studygo:book:book_getal_ruimte_12","status":"started","message":"Book: Getal & Ruimte 12e Editie"}
+{"timestamp":"2026-01-24T14:17:44.520Z","node":"studygo:chapter:h1-functies","status":"started","message":"Chapter: Hoofdstuk 1: Functies en Grafieken"}
+{"timestamp":"2026-01-24T14:17:44.520Z","node":"studygo:section:s1-1-lineaire-functies","status":"started","message":"Section: 1.1 Lineaire functies"}
+{"timestamp":"2026-01-24T14:17:44.520Z","node":"studygo:leerset:terms_dry-run","status":"started","message":"Terms: 2 items"}
+{"timestamp":"2026-01-24T14:17:44.520Z","node":"studygo:leerset:terms_dry-run","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:17:44.520Z","node":"studygo:doc:h1-functies/s1-1/summary.html","status":"started","message":"Document: Summary"}
+{"timestamp":"2026-01-24T14:17:44.525Z","node":"studygo:doc:h1-functies/s1-1/summary.html","status":"info","message":"Asset copied: lineair.png"}
+{"timestamp":"2026-01-24T14:17:44.525Z","node":"studygo:doc:h1-functies/s1-1/summary.html","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:17:44.525Z","node":"studygo:doc:theory_hash_abc123","status":"started","message":"Document: De formule y = ax + b"}
+{"timestamp":"2026-01-24T14:17:44.525Z","node":"studygo:doc:theory_hash_abc123","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:17:44.525Z","node":"studygo:question:q_001","status":"started","message":"Practice Question"}
+{"timestamp":"2026-01-24T14:17:44.526Z","node":"studygo:question:q_001","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:17:44.526Z","node":"studygo:section:s1-1-lineaire-functies","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:17:44.526Z","node":"studygo:chapter:h1-functies","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:17:44.526Z","node":"studygo:book:book_getal_ruimte_12","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:17:44.526Z","node":"studygo:subject:subj_wiskunde_001","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:17:44.526Z","node":"root","status":"info","message":"Import process finished. Processed 8/8 items."}
+{"timestamp":"2026-01-24T14:20:36.032Z","node":"root","status":"info","message":"Starting StudyGo import","path":"c:\\Users\\Mohammed\\OneDrive - St Michaël College\\2025-2026\\Wiskunde\\Uitwerkingen\\Projects\\Projects\\Complete Learning Platform\\temp\\test-export","dryRun":true}
+{"timestamp":"2026-01-24T14:20:36.043Z","node":"studygo:subject:subj_wiskunde_001","status":"started","message":"Subject: Wiskunde B"}
+{"timestamp":"2026-01-24T14:20:36.044Z","node":"studygo:book:book_getal_ruimte_12","status":"started","message":"Book: Getal & Ruimte 12e Editie"}
+{"timestamp":"2026-01-24T14:20:36.044Z","node":"studygo:chapter:h1-functies","status":"started","message":"Chapter: Hoofdstuk 1: Functies en Grafieken"}
+{"timestamp":"2026-01-24T14:20:36.044Z","node":"studygo:section:s1-1-lineaire-functies","status":"started","message":"Section: 1.1 Lineaire functies"}
+{"timestamp":"2026-01-24T14:20:36.044Z","node":"studygo:leerset:terms_dry-run","status":"started","message":"Terms: 2 items"}
+{"timestamp":"2026-01-24T14:20:36.044Z","node":"studygo:leerset:terms_dry-run","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:20:36.044Z","node":"studygo:doc:h1-functies/s1-1/summary.html","status":"started","message":"Document: Summary"}
+{"timestamp":"2026-01-24T14:20:36.045Z","node":"studygo:doc:h1-functies/s1-1/summary.html","status":"info","message":"Asset copied: lineair.png"}
+{"timestamp":"2026-01-24T14:20:36.045Z","node":"studygo:doc:h1-functies/s1-1/summary.html","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:20:36.045Z","node":"studygo:doc:theory_hash_abc123","status":"started","message":"Document: De formule y = ax + b"}
+{"timestamp":"2026-01-24T14:20:36.046Z","node":"studygo:doc:theory_hash_abc123","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:20:36.046Z","node":"studygo:question:q_001","status":"started","message":"Practice Question"}
+{"timestamp":"2026-01-24T14:20:36.046Z","node":"studygo:question:q_001","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:20:36.046Z","node":"studygo:section:s1-1-lineaire-functies","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:20:36.046Z","node":"studygo:chapter:h1-functies","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:20:36.046Z","node":"studygo:book:book_getal_ruimte_12","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:20:36.046Z","node":"studygo:subject:subj_wiskunde_001","status":"completed","message":"Success"}
+{"timestamp":"2026-01-24T14:20:36.046Z","node":"root","status":"info","message":"Import process finished. Processed 8/8 items."}

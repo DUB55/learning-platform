@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+// removed unused supabase import
 
 export interface AIMessage {
     role: 'user' | 'assistant' | 'system';
@@ -20,8 +20,8 @@ class Dub5AIService {
         input: string,
         options: {
             task?: string;
-            params?: any;
-            context?: any[];
+            params?: Record<string, unknown>;
+            context?: AIMessage[];
             onChunk?: (content: string) => void;
         } = {}
     ): Promise<string> {
@@ -77,16 +77,16 @@ class Dub5AIService {
                             if (onChunk) onChunk(content);
                         }
                         // We can handle 'meta', 'file', 'action' here in the future
-                    } catch (e) {
-                        console.warn('Error parsing SSE JSON:', e);
+                    } catch (_e) {
+                        // Silently handle parse errors
                     }
                 }
             }
 
             return fullContent;
-        } catch (error: any) {
-            console.error('Dub5 AI Request Error:', error);
-            throw error;
+        } catch (error: unknown) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            throw err;
         }
     }
 
@@ -104,10 +104,10 @@ class Dub5AIService {
             });
 
             return { content };
-        } catch (error: any) {
+        } catch (error: unknown) {
             return {
                 content: '',
-                error: error.message || 'Failed to communicate with AI'
+                error: error instanceof Error ? error.message : 'Failed to communicate with AI'
             };
         }
     }
@@ -127,8 +127,7 @@ class Dub5AIService {
             // Clean up the result in case it contains markdown code blocks
             const cleanResult = result.replace(/```json/g, '').replace(/```/g, '').trim();
             return JSON.parse(cleanResult);
-        } catch (error) {
-            console.error('Failed to parse learning set:', error);
+        } catch (_error) {
             throw new Error('Failed to generate learning set');
         }
     }
@@ -136,7 +135,7 @@ class Dub5AIService {
     /**
      * Generates a study plan JSON
      */
-    async generateStudyPlan(goal: string, schedule: string): Promise<any> {
+    async generateStudyPlan(goal: string, schedule: string): Promise<{ title: string; events: Array<{ title: string; start_time: string; end_time: string; description: string }> }> {
         const now = new Date().toISOString();
         const prompt = `Create a study plan for the goal: "${goal}" with this schedule availability: "${schedule}". 
         Current date is ${now}.
@@ -158,9 +157,8 @@ class Dub5AIService {
             });
 
             const cleanResult = result.replace(/```json/g, '').replace(/```/g, '').trim();
-            return JSON.parse(cleanResult);
-        } catch (error) {
-            console.error('Failed to generate study plan:', error);
+            return JSON.parse(cleanResult) as { title: string; events: Array<{ title: string; start_time: string; end_time: string; description: string }> };
+        } catch (_error) {
             throw new Error('Failed to generate study plan');
         }
     }
@@ -168,7 +166,7 @@ class Dub5AIService {
     /**
      * Generates a practice test JSON
      */
-    async generatePracticeTest(context: string, topic: string): Promise<{ title: string; questions: any[] }> {
+    async generatePracticeTest(context: string, topic: string): Promise<{ title: string; questions: Array<{ question_text: string; question_type: 'multiple_choice' | 'true_false' | 'short_answer'; options?: string[]; correct_answer: string; explanation: string }> }> {
         const prompt = `Create a practice test about "${topic}" based on the following text: "${context.slice(0, 4000)}". 
         Return ONLY a raw JSON object with:
         1. "title": string
@@ -187,9 +185,8 @@ class Dub5AIService {
             });
 
             const cleanResult = result.replace(/```json/g, '').replace(/```/g, '').trim();
-            return JSON.parse(cleanResult);
-        } catch (error) {
-            console.error('Failed to generate practice test:', error);
+            return JSON.parse(cleanResult) as { title: string; questions: Array<{ question_text: string; question_type: 'multiple_choice' | 'true_false' | 'short_answer'; options?: string[]; correct_answer: string; explanation: string }> };
+        } catch (_error) {
             throw new Error('Failed to generate practice test');
         }
     }
@@ -197,7 +194,7 @@ class Dub5AIService {
     /**
      * Generates a PowerPoint presentation JSON
      */
-    async generatePresentation(topic: string, context?: string): Promise<{ title: string; slides: any[] }> {
+    async generatePresentation(topic: string, context?: string): Promise<{ title: string; slides: Array<{ title: string; subtitle?: string; content: string[]; image_prompt?: string; type: 'title' | 'content' | 'section' }> }> {
         const contextText = context ? `Context: ${context.slice(0, 3000)}` : '';
         const prompt = `Create a PowerPoint presentation about "${topic}". ${contextText}
         Return ONLY a raw JSON object with:
@@ -220,9 +217,8 @@ class Dub5AIService {
             });
 
             const cleanResult = result.replace(/```json/g, '').replace(/```/g, '').trim();
-            return JSON.parse(cleanResult);
-        } catch (error) {
-            console.error('Failed to generate presentation:', error);
+            return JSON.parse(cleanResult) as { title: string; slides: Array<{ title: string; subtitle?: string; content: string[]; image_prompt?: string; type: 'title' | 'content' | 'section' }> };
+        } catch (_error) {
             throw new Error('Failed to generate presentation');
         }
     }
@@ -251,12 +247,201 @@ class Dub5AIService {
                 params: { type }
             });
             return result;
-        } catch (error) {
-            console.error('Failed to generate summary:', error);
+        } catch (_error) {
             throw new Error('Failed to generate summary');
         }
     }
-}
 
+    /**
+     * Generates an Explainer Video Script
+     */
+    async generateExplainerScript(topic: string, durationMinutes: number, material?: string): Promise<any> {
+        const materialContext = material ? `Based on this reference material: "${material.slice(0, 4000)}"` : '';
+        const prompt = `Create a detailed educational video script about "${topic}". ${materialContext}
+        The video should be approximately ${durationMinutes} minutes long.
+        Return ONLY a raw JSON object with the following structure:
+        {
+          "title": "string",
+          "duration": number (total seconds),
+          "segments": [
+            {
+              "startTime": number (seconds),
+              "endTime": number (seconds),
+              "text": "The full spoken text for this segment",
+              "visualAction": "show_slide" | "show_bullet" | "show_quote" | "show_definition" | "show_image",
+              "visualData": {
+                "title": "Optional Title",
+                "content": ["Optional bullet points"],
+                "highlight": "Optional quote text",
+                "author": "Optional author name for quote",
+                "term": "Optional term for definition",
+                "definition": "Optional definition text",
+                "imageUrl": "Optional image URL (leave empty for placeholder)"
+              }
+            }
+          ]
+        }
+        Ensure the segments cover the entire duration and have a logical educational flow.
+        IMPORTANT: Return ONLY the JSON, no markdown, no explanations.`;
+
+        try {
+            const result = await this.streamRequest(prompt, {
+                task: 'script_generation',
+                params: { duration: durationMinutes, hasMaterial: !!material }
+            });
+
+            const cleanResult = result.replace(/```json/g, '').replace(/```/g, '').trim();
+            return JSON.parse(cleanResult);
+        } catch (error) {
+            throw new Error('Failed to generate explainer script');
+        }
+    }
+
+    /**
+     * Generates a 3D Scene Orchestration Script for Imagine Explainers Optie B
+     */
+    async generate3DSceneScript(topic: string, durationMinutes: number, material?: string): Promise<any> {
+        const materialContext = material ? `Based on this reference material: "${material.slice(0, 4000)}"` : '';
+        const prompt = `Create a 3D educational scene orchestration script about "${topic}". ${materialContext}
+        The experience should be approximately ${durationMinutes} minutes long.
+        
+        Return ONLY a raw JSON object with the following structure:
+        {
+          "title": "string",
+          "settings": {
+            "environment": "empty" | "city" | "forest" | "jungle" | "mountains" | "ocean",
+            "weather": "none" | "rain" | "snow" | "sun" | "storm",
+            "timeOfDay": number (0-24),
+            "groundType": "grass" | "snow" | "sand" | "concrete" | "dirt" | "water"
+          },
+          "initialObjects": [
+            {
+              "type": "model" | "character" | "car" | "house" | "tree" | "building" | "fence" | "rock" | "crate" | "lamp" | "flower" | "bush" | "mushroom" | "skyscraper" | "bridge" | "fountain" | "bench" | "barrel" | "chest",
+              "position": [x, y, z],
+              "rotation": [x, y, z],
+              "scale": [x, y, z],
+              "color": "string (hex)"
+            }
+          ],
+          "timeline": [
+            {
+              "startTime": number (seconds),
+              "endTime": number (seconds),
+              "narration": "The spoken explanation text",
+              "cameraAction": {
+                "type": "move" | "lookAt" | "orbit" | "follow",
+                "position": [x, y, z],
+                "target": [x, y, z] | "string (object id)"
+              },
+              "visualEvents": [
+                {
+                  "type": "spawn" | "animate" | "highlight" | "destroy" | "speech_bubble",
+                  "objectId": "string",
+                  "params": {
+                    "animation": "idle" | "walk" | "run" | "jump" | "wave",
+                    "color": "string",
+                    "text": "string (for speech bubble)"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+        
+        Ensure the script creates a rich, educational 3D environment that evolves with the narration.
+        IMPORTANT: Return ONLY the JSON, no markdown, no explanations.`;
+
+        try {
+            const result = await this.streamRequest(prompt, {
+                task: 'scene_orchestration',
+                params: { duration: durationMinutes, hasMaterial: !!material }
+            });
+
+            const cleanResult = result.replace(/```json/g, '').replace(/```/g, '').trim();
+            return JSON.parse(cleanResult);
+        } catch (error) {
+            throw new Error('Failed to generate 3D scene script');
+        }
+    }
+
+    /**
+     * Executes a magic command for the Game Maker (e.g., "place a car", "make it rain")
+     */
+    async executeMagicCommand(command: string): Promise<any> {
+        const prompt = `You are a 3D Game Maker Assistant. Execute the following command: "${command}".
+        Return ONLY a raw JSON object with one or more of these properties:
+        1. "spawn": array of objects to add, each having:
+           - "type": "model" | "character" | "car" | "house" | "tree" | "building" | "fence" | "rock" | "crate" | "lamp" | "flower" | "bush" | "mushroom" | "skyscraper" | "bridge" | "fountain" | "bench" | "barrel" | "chest"
+           - "position": [x, y, z] (keep them near [0, 0, 0] if not specified, spaced out if multiple)
+           - "rotation": [x, y, z]
+           - "scale": [x, y, z]
+           - "color": "string (hex)"
+        2. "settings": object with world updates:
+           - "environment": "empty" | "city" | "forest" | "jungle" | "mountains" | "ocean"
+           - "weather": "none" | "rain" | "snow" | "sun" | "storm"
+           - "timeOfDay": number (0-24)
+           - "groundType": "grass" | "snow" | "sand" | "concrete" | "dirt" | "water"
+        3. "message": string (confirmation message to the user)
+        
+        Example: "place 3 trees and make it night" -> { "spawn": [...3 trees...], "settings": { "timeOfDay": 22 }, "message": "Created 3 trees and set the time to night." }
+        
+        IMPORTANT: Return ONLY the JSON, no markdown.`;
+
+        try {
+            const result = await this.streamRequest(prompt, {
+                task: 'magic_command',
+                params: { format: 'json' }
+            });
+
+            const cleanResult = result.replace(/```json/g, '').replace(/```/g, '').trim();
+            return JSON.parse(cleanResult);
+        } catch (error) {
+            throw new Error('Failed to execute magic command');
+        }
+    }
+    /**
+     * Synthesizes information from multiple text documents
+     */
+    async synthesizeDocuments(documents: Array<{ title: string, content: string }>): Promise<string> {
+        const context = documents.map(doc => `Document: ${doc.title}\nContent: ${doc.content}`).join('\n\n');
+        const prompt = `Synthesize the following documents into a single, cohesive educational summary. Identify common themes, conflicting information, and key takeaways across all sources. 
+        Documents:
+        ${context.slice(0, 10000)}
+        
+        Format the response in Markdown with clear sections.`;
+
+        try {
+            const result = await this.streamRequest(prompt, {
+                task: 'synthesis',
+                params: { docCount: documents.length }
+            });
+            return result;
+        } catch (_error) {
+            throw new Error('Failed to synthesize documents');
+        }
+    }
+
+    /**
+     * Generates active recall cues from content
+     */
+    async generateActiveRecallCues(content: string): Promise<Array<{ question: string, hint: string }>> {
+        const prompt = `Based on the following content, generate 5 challenging active recall questions that test deep understanding rather than simple memorization. Provide a subtle hint for each.
+        Content: ${content.slice(0, 5000)}
+        
+        Return ONLY a raw JSON array of objects with "question" and "hint" keys.`;
+
+        try {
+            const result = await this.streamRequest(prompt, {
+                task: 'recall',
+                params: { format: 'json' }
+            });
+
+            const cleanResult = result.replace(/```json/g, '').replace(/```/g, '').trim();
+            return JSON.parse(cleanResult);
+        } catch (_error) {
+            throw new Error('Failed to generate active recall cues');
+        }
+    }
+}
 
 export const dub5ai = new Dub5AIService();

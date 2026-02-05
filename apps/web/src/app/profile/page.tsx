@@ -6,51 +6,56 @@ import { useRouter } from 'next/navigation';
 
 import { User, Mail, Calendar, Trophy, Flame, TrendingUp, Award, Zap, Camera } from 'lucide-react';
 import { xpService, UserXP, Achievement, UserAchievement } from '@/lib/xpService';
+import { useUserXP } from '@/contexts/UserXPContext';
 import ProfilePictureModal from '@/components/ProfilePictureModal';
+import ErrorLogger from '@/lib/ErrorLogger';
 
 export default function ProfilePage() {
-    const { user, profile, loading: authLoading } = useAuth();
+    const { user, profile, loading: authLoading, refreshProfile } = useAuth();
+    const { userXP: contextUserXP, xpProgress: contextXpProgress, xpForNext } = useUserXP();
     const router = useRouter();
 
-    const [userXP, setUserXP] = useState<UserXP | null>(null);
     const [achievements, setAchievements] = useState<UserAchievement[]>([]);
     const [allAchievements, setAllAchievements] = useState<Achievement[]>([]);
     const [loading, setLoading] = useState(true);
     const [showProfileModal, setShowProfileModal] = useState(false);
 
     useEffect(() => {
+        const controller = new AbortController();
         if (!authLoading && !user) {
             router.push('/login');
         }
         if (user) {
-            fetchGamificationData();
+            fetchGamificationData(controller.signal);
         }
+        return () => controller.abort();
     }, [user, authLoading, router]);
 
-    const fetchGamificationData = async () => {
+    const fetchGamificationData = async (signal?: AbortSignal) => {
         if (!user) return;
 
         try {
-            const [xpData, userAchs, allAchs] = await Promise.all([
-                xpService.getUserXP(user.id),
-                xpService.getUserAchievements(user.id),
-                xpService.getAllAchievements()
+            const [userAchs, allAchs] = await Promise.all([
+                xpService.getUserAchievements(user.id, signal),
+                xpService.getAllAchievements(signal)
             ]);
 
-            setUserXP(xpData);
             setAchievements(userAchs);
             setAllAchievements(allAchs);
-        } catch (error) {
-            console.error('Error fetching gamification data:', error);
+        } catch (error: any) {
+            if (error.name === 'AbortError') return;
+            ErrorLogger.error('Error fetching gamification data:', error);
         } finally {
             setLoading(false);
         }
     };
 
     const handleProfileUpdate = () => {
-        window.location.reload();
+        refreshProfile();
     };
 
+    const userXP = contextUserXP;
+    
     if (authLoading || loading) {
         return (
             <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
@@ -59,8 +64,7 @@ export default function ProfilePage() {
         );
     }
 
-    const xpForNext = userXP ? xpService.xpForNextLevel(userXP.level) : 100;
-    const xpProgress = userXP ? ((userXP.total_xp % xpForNext) / xpForNext) * 100 : 0;
+    const xpProgress = contextXpProgress;
     const unlockedIds = new Set(achievements.map(a => a.achievement_id));
 
     return (

@@ -1,0 +1,7 @@
+{
+    "contract_version": "v1",
+    "structure_version": "1.0.0",
+    "compatible_importers": [
+        "v1.*"
+    ]
+}
